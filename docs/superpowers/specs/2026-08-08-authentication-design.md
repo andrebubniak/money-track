@@ -9,7 +9,8 @@ Add authentication to MoneyTrack: email/password registration and login, Google
 sign-in, and a protected page that proves the whole thing works end to end.
 
 This is the first feature that touches the database, so it also ships the
-project's initial Prisma migration.
+project's initial Prisma migration — and the first with tests, so it stands up
+the Vitest and Playwright infrastructure the rest of the app will use.
 
 ## Goals
 
@@ -273,8 +274,11 @@ pending, and the signed-in dashboard.
 
 ## Dependencies
 
-New packages: `better-auth`, `@better-auth/prisma-adapter`, `react-hook-form`,
-`zod`, `@hookform/resolvers`.
+Runtime: `better-auth`, `react-hook-form`, `zod`, `@hookform/resolvers`.
+
+Testing: `vitest`, `@vitejs/plugin-react`, `vite-tsconfig-paths`, `jsdom`,
+`@testing-library/react`, `@testing-library/jest-dom`,
+`@testing-library/user-event`, `@playwright/test`.
 
 New shadcn components: `card`, `input`, `label`, `form`, `alert`, `separator`.
 `button` already exists.
@@ -284,8 +288,9 @@ New shadcn components: `card`, `input`, `label`, `form`, `alert`, `separator`.
 Already present: `DATABASE_URL`, `GOOGLE_OAUTH_CLIENT_ID`,
 `GOOGLE_OAUTH_CLIENT_SECRET`.
 
-To be added: `BETTER_AUTH_SECRET` (generated during implementation) and
-`BETTER_AUTH_URL=http://localhost:3000`.
+To be added: `BETTER_AUTH_SECRET` (generated during implementation),
+`BETTER_AUTH_URL=http://localhost:3000`, and `DATABASE_URL_TEST` pointing at a
+separate Postgres database used only by the end-to-end suite.
 
 **External setup, which cannot be automated:** the Google Cloud Console OAuth
 client must list `http://localhost:3000/api/auth/callback/google` as an
@@ -295,11 +300,63 @@ until it does.
 `DATABASE_URL` must point at a reachable Postgres instance, because the initial
 migration has to actually run.
 
-## Verification
+## Testing
 
-This repository has no test framework, and adding one is a separate decision.
-Verification for this feature is manual, against `/dashboard`, following this
-checklist:
+This feature introduces the project's test infrastructure. Two layers.
+
+### Unit — Vitest
+
+Specs sit **next to the file they test**: `login-form.tsx` is tested by
+`login-form.spec.tsx` in the same directory. jsdom environment, React Testing
+Library, user-event for interaction.
+
+Seven spec files, covering every module that contains a branch:
+
+| Spec | Covers |
+| --- | --- |
+| `src/lib/validations/auth.spec.ts` | Both zod schemas — every rule, trimming, lowercasing, the confirm-password refinement |
+| `src/lib/auth-errors.spec.ts` | Each mapped code, the fallback, `undefined`/`null` input |
+| `src/components/auth/login-form.spec.tsx` | Field errors, server error rendering, pending state, redirect on success |
+| `src/components/auth/register-form.spec.tsx` | Same, plus the confirm-password mismatch |
+| `src/components/auth/google-button.spec.tsx` | Calls `signIn.social` with the right provider and callback, pending label, recovery on error |
+| `src/components/auth/sign-out-button.spec.tsx` | Calls `signOut`, then redirects |
+| `src/proxy.spec.ts` | Redirects without a cookie, passes through with one |
+
+`src/lib/auth.ts` gets no spec — it is pure configuration with no branches, and
+asserting the shape of a config object only restates the source. The async
+server component pages get no specs either; end-to-end covers them properly,
+and RSC unit testing would be fragile for no additional signal.
+
+`authClient` and `next/navigation` are mocked with `vi.hoisted` + `vi.mock` in
+the specs that need them.
+
+### End-to-end — Playwright
+
+One file per user flow, in an `e2e/` directory at the project root:
+
+| File | Flow |
+| --- | --- |
+| `e2e/registration.spec.ts` | Register → land on dashboard → duplicate email rejected → field validation |
+| `e2e/login.spec.ts` | Sign in → dashboard; wrong password and unknown email both rejected identically |
+| `e2e/logout.spec.ts` | Sign out → redirected → session no longer valid |
+| `e2e/route-protection.spec.ts` | `/dashboard` signed out redirects; `/login` and `/register` signed in redirect |
+| `e2e/google-sign-in.spec.ts` | Clicking Google sends the browser to `accounts.google.com` with the correct `client_id` and `redirect_uri` |
+
+**Database.** The suite runs against `DATABASE_URL_TEST`, a database separate
+from development. Global setup applies migrations with `prisma migrate deploy`
+and truncates all tables, so every run starts from a known-empty state. The
+dev database is never touched.
+
+**Google.** The e2e test asserts the redirect *into* Google and stops there. It
+does not complete the consent flow: Google blocks automated browsers, so a full
+round trip would be flaky rather than informative. Completing a real Google
+sign-in — and the account-linking behaviour that follows — stays on the manual
+checklist below.
+
+## Manual verification
+
+Automated tests do not cover the Google round trip or dark-mode rendering.
+After the suites pass, walk this checklist:
 
 1. Register a new account → lands on `/dashboard` showing `Signed in (name)`.
 2. Sign out → redirected to `/login`.
@@ -317,11 +374,12 @@ checklist:
 10. Visit `/login` while signed in → redirected to `/dashboard`.
 11. Render both screens under `.dark`.
 
-Plus: `npx tsc --noEmit` and `npm run build` both clean.
+Items 1–6 and 9–10 are also covered automatically by the Playwright suite;
+re-walking them by hand is a sanity check, not the primary evidence. Items 7,
+8, and 11 are the ones only a human can confirm.
 
-If automated tests are wanted, the zod schemas and the error-code mapping are
-the two pieces worth covering, and Vitest would be the natural choice. That is
-not part of this spec.
+Plus: `npm test`, `npm run test:e2e`, `npx tsc --noEmit`, and `npm run build`
+all clean.
 
 ## Risks
 

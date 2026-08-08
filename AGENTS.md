@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Project conventions
+
+The project conventions are defined by subject on `.claude/rules`. **Before changing code of one of this subjects, read the corresponding file**
+
+| File                                                     | When to read                               |
+| -------------------------------------------------------- | ------------------------------------------ |
+| [commit-guideline.md](.claude/rules/commit-guideline.md) | You need to commit/push any changes on git |

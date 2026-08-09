@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import type { ComponentProps } from "react";
+import { createPortal } from "react-dom";
 
 import { FullscreenLoader } from "@/components/ui/fullscreen-loader";
 
@@ -13,9 +14,12 @@ function PendingOverlay() {
   const { pending } = useLinkStatus();
   if (!pending) return null;
 
-  // pointer-events-none: this overlay is a descendant of the anchor, so a
-  // click landing on it would re-trigger the same navigation.
-  return <FullscreenLoader className="pointer-events-none" />;
+  // Portalled to <body> rather than rendered in place. Links routinely sit
+  // inside a <p> — "Don't have an account? Sign up" — and a <div> inside a
+  // <p> is invalid HTML that React 19 rejects with a hydration error. The
+  // portal also lifts the overlay out of any ancestor's stacking or overflow
+  // context, and stops a click on it from re-triggering its own anchor.
+  return createPortal(<FullscreenLoader />, document.body);
 }
 
 /**

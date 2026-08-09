@@ -46,6 +46,32 @@ complete quickly finish before it is ever visible.
 Do not remove that delay. An overlay that flickers on every fast navigation is
 worse than no overlay.
 
+## Inside the app shell, prefer a skeleton over the overlay
+
+The full-screen overlay is right when the whole page is being replaced —
+signed-out pages, and the transitions into and out of the app. It is **wrong**
+for navigation *within* the authenticated shell.
+
+Once the sidebar is on screen, covering it with an opaque overlay throws away
+the user's sense of place on every click, and makes a 300ms navigation feel
+like a page load. Inside the shell:
+
+- Add a `loading.tsx` to the segment, rendering a **skeleton that matches that
+  page's real layout** — same headings, same card and table shapes, same
+  column count. Use `Skeleton` from `@/components/ui/skeleton`.
+- The skeleton renders inside `SidebarInset`, so the sidebar stays put,
+  interactive, and correct. Only the content area changes.
+- Do **not** use `AppLink` for sidebar navigation; a plain `next/link` is
+  right, because the segment's `loading.tsx` already covers it. `AppLink` is
+  for entering the shell, not for moving around inside it.
+
+A skeleton that does not match the real layout is worse than a spinner: the
+content jumps when it arrives. If you cannot mirror the layout closely, use a
+centred spinner in the content area instead.
+
+Rule of thumb: **overlay when the shell changes, skeleton when only the
+content changes.**
+
 ## Adding a new route
 
 1. If a segment needs a different loading treatment — a skeleton matching its

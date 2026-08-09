@@ -250,6 +250,15 @@ if (!testDatabaseUrl) {
   );
 }
 
+// Global setup TRUNCATEs every table. If the two URLs ever point at the same
+// database, that wipes development data with no warning. Fail closed.
+if (testDatabaseUrl === process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL_TEST is identical to DATABASE_URL. The e2e suite truncates " +
+      "all tables — refusing to run against the development database.",
+  );
+}
+
 export default defineConfig({
   testDir: "./e2e",
   // These tests share one database and one dev server, so they run serially.
@@ -2272,7 +2281,11 @@ export const TEST_PASSWORD = "hunter2hunter2";
 
 let counter = 0;
 
-/** Unique per call, so parallel or repeated runs never collide. */
+/**
+ * Unique per call, so repeated runs never collide. The counter is
+ * process-local; the suite runs single-worker (`workers: 1`), so that is
+ * sufficient today. Add `process.pid` before enabling parallel workers.
+ */
 export function uniqueEmail(prefix = "user"): string {
   counter += 1;
   return `${prefix}-${Date.now()}-${counter}@moneytrack.test`;
@@ -2346,7 +2359,10 @@ test.describe("registration", () => {
     await expect(page).toHaveURL("/register");
   });
 
-  test("shows field errors and sends no request when empty", async ({ page }) => {
+  // Named for what it actually checks. Proving no network request was sent
+  // belongs at the unit level, where register-form.spec.tsx already asserts
+  // signUpEmail was not called.
+  test("shows field errors and stays put when empty", async ({ page }) => {
     await page.goto("/register");
     await page.getByRole("button", { name: "Create account" }).click();
 
@@ -2374,7 +2390,13 @@ test.describe("registration", () => {
     await registerUser(page, { email });
 
     await expect(page).toHaveURL("/dashboard");
-    await expect(page.getByText(email.toLowerCase())).toBeVisible();
+    // `exact: true` is load-bearing. Playwright's getByText defaults to
+    // case-INSENSITIVE substring matching, which would match the uppercase
+    // email too — making this assertion pass whether or not normalisation
+    // happens, i.e. testing nothing.
+    await expect(
+      page.getByText(email.toLowerCase(), { exact: true }),
+    ).toBeVisible();
   });
 });
 ```

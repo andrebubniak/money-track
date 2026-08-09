@@ -100,6 +100,20 @@ describe("proxy", () => {
 
       expect(response.headers.get("location")).toBeNull();
     });
+
+    it("carries the NEXT_LOCALE cookie next-intl set onto the login redirect", () => {
+      // A request with no incoming NEXT_LOCALE cookie has nothing for
+      // next-intl to confirm against, so it syncs one matching the
+      // URL's locale on every such response — including this exact
+      // no-cookie shape, which is why the redirect above already carries
+      // it in practice. Losing it here would force renegotiation on the
+      // very next request.
+      getSessionCookie.mockReturnValue(null);
+
+      const response = proxy(request("/de-DE/dashboard"));
+
+      expect(response.cookies.get("NEXT_LOCALE")?.value).toBe("de-DE");
+    });
   });
 
   it("skips API routes, Next internals, and files", () => {

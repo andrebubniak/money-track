@@ -36,6 +36,9 @@ describe("GoogleButton", () => {
     expect(signInSocial).toHaveBeenCalledWith({
       provider: "google",
       callbackURL: "/dashboard",
+      // Keeps a refused link inside the app instead of on better-auth's
+      // unstyled error page.
+      errorCallbackURL: "/login",
     });
   });
 

@@ -16,6 +16,10 @@ export function GoogleButton() {
       const { error } = await authClient.signIn.social({
         provider: "google",
         callbackURL: "/dashboard",
+        // Keep failures inside the app. Without this, a refused link lands on
+        // better-auth's unstyled /api/auth/error page with no way back.
+        // AuthErrorDialog picks the reason up from ?error=.
+        errorCallbackURL: "/login",
       });
       if (error) setPending(false);
     } catch {

@@ -2,21 +2,21 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { signOut, push, refresh } = vi.hoisted(() => ({
+const { signOut, replace, refresh } = vi.hoisted(() => ({
   signOut: vi.fn(),
-  push: vi.fn(),
+  replace: vi.fn(),
   refresh: vi.fn(),
 }));
 
 vi.mock("@/lib/auth-client", () => ({ authClient: { signOut } }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
 describe("SignOutButton", () => {
   beforeEach(() => {
     signOut.mockReset();
-    push.mockReset();
+    replace.mockReset();
     refresh.mockReset();
     signOut.mockResolvedValue({});
   });
@@ -33,7 +33,7 @@ describe("SignOutButton", () => {
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
     await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
-    expect(push).toHaveBeenCalledWith("/login");
+    expect(replace).toHaveBeenCalledWith("/login");
     expect(refresh).toHaveBeenCalled();
   });
 
@@ -44,7 +44,7 @@ describe("SignOutButton", () => {
 
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
-    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("disables itself while signing out", async () => {
@@ -67,6 +67,6 @@ describe("SignOutButton", () => {
     // The session may still be live, so redirecting would falsely imply
     // the user is signed out.
     expect(await screen.findByRole("button", { name: /^sign out$/i })).toBeEnabled();
-    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 });

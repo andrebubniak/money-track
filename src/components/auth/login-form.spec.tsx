@@ -2,9 +2,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { signInEmail, push, refresh } = vi.hoisted(() => ({
+const { signInEmail, replace, refresh } = vi.hoisted(() => ({
   signInEmail: vi.fn(),
-  push: vi.fn(),
+  replace: vi.fn(),
   refresh: vi.fn(),
 }));
 
@@ -13,7 +13,7 @@ vi.mock("@/lib/auth-client", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, refresh }),
+  useRouter: () => ({ replace, refresh }),
 }));
 
 import { LoginForm } from "@/components/auth/login-form";
@@ -21,7 +21,7 @@ import { LoginForm } from "@/components/auth/login-form";
 describe("LoginForm", () => {
   beforeEach(() => {
     signInEmail.mockReset();
-    push.mockReset();
+    replace.mockReset();
     refresh.mockReset();
     signInEmail.mockResolvedValue({ error: null });
   });
@@ -73,7 +73,7 @@ describe("LoginForm", () => {
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard"));
     expect(refresh).toHaveBeenCalled();
   });
 
@@ -88,7 +88,7 @@ describe("LoginForm", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Incorrect email or password.");
-    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("falls back for an unrecognised server error", async () => {
@@ -117,7 +117,7 @@ describe("LoginForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Something went wrong. Please try again.",
     );
-    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("clears a previous error when resubmitting", async () => {

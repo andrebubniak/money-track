@@ -22,7 +22,7 @@ export function SignOutButton() {
       setPending(false);
       return;
     }
-    router.push("/login");
+    router.replace("/login");
     router.refresh();
   }
 

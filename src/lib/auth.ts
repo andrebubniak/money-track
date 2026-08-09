@@ -32,6 +32,10 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_OAUTH_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET as string,
+      // Always show the account chooser. Without this Google silently
+      // reuses whichever account is already signed in, which is wrong on a
+      // shared machine and makes switching accounts impossible.
+      prompt: "select_account",
     },
   },
 
@@ -67,6 +71,18 @@ export const auth = betterAuth({
       numberFormat: { type: "string", required: false, input: false },
       dateFormat: { type: "string", required: false, input: false },
     },
+  },
+
+  onAPIError: {
+    // Send every auth failure to our own login page instead of better-auth's
+    // unstyled /api/auth/error. The error slug arrives as ?error= and
+    // AuthErrorDialog explains it.
+    //
+    // This matters most for a stale OAuth flow: going Back into a finished
+    // Google sign-in replays a callback whose state cookie is already spent,
+    // producing `state_mismatch`. Without this the user lands on a raw error
+    // page outside the app with no way home.
+    errorURL: "/login",
   },
 
   hooks: {

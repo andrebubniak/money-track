@@ -50,7 +50,9 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
+    // `replace`, not `push`: the auth page must not stay in the history
+    // stack, or Back returns the user to a form they have finished with.
+    router.replace("/dashboard");
     router.refresh();
   }
 

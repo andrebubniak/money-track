@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AccountNotLinkedDialog } from "@/components/auth/account-not-linked-dialog";
+import { AuthErrorDialog } from "@/components/auth/auth-error-dialog";
 
 import {
   Card,
@@ -25,7 +25,7 @@ export default async function LoginPage() {
     <>
       {/* Suspense because the dialog reads searchParams on the client. */}
       <Suspense fallback={null}>
-        <AccountNotLinkedDialog />
+        <AuthErrorDialog />
       </Suspense>
 
       <Card className="w-full max-w-100">

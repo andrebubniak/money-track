@@ -12,34 +12,27 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => searchParams,
 }));
 
-import { AccountNotLinkedDialog } from "@/components/auth/account-not-linked-dialog";
+import { AuthErrorDialog } from "@/components/auth/auth-error-dialog";
 
 function setError(value: string | null) {
   searchParams.delete("error");
   if (value !== null) searchParams.set("error", value);
 }
 
-describe("AccountNotLinkedDialog", () => {
+describe("AuthErrorDialog", () => {
   beforeEach(() => {
     replace.mockReset();
     setError(null);
   });
 
   it("stays closed when there is no error", () => {
-    render(<AccountNotLinkedDialog />);
+    render(<AuthErrorDialog />);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("stays closed for an unrelated error", () => {
-    // Only this one failure has an explanation worth showing.
-    setError("some_other_problem");
-    render(<AccountNotLinkedDialog />);
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-  });
-
-  it("opens on account_not_linked and says what to do instead", async () => {
+  it("explains a refused Google link", async () => {
     setError("account_not_linked");
-    render(<AccountNotLinkedDialog />);
+    render(<AuthErrorDialog />);
 
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     expect(
@@ -47,11 +40,28 @@ describe("AccountNotLinkedDialog", () => {
     ).toBeInTheDocument();
   });
 
+  it("explains a replayed sign-in whose state has expired", async () => {
+    // What Back into a finished Google flow produces.
+    setError("state_mismatch");
+    render(<AuthErrorDialog />);
+
+    expect(await screen.findByText(/sign-in link expired/i)).toBeInTheDocument();
+  });
+
+  it("still explains an unrecognised failure", async () => {
+    // better-auth's slug list grows between releases; swallowing a failed
+    // sign-in silently is worse than a generic message.
+    setError("some_future_slug");
+    render(<AuthErrorDialog />);
+
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByText(/Please try again/i)).toBeInTheDocument();
+  });
+
   it("clears the query string when dismissed", async () => {
-    // Otherwise a refresh, or a back-then-forward, reopens it.
     const user = userEvent.setup();
-    setError("account_not_linked");
-    render(<AccountNotLinkedDialog />);
+    setError("state_mismatch");
+    render(<AuthErrorDialog />);
 
     await user.click(await screen.findByRole("button", { name: /got it/i }));
 

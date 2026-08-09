@@ -73,6 +73,18 @@ export const auth = betterAuth({
     },
   },
 
+  onAPIError: {
+    // Send every auth failure to our own login page instead of better-auth's
+    // unstyled /api/auth/error. The error slug arrives as ?error= and
+    // AuthErrorDialog explains it.
+    //
+    // This matters most for a stale OAuth flow: going Back into a finished
+    // Google sign-in replays a callback whose state cookie is already spent,
+    // producing `state_mismatch`. Without this the user lands on a raw error
+    // page outside the app with no way home.
+    errorURL: "/login",
+  },
+
   hooks: {
     // Server-side enforcement of the sign-up rules. The forms validate with
     // the same schema for fast feedback, but a direct POST to

@@ -18,7 +18,7 @@ export function GoogleButton() {
         callbackURL: "/dashboard",
         // Keep failures inside the app. Without this, a refused link lands on
         // better-auth's unstyled /api/auth/error page with no way back.
-        // AccountNotLinkedDialog picks the reason up from ?error=.
+        // AuthErrorDialog picks the reason up from ?error=.
         errorCallbackURL: "/login",
       });
       if (error) setPending(false);

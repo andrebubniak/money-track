@@ -13,6 +13,8 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
     minPasswordLength: 8,
+    // Mirrors registerSchema's bound so the server rejects what the client does.
+    maxPasswordLength: 60,
   },
 
   socialProviders: {

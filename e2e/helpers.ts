@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-export const TEST_PASSWORD = "hunter2hunter2";
+export const TEST_PASSWORD = "Hunter2hunter2";
 
 let counter = 0;
 

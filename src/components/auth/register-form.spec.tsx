@@ -21,8 +21,8 @@ import { RegisterForm } from "@/components/auth/register-form";
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
   await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
-  await user.type(screen.getByLabelText(/^password$/i), "hunter2hunter2");
-  await user.type(screen.getByLabelText(/confirm password/i), "hunter2hunter2");
+  await user.type(screen.getByLabelText(/^password$/i), "Hunter2hunter2");
+  await user.type(screen.getByLabelText(/confirm password/i), "Hunter2hunter2");
 }
 
 describe("RegisterForm", () => {
@@ -52,7 +52,7 @@ describe("RegisterForm", () => {
 
     await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
     await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
-    await user.type(screen.getByLabelText(/^password$/i), "hunter2hunter2");
+    await user.type(screen.getByLabelText(/^password$/i), "Hunter2hunter2");
     await user.type(screen.getByLabelText(/confirm password/i), "something-else");
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
@@ -85,7 +85,7 @@ describe("RegisterForm", () => {
       expect(signUpEmail).toHaveBeenCalledWith({
         name: "Ana Bubniak",
         email: "ana@example.com",
-        password: "hunter2hunter2",
+        password: "Hunter2hunter2",
       });
     });
   });

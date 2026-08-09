@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+/**
+ * Upper bound on free-text fields. Kept generous enough never to reject a real
+ * name or passphrase, but bounded so nothing unbounded reaches the database.
+ */
+export const MAX_NAME_LENGTH = 60;
+export const MAX_PASSWORD_LENGTH = 60;
+export const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * One message covering all three composition rules, rather than one issue per
+ * rule. Revealing the requirements one at a time — "needs an uppercase", then
+ * "needs a number" — makes the user fix the same field repeatedly.
+ */
+const PASSWORD_COMPOSITION_MESSAGE =
+  "Password must include a lowercase letter, an uppercase letter, and a number.";
+
+const hasRequiredComposition = (value: string) =>
+  /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value);
+
 const email = z
   .string()
   .trim()
@@ -9,16 +28,27 @@ const email = z
 
 export const loginSchema = z.object({
   email,
-  // Non-empty only. No length rule: the minimum has changed before and may
-  // change again, and an existing password must stay enterable.
+  // Non-empty only. No length or composition rules: those have changed before
+  // and may change again, and an existing password must stay enterable.
   password: z.string().min(1, "Password is required."),
 });
 
 export const registerSchema = z
   .object({
-    name: z.string().trim().min(2, "Name must be at least 2 characters."),
+    name: z
+      .string()
+      .trim()
+      .min(2, "Name must be at least 2 characters.")
+      .max(MAX_NAME_LENGTH, `Name must be at most ${MAX_NAME_LENGTH} characters.`),
     email,
-    password: z.string().min(8, "Password must be at least 8 characters."),
+    password: z
+      .string()
+      .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
+      .max(
+        MAX_PASSWORD_LENGTH,
+        `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`,
+      )
+      .refine(hasRequiredComposition, PASSWORD_COMPOSITION_MESSAGE),
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
   .superRefine((values, ctx) => {

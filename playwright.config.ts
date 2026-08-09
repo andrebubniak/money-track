@@ -10,6 +10,15 @@ if (!testDatabaseUrl) {
   );
 }
 
+// Global setup TRUNCATEs every table. If the two URLs ever point at the same
+// database, that wipes development data with no warning. Fail closed.
+if (testDatabaseUrl === process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL_TEST is identical to DATABASE_URL. The e2e suite truncates " +
+      "all tables — refusing to run against the development database.",
+  );
+}
+
 export default defineConfig({
   testDir: "./e2e",
   // These tests share one database and one dev server, so they run serially.

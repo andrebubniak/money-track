@@ -31,7 +31,10 @@ test.describe("registration", () => {
     await expect(page).toHaveURL("/register");
   });
 
-  test("shows field errors and sends no request when empty", async ({ page }) => {
+  // Named for what it actually checks. Proving no network request was sent
+  // belongs at the unit level, where register-form.spec.tsx already asserts
+  // signUpEmail was not called.
+  test("shows field errors and stays put when empty", async ({ page }) => {
     await page.goto("/register");
     await page.getByRole("button", { name: "Create account" }).click();
 
@@ -59,6 +62,12 @@ test.describe("registration", () => {
     await registerUser(page, { email });
 
     await expect(page).toHaveURL("/dashboard");
-    await expect(page.getByText(email.toLowerCase())).toBeVisible();
+    // `exact: true` is load-bearing. Playwright's getByText defaults to
+    // case-INSENSITIVE substring matching, which would match the uppercase
+    // email too — making this assertion pass whether or not normalisation
+    // happens, i.e. testing nothing.
+    await expect(
+      page.getByText(email.toLowerCase(), { exact: true }),
+    ).toBeVisible();
   });
 });

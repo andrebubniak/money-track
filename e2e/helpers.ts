@@ -4,7 +4,11 @@ export const TEST_PASSWORD = "hunter2hunter2";
 
 let counter = 0;
 
-/** Unique per call, so parallel or repeated runs never collide. */
+/**
+ * Unique per call, so repeated runs never collide. The counter is
+ * process-local; the suite runs single-worker (`workers: 1`), so that is
+ * sufficient today. Add `process.pid` before enabling parallel workers.
+ */
 export function uniqueEmail(prefix = "user"): string {
   counter += 1;
   return `${prefix}-${Date.now()}-${counter}@moneytrack.test`;

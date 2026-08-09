@@ -2641,20 +2641,28 @@ test.describe("route protection", () => {
     await page.goto("/dashboard");
 
     await expect(page).toHaveURL("/login");
-    await expect(page.getByText(/Signed in/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toHaveCount(0);
   });
 
   test("keeps the dashboard reachable while the session is valid", async ({ page }) => {
     await registerUser(page);
 
     await page.goto("/dashboard");
-    await expect(page.getByText(/Signed in/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText(/Signed in/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();
   });
 });
 ```
+
+> **Amended 2026-08-08 during execution.** These assertions target the
+> dashboard heading by ROLE, not by text. The dashboard's `<h1>` reads
+> "Signed in (name)", and Next's app-router announcer mirrors the page's
+> `<h1>` text into its own `role="alert"` node when `document.title` is
+> empty — so `getByText(/Signed in/)` matches two elements and trips
+> strict mode. Scoping by heading role is a real disambiguation: the
+> announcer is always `role="alert"`, never a heading.
 
 The forged-cookie test is the single most important one in the suite: it proves the optimistic proxy is not load-bearing.
 

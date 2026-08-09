@@ -10,7 +10,7 @@ test.describe("login", () => {
     await expect(page).toHaveURL("/login");
 
     await page.getByLabel("Email").fill(user.email);
-    await page.getByLabel("Password").fill(user.password);
+    await page.getByLabel("Password", { exact: true }).fill(user.password);
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page).toHaveURL("/dashboard");
@@ -26,7 +26,7 @@ test.describe("login", () => {
     await page.getByRole("button", { name: "Sign out" }).click();
 
     await page.getByLabel("Email").fill(user.email);
-    await page.getByLabel("Password").fill("definitely-not-the-password");
+    await page.getByLabel("Password", { exact: true }).fill("definitely-not-the-password");
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page.locator("form").getByRole("alert")).toHaveText("Incorrect email or password.");
@@ -38,7 +38,7 @@ test.describe("login", () => {
     // oracle for which addresses have accounts.
     await page.goto("/login");
     await page.getByLabel("Email").fill(uniqueEmail("never-registered"));
-    await page.getByLabel("Password").fill(TEST_PASSWORD);
+    await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page.locator("form").getByRole("alert")).toHaveText("Incorrect email or password.");
@@ -47,7 +47,7 @@ test.describe("login", () => {
   test("validates the email format before submitting", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill("not-an-email");
-    await page.getByLabel("Password").fill(TEST_PASSWORD);
+    await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page.getByText("Enter a valid email address.")).toBeVisible();
@@ -59,7 +59,7 @@ test.describe("login", () => {
     await page.getByRole("button", { name: "Sign out" }).click();
 
     await page.getByLabel("Email").fill(user.email.toUpperCase());
-    await page.getByLabel("Password").fill(user.password);
+    await page.getByLabel("Password", { exact: true }).fill(user.password);
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page).toHaveURL("/dashboard");

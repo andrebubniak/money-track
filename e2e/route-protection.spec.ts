@@ -27,6 +27,22 @@ test.describe("route protection", () => {
     await expect(page).toHaveURL("/dashboard");
   });
 
+  test("sends a signed-out visitor from the site root to login", async ({ page }) => {
+    // `/` redirects to /dashboard, whose own session check bounces to /login.
+    await page.goto("/");
+
+    await expect(page).toHaveURL("/login");
+  });
+
+  test("sends a signed-in user from the site root to the dashboard", async ({ page }) => {
+    await registerUser(page);
+    await expect(page).toHaveURL("/dashboard");
+
+    await page.goto("/");
+
+    await expect(page).toHaveURL("/dashboard");
+  });
+
   test("a forged session cookie does not grant access", async ({ page, context }) => {
     // The proxy is optimistic and will let this through. The page's own
     // database check is what must reject it.

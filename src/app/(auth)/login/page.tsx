@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/nav/app-link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -43,9 +43,9 @@ export default async function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-foreground underline underline-offset-4">
+          <AppLink href="/register" className="font-medium text-foreground underline underline-offset-4">
             Sign up
-          </Link>
+          </AppLink>
         </p>
       </CardContent>
     </Card>

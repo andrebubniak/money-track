@@ -70,9 +70,10 @@ export function LoginForm() {
           autoComplete="email"
           placeholder="you@example.com"
           aria-invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email")}
         />
-        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+        {errors.email && <p id="email-error" className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -82,10 +83,11 @@ export function LoginForm() {
           autoComplete="current-password"
           placeholder="••••••••"
           aria-invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "password-error" : undefined}
           {...register("password")}
         />
         {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
+          <p id="password-error" className="text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 

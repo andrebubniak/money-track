@@ -71,9 +71,10 @@ export function RegisterForm() {
           autoComplete="name"
           placeholder="Ana Bubniak"
           aria-invalid={Boolean(errors.name)}
+          aria-describedby={errors.name ? "name-error" : undefined}
           {...register("name")}
         />
-        {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+        {errors.name && <p id="name-error" className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -84,9 +85,10 @@ export function RegisterForm() {
           autoComplete="email"
           placeholder="you@example.com"
           aria-invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email")}
         />
-        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+        {errors.email && <p id="email-error" className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -96,10 +98,11 @@ export function RegisterForm() {
           autoComplete="new-password"
           placeholder="At least 8 characters"
           aria-invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "password-error" : undefined}
           {...register("password")}
         />
         {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
+          <p id="password-error" className="text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 
@@ -110,10 +113,11 @@ export function RegisterForm() {
           autoComplete="new-password"
           placeholder="Re-enter your password"
           aria-invalid={Boolean(errors.confirmPassword)}
+          aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
-          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+          <p id="confirmPassword-error" className="text-sm text-destructive">{errors.confirmPassword.message}</p>
         )}
       </div>
 

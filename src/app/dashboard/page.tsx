@@ -8,7 +8,9 @@ export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
 
-  const displayName = session.user.name ?? session.user.email;
+  // `||` not `??`: a Google profile with no name persists as an empty string,
+  // which `??` would pass through and render as "Signed in ()".
+  const displayName = session.user.name || session.user.email;
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-center">

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { LayoutDashboard } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { AppLink } from "@/components/nav/app-link";
+import Link from "next/link";
 import {
   Sidebar,
   SidebarContent,
@@ -50,7 +50,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <SidebarMenuButton
                       tooltip="Dashboard"
                       isActive
-                      render={<AppLink href="/dashboard" />}
+                      // Plain Link, not AppLink: navigation *inside* the shell is covered
+                      // by the segment's loading.tsx skeleton. See
+                      // .claude/rules/navigation-loading.md.
+                      render={<Link href="/dashboard" />}
                     >
                       <LayoutDashboard aria-hidden="true" />
                       <span>Dashboard</span>

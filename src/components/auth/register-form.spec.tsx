@@ -2,9 +2,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { signUpEmail, push, refresh } = vi.hoisted(() => ({
+const { signUpEmail, replace, refresh } = vi.hoisted(() => ({
   signUpEmail: vi.fn(),
-  push: vi.fn(),
+  replace: vi.fn(),
   refresh: vi.fn(),
 }));
 
@@ -13,7 +13,7 @@ vi.mock("@/lib/auth-client", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, refresh }),
+  useRouter: () => ({ replace, refresh }),
 }));
 
 import { RegisterForm } from "@/components/auth/register-form";
@@ -28,7 +28,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
 describe("RegisterForm", () => {
   beforeEach(() => {
     signUpEmail.mockReset();
-    push.mockReset();
+    replace.mockReset();
     refresh.mockReset();
     signUpEmail.mockResolvedValue({ error: null });
   });
@@ -97,7 +97,7 @@ describe("RegisterForm", () => {
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard"));
     expect(refresh).toHaveBeenCalled();
   });
 
@@ -118,7 +118,7 @@ describe("RegisterForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "An account with this email already exists.",
     );
-    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("shows the generic error when the call throws instead of returning one", async () => {
@@ -132,7 +132,7 @@ describe("RegisterForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Something went wrong. Please try again.",
     );
-    expect(push).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("disables the button while the request is in flight", async () => {

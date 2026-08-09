@@ -75,4 +75,22 @@ test.describe("route protection", () => {
     await page.reload();
     await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();
   });
+
+  test("browser back cannot return to an auth form once signed in", async ({ page }) => {
+    // Two defences, both exercised here: the forms `replace` rather than
+    // `push`, so the finished form leaves no history entry; and any auth page
+    // still reachable re-runs its session guard and bounces forward.
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Sign up" }).click();
+    await expect(page).toHaveURL("/register");
+
+    await registerUser(page);
+    await expect(page).toHaveURL("/dashboard");
+
+    await page.goBack();
+
+    await expect(page).toHaveURL("/dashboard");
+    await expect(page.getByRole("button", { name: "Create account" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Sign in" })).toHaveCount(0);
+  });
 });

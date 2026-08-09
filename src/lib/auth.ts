@@ -32,6 +32,10 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_OAUTH_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET as string,
+      // Always show the account chooser. Without this Google silently
+      // reuses whichever account is already signed in, which is wrong on a
+      // shared machine and makes switching accounts impossible.
+      prompt: "select_account",
     },
   },
 

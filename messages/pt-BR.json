@@ -93,9 +93,9 @@
       "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "Já existe uma conta com este e-mail.",
       "USER_ALREADY_EXISTS": "Já existe uma conta com este e-mail.",
       "INVALID_EMAIL_OR_PASSWORD": "E-mail ou senha incorretos.",
-      "PASSWORD_TOO_SHORT": "A senha deve ter pelo menos 8 caracteres.",
-      "INVALID_NAME": "O nome deve ter entre 2 e 60 caracteres.",
-      "PASSWORD_DOES_NOT_MEET_REQUIREMENTS": "A senha deve ter de 8 a 60 caracteres e incluir uma letra minúscula, uma letra maiúscula e um número.",
+      "PASSWORD_TOO_SHORT": "A senha deve ter pelo menos {min} caracteres.",
+      "INVALID_NAME": "O nome deve ter entre {min} e {max} caracteres.",
+      "PASSWORD_DOES_NOT_MEET_REQUIREMENTS": "A senha deve ter de {min} a {max} caracteres e incluir uma letra minúscula, uma letra maiúscula e um número.",
       "PASSWORD_TOO_LONG": "A senha é muito longa.",
       "INVALID_EMAIL": "Digite um e-mail válido.",
       "fallback": "Algo deu errado. Tente novamente."

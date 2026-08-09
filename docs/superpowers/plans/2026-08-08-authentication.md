@@ -684,9 +684,18 @@ export const registerSchema = z
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: "Passwords don't match.",
-    path: ["confirmPassword"],
+  .superRefine((values, ctx) => {
+    // Guard on a non-empty confirmPassword so this never collides with the
+    // shape-level "Please confirm your password." issue on the same path —
+    // in zod 4.4.3, .refine() runs even when the object shape already
+    // failed, and both issues would otherwise land on confirmPassword.
+    if (values.confirmPassword && values.password !== values.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Passwords don't match.",
+        path: ["confirmPassword"],
+      });
+    }
   });
 
 export type LoginValues = z.infer<typeof loginSchema>;
@@ -703,7 +712,18 @@ npm test -- src/lib/validations/auth.spec.ts
 
 Expected: PASS, 13 tests.
 
-If "reports every invalid field at once" fails with only three keys, the refinement is short-circuiting — zod skips `.refine()` when the object shape already failed. In that case change the assertion to check the first three fields and cover the mismatch separately, and note it in the commit.
+> **Amended 2026-08-08 during execution.** This step originally used `.refine()`
+> and warned that zod might *short-circuit* it after a shape failure, dropping
+> the fourth key. The real zod 4.4.3 behaviour is the opposite: `.refine()`
+> still runs, so an empty `confirmPassword` produces **two** issues on the same
+> `confirmPassword` path — the required message and the mismatch message. The
+> spec's `errorsFor()` helper is last-write-wins, so the mismatch message
+> masked the required one and "requires the confirmation to be filled in"
+> failed. The guarded `.superRefine()` above fixes the root cause in the
+> schema rather than patching the test helper, which matters because Tasks 7–8
+> feed this schema to react-hook-form's zod resolver. Verified independently:
+> guarded, an empty confirmation yields exactly one issue; a non-empty
+> mismatch (including whitespace-only) still reports "Passwords don't match."
 
 - [ ] **Step 5: Write the failing error-mapping spec**
 

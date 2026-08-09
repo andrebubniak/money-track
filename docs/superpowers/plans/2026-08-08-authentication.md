@@ -1161,7 +1161,7 @@ export function GoogleButton() {
 npm test
 ```
 
-Expected: PASS, 26 tests across 3 files.
+Expected: PASS, 27 tests across 3 files.
 
 If the button's accessible name includes stray whitespace and the regex misses, check that the `<svg>` carries `aria-hidden="true"` — without it the SVG contributes to the accessible name.
 
@@ -1860,7 +1860,7 @@ export function RegisterForm() {
 npm test
 ```
 
-Expected: PASS, 44 tests across 5 files.
+Expected: PASS, 45 tests across 5 files.
 
 - [ ] **Step 5: Create the register page**
 
@@ -2161,7 +2161,7 @@ The file lives at `src/proxy.ts`, next to `app/` — not at the repo root, becau
 npm test
 ```
 
-Expected: PASS, 53 tests across 7 files.
+Expected: PASS, 54 tests across 7 files.
 
 - [ ] **Step 7: Create the protected page**
 
@@ -2676,7 +2676,7 @@ git commit -m "test(authentication): add route protection and google redirect te
 rm -rf .next && npx tsc --noEmit && npm run build && npm test && npm run test:e2e
 ```
 
-Expected: type-check clean, build clean, 53 unit tests passed, 20 e2e tests passed.
+Expected: type-check clean, build clean, 54 unit tests passed, 20 e2e tests passed.
 
 - [ ] **Step 2: Confirm every spec is co-located as required**
 
@@ -2724,7 +2724,7 @@ State plainly: unit test count passed, e2e count passed, and the outcome of each
 
 **Spec coverage.** Architecture → Task 5. Database schema → Task 3. Route structure → Tasks 6–9. Two-layer protection → Task 9, proven in Task 12's forged-cookie test. Components → Tasks 6–9. Validation → Task 4. Error handling → Task 4, exercised in 7–8. Visual design → Tasks 7–8 against the prototype. Dependencies and environment → Task 1. Unit testing → Tasks 4, 6, 7, 8, 9. End-to-end → Tasks 10–12. Manual checklist → Task 13. Account linking → Task 5 config, manual item 2 in Task 13 (deliberately not automated; see Task 12's note).
 
-**Test count arithmetic.** 13 (schemas) + 8 (error mapping) + 5 (google button) + 10 (login form) + 8 (register form) + 5 (sign-out) + 4 (proxy) = 53 unit. 5 (registration) + 5 (login) + 3 (logout) + 5 (route protection) + 2 (google) = 20 e2e. These are the numbers each task's run step expects; if your count differs, something did not run.
+**Test count arithmetic.** 13 (schemas) + 8 (error mapping) + 6 (google button) + 10 (login form) + 8 (register form) + 5 (sign-out) + 4 (proxy) = 54 unit. 5 (registration) + 5 (login) + 3 (logout) + 5 (route protection) + 2 (google) = 20 e2e. These are the numbers each task's run step expects; if your count differs, something did not run.
 
 **Type consistency.** `authErrorMessage(code?: string | null)` defined Task 4, called with `error.code` in Tasks 7 and 8. `LoginValues`/`RegisterValues` produced Task 4, used as `useForm` generics in 7/8. `<GoogleButton />` defined Task 6, imported unchanged in 7 and 8. `registerUser`/`uniqueEmail`/`TEST_PASSWORD` defined Task 10, imported in 11 and 12. `prismaAdapter` imported from `better-auth/adapters/prisma` in Task 5, the exact path probed in Task 1 Step 4. `proxy` and `config` exported from `src/proxy.ts` in Task 9 and imported by its spec in the same task.
 

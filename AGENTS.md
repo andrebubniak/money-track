@@ -12,6 +12,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 The project conventions are defined by subject on `.claude/rules`. **Before changing code of one of this subjects, read the corresponding file**
 
-| File                                                     | When to read                               |
-| -------------------------------------------------------- | ------------------------------------------ |
-| [commit-guideline.md](.claude/rules/commit-guideline.md) | You need to commit/push any changes on git |
+| File                                                           | When to read                                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [feature-development.md](.claude/rules/feature-development.md) | When you need to create a new feature or a feature improvement                       |
+| [commit-guideline.md](.claude/rules/commit-guideline.md)       | You need to commit/push any changes on git                                           |
+| [validation.md](.claude/rules/validation.md)                   | You are validating any input — forms, Server Actions, Route Handlers, schemas        |
+| [navigation-loading.md](.claude/rules/navigation-loading.md)   | You are adding a link, a route, or any in-app navigation                             |

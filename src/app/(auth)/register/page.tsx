@@ -21,7 +21,12 @@ export default async function RegisterPage() {
   return (
     <Card className="w-full max-w-100">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Create your account</CardTitle>
+        <CardTitle className="text-xl">
+          {/* A real <h1>: CardTitle renders a plain div, so without this the
+              page has no heading element at all. Tailwind preflight resets
+              h1 size/weight/margin to inherit, so this is visually identical. */}
+          <h1>Create your account</h1>
+        </CardTitle>
         <CardDescription>Start tracking where your money goes</CardDescription>
       </CardHeader>
 

@@ -21,7 +21,12 @@ export default async function LoginPage() {
   return (
     <Card className="w-full max-w-100">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardTitle className="text-xl">
+          {/* A real <h1>: CardTitle renders a plain div, so without this the
+              page has no heading element at all. Tailwind preflight resets
+              h1 size/weight/margin to inherit, so this is visually identical. */}
+          <h1>Welcome back</h1>
+        </CardTitle>
         <CardDescription>Sign in to continue to your account</CardDescription>
       </CardHeader>
 

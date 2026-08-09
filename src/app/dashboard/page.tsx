@@ -20,9 +20,9 @@ export default async function DashboardPage() {
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-center">
-        <p className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Signed in ({displayName})
-        </p>
+        </h1>
         <p className="font-mono text-sm text-muted-foreground">{session.user.email}</p>
         <p className="mt-4 max-w-[42ch] rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">
           Placeholder page. This route becomes the real spending dashboard

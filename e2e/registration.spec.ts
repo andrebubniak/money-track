@@ -7,7 +7,12 @@ test.describe("registration", () => {
     const user = await registerUser(page);
 
     await expect(page).toHaveURL("/dashboard");
-    await expect(page.getByText(`Signed in (${user.name})`)).toBeVisible();
+    // Scoped to the heading role, not getByText: the dashboard heading is now
+    // a real <h1> (see src/app/dashboard/page.tsx), and Next's app-router
+    // announcer (node_modules/next/dist/client/components/app-router-announcer.js)
+    // mirrors that exact text into its own role="alert" node on client-side
+    // navigation. An unscoped getByText would match both.
+    await expect(page.getByRole("heading", { name: `Signed in (${user.name})` })).toBeVisible();
     await expect(page.getByText(user.email)).toBeVisible();
   });
 

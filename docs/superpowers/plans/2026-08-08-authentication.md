@@ -1996,7 +1996,9 @@ describe("SignOutButton", () => {
     signOut.mockImplementation(() => new Promise(() => {}));
     render(<SignOutButton />);
 
-    await user.click(screen.getByRole("button", { name: /signing out/i }));
+    // Click target uses the IDLE label: the button still reads "Sign out" at
+    // click time and only becomes "Signing out…" afterwards.
+    await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
     expect(push).not.toHaveBeenCalled();
   });

@@ -1,8 +1,7 @@
 {
-  "mcpServers": {
-    "Prisma": {
-      "type": "http",
-      "url": "https://mcp.prisma.io/mcp"
-    }
-  }
+	"mcpServers": {
+		"better-auth": {
+			"url": "https://mcp.better-auth.com/mcp"
+		}
+	}
 }

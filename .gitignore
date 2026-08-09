@@ -45,3 +45,9 @@ next-env.d.ts
 
 # Custom commit messages for miscellaneous
 COMMIT_MESSAGE
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

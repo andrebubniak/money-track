@@ -59,7 +59,7 @@ Every task's requirements implicitly include this section.
 
 | File | Responsibility |
 | --- | --- |
-| `vitest.config.ts` | Vitest config. jsdom, path aliases, `src/**/*.spec.*` only. |
+| `vitest.config.mts` | Vitest config. jsdom, path aliases, `src/**/*.spec.*` only. `.mts` so Vite loads it as ESM without a project-wide `"type": "module"`. |
 | `vitest.setup.ts` | jest-dom matchers, RTL cleanup. |
 | `playwright.config.ts` | Playwright config. `e2e/` only, dev server pointed at the test database. |
 | `e2e/global-setup.ts` | Migrate + truncate the test database before the suite. |
@@ -109,8 +109,16 @@ Do **not** install `@better-auth/prisma-adapter`. better-auth 1.6.26 ships the P
 - [ ] **Step 2: Install test dependencies**
 
 ```bash
-npm install -D vitest@^4.1.10 @vitejs/plugin-react@^6.0.5 vite-tsconfig-paths@^6.1.1 jsdom@^30.0.1 @testing-library/react@^16.3.2 @testing-library/jest-dom@^7.0.0 @testing-library/user-event@^14.6.3 @playwright/test@^1.62.1
+npm install -D vitest@^4.1.10 @vitejs/plugin-react@^6.0.5 jsdom@^30.0.1 @testing-library/react@^16.3.2 @testing-library/jest-dom@^7.0.0 @testing-library/user-event@^14.6.3 @playwright/test@^1.62.1
 ```
+
+> **Amended 2026-08-08 during execution.** `vite-tsconfig-paths` was originally
+> in this list. Vitest 4 bundles Vite 8, which resolves tsconfig paths natively
+> via `resolve.tsconfigPaths` and prints a deprecation warning when the plugin
+> is present. The plugin is obsolete here; Task 2 uses the native option.
+> `@testing-library/dom@^10.4.1` must also be installed — npm's
+> `--legacy-peer-deps` (needed for an unrelated optional-peer conflict)
+> suppresses auto-install of that required peer.
 
 - [ ] **Step 3: Install the Playwright browser**
 
@@ -188,15 +196,17 @@ This task ends with a deliberately trivial spec proving the harness works, which
 
 - [ ] **Step 1: Create the Vitest config**
 
-Create `vitest.config.ts`:
+Create `vitest.config.mts`:
 
 ```ts
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [react()],
+  // Vite 8 resolves tsconfig `paths` natively. Do not add
+  // `vite-tsconfig-paths` — Vite warns that the plugin is redundant.
+  resolve: { tsconfigPaths: true },
   test: {
     environment: "jsdom",
     globals: true,
@@ -237,6 +247,15 @@ if (!testDatabaseUrl) {
   throw new Error(
     "DATABASE_URL_TEST is not set. The e2e suite must run against its own " +
       "database — refusing to fall back to DATABASE_URL.",
+  );
+}
+
+// Global setup TRUNCATEs every table. If the two URLs ever point at the same
+// database, that wipes development data with no warning. Fail closed.
+if (testDatabaseUrl === process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL_TEST is identical to DATABASE_URL. The e2e suite truncates " +
+      "all tables — refusing to run against the development database.",
   );
 }
 
@@ -372,7 +391,7 @@ Its only job was proving the harness. Leaving it behind would mean permanently t
 - [ ] **Step 10: Commit**
 
 ```bash
-git add vitest.config.ts vitest.setup.ts playwright.config.ts e2e/global-setup.ts package.json package-lock.json .gitignore
+git add vitest.config.mts vitest.setup.ts playwright.config.ts e2e/global-setup.ts package.json package-lock.json .gitignore
 git commit -m "chore(testing): set up vitest and playwright"
 ```
 
@@ -498,7 +517,9 @@ Expected: `The schema at prisma/schema.prisma is valid 🚀`
 npx prisma migrate dev --name init
 ```
 
-Expected: a new `prisma/migrations/<timestamp>_init/` directory, all eight tables created, and `prisma generate` running automatically at the end.
+Expected: a new `prisma/migrations/<timestamp>_init/` directory and all ten tables created — the seven pre-existing app models (`users`, `categories`, `cards`, `transactions`, `recurring_transactions`, `expense_plans`, `expense_plan_items`) plus the three new ones (`sessions`, `accounts`, `verifications`).
+
+`prisma migrate dev` may or may not run `prisma generate` for you on Prisma 7. Run `npx prisma generate` explicitly afterwards and confirm it succeeds before the type-check in Step 5 — a stale client will produce confusing type errors.
 
 This is the project's **first** migration — the schema has never been applied. If Prisma reports drift or a non-empty existing database, stop and report rather than resetting: the target database may not be the one you think it is.
 
@@ -672,9 +693,18 @@ export const registerSchema = z
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: "Passwords don't match.",
-    path: ["confirmPassword"],
+  .superRefine((values, ctx) => {
+    // Guard on a non-empty confirmPassword so this never collides with the
+    // shape-level "Please confirm your password." issue on the same path —
+    // in zod 4.4.3, .refine() runs even when the object shape already
+    // failed, and both issues would otherwise land on confirmPassword.
+    if (values.confirmPassword && values.password !== values.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Passwords don't match.",
+        path: ["confirmPassword"],
+      });
+    }
   });
 
 export type LoginValues = z.infer<typeof loginSchema>;
@@ -691,7 +721,18 @@ npm test -- src/lib/validations/auth.spec.ts
 
 Expected: PASS, 13 tests.
 
-If "reports every invalid field at once" fails with only three keys, the refinement is short-circuiting — zod skips `.refine()` when the object shape already failed. In that case change the assertion to check the first three fields and cover the mismatch separately, and note it in the commit.
+> **Amended 2026-08-08 during execution.** This step originally used `.refine()`
+> and warned that zod might *short-circuit* it after a shape failure, dropping
+> the fourth key. The real zod 4.4.3 behaviour is the opposite: `.refine()`
+> still runs, so an empty `confirmPassword` produces **two** issues on the same
+> `confirmPassword` path — the required message and the mismatch message. The
+> spec's `errorsFor()` helper is last-write-wins, so the mismatch message
+> masked the required one and "requires the confirmation to be filled in"
+> failed. The guarded `.superRefine()` above fixes the root cause in the
+> schema rather than patching the test helper, which matters because Tasks 7–8
+> feed this schema to react-hook-form's zod resolver. Verified independently:
+> guarded, an empty confirmation yields exactly one issue; a non-empty
+> mismatch (including whitespace-only) still reports "Passwords don't match."
 
 - [ ] **Step 5: Write the failing error-mapping spec**
 
@@ -703,7 +744,14 @@ import { describe, expect, it } from "vitest";
 import { authErrorMessage } from "@/lib/auth-errors";
 
 describe("authErrorMessage", () => {
-  it("maps a duplicate signup", () => {
+  it("maps the duplicate-signup code better-auth actually returns", () => {
+    // Verified against node_modules/better-auth/dist/api/routes/sign-up.mjs:208.
+    expect(authErrorMessage("USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL")).toBe(
+      "An account with this email already exists.",
+    );
+  });
+
+  it("also maps the admin-plugin spelling, against version drift", () => {
     expect(authErrorMessage("USER_ALREADY_EXISTS")).toBe(
       "An account with this email already exists.",
     );
@@ -762,6 +810,11 @@ Create `src/lib/auth-errors.ts`:
 
 ```ts
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  // What better-auth's sign-up route actually throws (sign-up.mjs:208).
+  // The shorter USER_ALREADY_EXISTS exists only in the admin plugin, which
+  // this app does not use — it is mapped too, purely against version drift.
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
+    "An account with this email already exists.",
   USER_ALREADY_EXISTS: "An account with this email already exists.",
   // Deliberately identical for unknown-email and wrong-password, so the form
   // never confirms which addresses have accounts.
@@ -788,7 +841,7 @@ export function authErrorMessage(code?: string | null): string {
 npm test
 ```
 
-Expected: PASS, 21 tests across 2 files.
+Expected: PASS, 22 tests across 2 files.
 
 - [ ] **Step 9: Commit**
 
@@ -1035,6 +1088,17 @@ describe("GoogleButton", () => {
     const button = await screen.findByRole("button", { name: /continue with google/i });
     expect(button).toBeEnabled();
   });
+
+  it("recovers when the call throws instead of returning an error", async () => {
+    const user = userEvent.setup();
+    signInSocial.mockRejectedValue(new Error("network down"));
+    render(<GoogleButton />);
+
+    await user.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    const button = await screen.findByRole("button", { name: /continue with google/i });
+    expect(button).toBeEnabled();
+  });
 });
 ```
 
@@ -1063,13 +1127,20 @@ export function GoogleButton() {
 
   async function handleClick() {
     setPending(true);
-    // On success this navigates away, so `pending` is never cleared on the
-    // happy path. It is only reset if the call fails and we stay on the page.
-    const { error } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
-    if (error) setPending(false);
+    try {
+      // On success this navigates away, so `pending` is never cleared on the
+      // happy path. It is only reset if the call fails and we stay on the page.
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+      });
+      if (error) setPending(false);
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must not strand the button in a
+      // permanently disabled state with no way to retry.
+      setPending(false);
+    }
   }
 
   return (
@@ -1111,7 +1182,7 @@ export function GoogleButton() {
 npm test
 ```
 
-Expected: PASS, 25 tests across 3 files.
+Expected: PASS, 28 tests across 3 files.
 
 If the button's accessible name includes stray whitespace and the regex misses, check that the `<svg>` carries `aria-hidden="true"` — without it the SVG contributes to the accessible name.
 
@@ -1246,6 +1317,21 @@ describe("LoginForm", () => {
     );
   });
 
+  it("shows the generic error when the call throws instead of returning one", async () => {
+    const user = userEvent.setup();
+    signInEmail.mockRejectedValue(new Error("network down"));
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText(/email/i), "ana@example.com");
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("clears a previous error when resubmitting", async () => {
     const user = userEvent.setup();
     signInEmail.mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
@@ -1330,13 +1416,21 @@ export function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setFormError(null);
 
-    const { error } = await authClient.signIn.email({
-      email: values.email,
-      password: values.password,
-    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email: values.email,
+        password: values.password,
+      });
 
-    if (error) {
-      setFormError(authErrorMessage(error.code));
+      if (error) {
+        setFormError(authErrorMessage(error.code));
+        return;
+      }
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must surface as a message rather
+      // than leaving the form looking like nothing happened.
+      setFormError(authErrorMessage(null));
       return;
     }
 
@@ -1397,7 +1491,7 @@ export function LoginForm() {
 npm test -- src/components/auth/login-form.spec.tsx
 ```
 
-Expected: PASS, 9 tests.
+Expected: PASS, 10 tests.
 
 If "submits normalised credentials" fails because the email arrives untrimmed, the resolver is not applying the schema's `.transform()` — confirm `zodResolver` is wired and the schema is `loginSchema`, not a hand-rolled duplicate.
 
@@ -1429,7 +1523,12 @@ export default async function LoginPage() {
   return (
     <Card className="w-full max-w-100">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardTitle className="text-xl">
+          {/* A real <h1>: CardTitle renders a plain div, so without this the
+              page has no heading element at all. Tailwind preflight resets
+              h1 size/weight/margin to inherit, so this is visually identical. */}
+          <h1>Welcome back</h1>
+        </CardTitle>
         <CardDescription>Sign in to continue to your account</CardDescription>
       </CardHeader>
 
@@ -1599,7 +1698,12 @@ describe("RegisterForm", () => {
 
   it("renders the duplicate-account error", async () => {
     const user = userEvent.setup();
-    signUpEmail.mockResolvedValue({ error: { code: "USER_ALREADY_EXISTS" } });
+    // The code better-auth's sign-up route actually returns. Do not shorten
+    // this to USER_ALREADY_EXISTS — that spelling is admin-plugin only, and
+    // mocking it here once masked a real production bug.
+    signUpEmail.mockResolvedValue({
+      error: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" },
+    });
     render(<RegisterForm />);
 
     await fillValidForm(user);
@@ -1607,6 +1711,20 @@ describe("RegisterForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "An account with this email already exists.",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("shows the generic error when the call throws instead of returning one", async () => {
+    const user = userEvent.setup();
+    signUpEmail.mockRejectedValue(new Error("network down"));
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
     );
     expect(push).not.toHaveBeenCalled();
   });
@@ -1669,14 +1787,22 @@ export function RegisterForm() {
   async function onSubmit(values: RegisterValues) {
     setFormError(null);
 
-    const { error } = await authClient.signUp.email({
-      name: values.name,
-      email: values.email,
-      password: values.password,
-    });
+    try {
+      const { error } = await authClient.signUp.email({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      });
 
-    if (error) {
-      setFormError(authErrorMessage(error.code));
+      if (error) {
+        setFormError(authErrorMessage(error.code));
+        return;
+      }
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must surface as a message rather
+      // than leaving the form looking like nothing happened.
+      setFormError(authErrorMessage(null));
       return;
     }
 
@@ -1765,7 +1891,7 @@ export function RegisterForm() {
 npm test
 ```
 
-Expected: PASS, 41 tests across 5 files.
+Expected: PASS, 46 tests across 5 files.
 
 - [ ] **Step 5: Create the register page**
 
@@ -1795,7 +1921,12 @@ export default async function RegisterPage() {
   return (
     <Card className="w-full max-w-100">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Create your account</CardTitle>
+        <CardTitle className="text-xl">
+          {/* A real <h1>: CardTitle renders a plain div, so without this the
+              page has no heading element at all. Tailwind preflight resets
+              h1 size/weight/margin to inherit, so this is visually identical. */}
+          <h1>Create your account</h1>
+        </CardTitle>
         <CardDescription>Start tracking where your money goes</CardDescription>
       </CardHeader>
 
@@ -1901,7 +2032,9 @@ describe("SignOutButton", () => {
     signOut.mockImplementation(() => new Promise(() => {}));
     render(<SignOutButton />);
 
-    await user.click(screen.getByRole("button", { name: /signing out/i }));
+    // Click target uses the IDLE label: the button still reads "Sign out" at
+    // click time and only becomes "Signing out…" afterwards.
+    await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
     expect(push).not.toHaveBeenCalled();
   });
@@ -1914,6 +2047,19 @@ describe("SignOutButton", () => {
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
     expect(await screen.findByRole("button", { name: /signing out/i })).toBeDisabled();
+  });
+
+  it("stays put and re-enables when sign-out throws", async () => {
+    const user = userEvent.setup();
+    signOut.mockRejectedValue(new Error("network down"));
+    render(<SignOutButton />);
+
+    await user.click(screen.getByRole("button", { name: /^sign out$/i }));
+
+    // The session may still be live, so redirecting would falsely imply
+    // the user is signed out.
+    expect(await screen.findByRole("button", { name: /^sign out$/i })).toBeEnabled();
+    expect(push).not.toHaveBeenCalled();
   });
 });
 ```
@@ -1997,7 +2143,15 @@ export function SignOutButton() {
 
   async function handleClick() {
     setPending(true);
-    await authClient.signOut();
+    try {
+      await authClient.signOut();
+    } catch {
+      // Sign-out failed, so the session may still be live. Re-enable the
+      // button and stay put rather than redirecting to /login and implying
+      // the user is signed out when they might not be.
+      setPending(false);
+      return;
+    }
     router.push("/login");
     router.refresh();
   }
@@ -2045,7 +2199,7 @@ The file lives at `src/proxy.ts`, next to `app/` — not at the repo root, becau
 npm test
 ```
 
-Expected: PASS, 49 tests across 7 files.
+Expected: PASS, 55 tests across 7 files.
 
 - [ ] **Step 7: Create the protected page**
 
@@ -2074,9 +2228,9 @@ export default async function DashboardPage() {
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-center">
-        <p className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Signed in ({displayName})
-        </p>
+        </h1>
         <p className="font-mono text-sm text-muted-foreground">{session.user.email}</p>
         <p className="mt-4 max-w-[42ch] rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">
           Placeholder page. This route becomes the real spending dashboard
@@ -2137,7 +2291,11 @@ export const TEST_PASSWORD = "hunter2hunter2";
 
 let counter = 0;
 
-/** Unique per call, so parallel or repeated runs never collide. */
+/**
+ * Unique per call, so repeated runs never collide. The counter is
+ * process-local; the suite runs single-worker (`workers: 1`), so that is
+ * sufficient today. Add `process.pid` before enabling parallel workers.
+ */
 export function uniqueEmail(prefix = "user"): string {
   counter += 1;
   return `${prefix}-${Date.now()}-${counter}@moneytrack.test`;
@@ -2163,6 +2321,16 @@ export async function registerUser(
   return user;
 }
 ```
+
+> **Amended 2026-08-08 during execution.** Every alert assertion is scoped
+> with `page.locator("form")`. Next.js renders its own route announcer —
+> `<p role="alert" id="__next-route-announcer__">` (see
+> `node_modules/next/dist/client/route-announcer.js`) — on *every* page, so a
+> bare `page.getByRole("alert")` matches two elements and trips Playwright's
+> strict mode. Scoping to the form keeps the role assertion meaningful (both
+> auth alerts render inside their `<form>`) while disambiguating. Do not
+> "simplify" it back, and do not swap it for `getByText`, which would stop
+> asserting the accessible role.
 
 `getByLabel("Password", { exact: true })` is required — without it the locator matches both "Password" and "Confirm password" and Playwright throws a strict-mode violation.
 
@@ -2195,13 +2363,16 @@ test.describe("registration", () => {
 
     await registerUser(page, { email });
 
-    await expect(page.getByRole("alert")).toHaveText(
+    await expect(page.locator("form").getByRole("alert")).toHaveText(
       "An account with this email already exists.",
     );
     await expect(page).toHaveURL("/register");
   });
 
-  test("shows field errors and sends no request when empty", async ({ page }) => {
+  // Named for what it actually checks. Proving no network request was sent
+  // belongs at the unit level, where register-form.spec.tsx already asserts
+  // signUpEmail was not called.
+  test("shows field errors and stays put when empty", async ({ page }) => {
     await page.goto("/register");
     await page.getByRole("button", { name: "Create account" }).click();
 
@@ -2229,7 +2400,13 @@ test.describe("registration", () => {
     await registerUser(page, { email });
 
     await expect(page).toHaveURL("/dashboard");
-    await expect(page.getByText(email.toLowerCase())).toBeVisible();
+    // `exact: true` is load-bearing. Playwright's getByText defaults to
+    // case-INSENSITIVE substring matching, which would match the uppercase
+    // email too — making this assertion pass whether or not normalisation
+    // happens, i.e. testing nothing.
+    await expect(
+      page.getByText(email.toLowerCase(), { exact: true }),
+    ).toBeVisible();
   });
 });
 ```
@@ -2302,7 +2479,7 @@ test.describe("login", () => {
     await page.getByLabel("Password").fill("definitely-not-the-password");
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page.getByRole("alert")).toHaveText("Incorrect email or password.");
+    await expect(page.locator("form").getByRole("alert")).toHaveText("Incorrect email or password.");
     await expect(page).toHaveURL("/login");
   });
 
@@ -2314,7 +2491,7 @@ test.describe("login", () => {
     await page.getByLabel("Password").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page.getByRole("alert")).toHaveText("Incorrect email or password.");
+    await expect(page.locator("form").getByRole("alert")).toHaveText("Incorrect email or password.");
   });
 
   test("validates the email format before submitting", async ({ page }) => {
@@ -2324,7 +2501,7 @@ test.describe("login", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page.getByText("Enter a valid email address.")).toBeVisible();
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   });
 
   test("accepts the email in a different case", async ({ page }) => {
@@ -2464,20 +2641,33 @@ test.describe("route protection", () => {
     await page.goto("/dashboard");
 
     await expect(page).toHaveURL("/login");
-    await expect(page.getByText(/Signed in/)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toHaveCount(0);
   });
 
   test("keeps the dashboard reachable while the session is valid", async ({ page }) => {
     await registerUser(page);
+    // Synchronisation point, not decoration. registerUser returns once the
+    // submit click is dispatched — it deliberately does NOT await navigation,
+    // because callers testing a rejected signup never navigate at all. Without
+    // this wait, the goto below races the session cookie and can land on /login.
+    await expect(page).toHaveURL("/dashboard");
 
     await page.goto("/dashboard");
-    await expect(page.getByText(/Signed in/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText(/Signed in/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();
   });
 });
 ```
+
+> **Amended 2026-08-08 during execution.** These assertions target the
+> dashboard heading by ROLE, not by text. The dashboard's `<h1>` reads
+> "Signed in (name)", and Next's app-router announcer mirrors the page's
+> `<h1>` text into its own `role="alert"` node when `document.title` is
+> empty — so `getByText(/Signed in/)` matches two elements and trips
+> strict mode. Scoping by heading role is a real disambiguation: the
+> announcer is always `role="alert"`, never a heading.
 
 The forged-cookie test is the single most important one in the suite: it proves the optimistic proxy is not load-bearing.
 
@@ -2557,10 +2747,19 @@ git commit -m "test(authentication): add route protection and google redirect te
 - [ ] **Step 1: Clean build and both suites**
 
 ```bash
-rm -rf .next && npx tsc --noEmit && npm run build && npm test && npm run test:e2e
+rm -rf .next && npx next typegen && npx tsc --noEmit && npm run build && npm test && npm run test:e2e
 ```
 
-Expected: type-check clean, build clean, 49 unit tests passed, 20 e2e tests passed.
+Expected: type-check clean, build clean, 55 unit tests passed, 20 e2e tests passed.
+
+> **Amended 2026-08-09 during execution.** `npx next typegen` is required and
+> must come first. `src/app/layout.tsx:23` uses `LayoutProps<"/">`, which Next
+> 16 generates into `.next/types/` — and `tsconfig.json` includes that path. On
+> a clean checkout, or straight after `rm -rf .next`, the type does not exist
+> yet, so `tsc --noEmit` fails with `Cannot find name 'LayoutProps'`. This is
+> not a code defect; `npm run build` passes either way because it runs typegen
+> internally. **Anyone wiring up CI must run `next typegen` (or a build) before
+> a standalone type-check**, or the pipeline will fail on a fresh clone.
 
 - [ ] **Step 2: Confirm every spec is co-located as required**
 
@@ -2608,7 +2807,7 @@ State plainly: unit test count passed, e2e count passed, and the outcome of each
 
 **Spec coverage.** Architecture → Task 5. Database schema → Task 3. Route structure → Tasks 6–9. Two-layer protection → Task 9, proven in Task 12's forged-cookie test. Components → Tasks 6–9. Validation → Task 4. Error handling → Task 4, exercised in 7–8. Visual design → Tasks 7–8 against the prototype. Dependencies and environment → Task 1. Unit testing → Tasks 4, 6, 7, 8, 9. End-to-end → Tasks 10–12. Manual checklist → Task 13. Account linking → Task 5 config, manual item 2 in Task 13 (deliberately not automated; see Task 12's note).
 
-**Test count arithmetic.** 13 (schemas) + 8 (error mapping) + 4 (google button) + 9 (login form) + 7 (register form) + 4 (sign-out) + 4 (proxy) = 49 unit. 5 (registration) + 5 (login) + 3 (logout) + 5 (route protection) + 2 (google) = 20 e2e. These are the numbers each task's run step expects; if your count differs, something did not run.
+**Test count arithmetic.** 13 (schemas) + 9 (error mapping) + 6 (google button) + 10 (login form) + 8 (register form) + 5 (sign-out) + 4 (proxy) = 55 unit. 5 (registration) + 5 (login) + 3 (logout) + 5 (route protection) + 2 (google) = 20 e2e. These are the numbers each task's run step expects; if your count differs, something did not run.
 
 **Type consistency.** `authErrorMessage(code?: string | null)` defined Task 4, called with `error.code` in Tasks 7 and 8. `LoginValues`/`RegisterValues` produced Task 4, used as `useForm` generics in 7/8. `<GoogleButton />` defined Task 6, imported unchanged in 7 and 8. `registerUser`/`uniqueEmail`/`TEST_PASSWORD` defined Task 10, imported in 11 and 12. `prismaAdapter` imported from `better-auth/adapters/prisma` in Task 5, the exact path probed in Task 1 Step 4. `proxy` and `config` exported from `src/proxy.ts` in Task 9 and imported by its spec in the same task.
 

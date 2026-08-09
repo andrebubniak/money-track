@@ -54,11 +54,11 @@ enum DateFormat {
 // ---------------------------------------------------------------------------
 
 model User {
-  id           String  @id @default(cuid())
-  email        String  @unique
-  passwordHash String? @map("password_hash") // null for Google-only accounts
-  googleId     String? @unique @map("google_id") // null for password-only accounts
-  name         String?
+  id            String  @id @default(cuid())
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+  image         String?
+  name          String?
 
   currency     String       @default("USD") // ISO 4217 code; display/formatting only, no conversion
   numberFormat NumberFormat @default(COMMA_DOT) @map("number_format")
@@ -69,6 +69,8 @@ model User {
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
   expensePlans          ExpensePlan[]
+  sessions              Session[]
+  accounts              Account[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -234,4 +236,66 @@ model ExpensePlanItem {
   @@index([expensePlanId])
   @@index([parentItemId])
   @@map("expense_plan_items")
+}
+
+// ---------------------------------------------------------------------------
+// Better Auth
+// ---------------------------------------------------------------------------
+
+model Session {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Provider's own id for this account. Equal to userId for credential accounts.
+  accountId  String @map("account_id")
+  // "credential" for email/password, "google" for Google sign-in.
+  providerId String @map("provider_id")
+
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  idToken               String?   @map("id_token")
+
+  // Hashed password. Only set on credential accounts.
+  password String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id String @id @default(cuid())
+
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
 }

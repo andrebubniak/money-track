@@ -1,0 +1,142 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { signUpEmail, push, refresh } = vi.hoisted(() => ({
+  signUpEmail: vi.fn(),
+  push: vi.fn(),
+  refresh: vi.fn(),
+}));
+
+vi.mock("@/lib/auth-client", () => ({
+  authClient: { signUp: { email: signUpEmail } },
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push, refresh }),
+}));
+
+import { RegisterForm } from "@/components/auth/register-form";
+
+async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
+  await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
+  await user.type(screen.getByLabelText(/^password$/i), "hunter2hunter2");
+  await user.type(screen.getByLabelText(/confirm password/i), "hunter2hunter2");
+}
+
+describe("RegisterForm", () => {
+  beforeEach(() => {
+    signUpEmail.mockReset();
+    push.mockReset();
+    refresh.mockReset();
+    signUpEmail.mockResolvedValue({ error: null });
+  });
+
+  it("shows an error for every empty field", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByText("Name must be at least 2 characters.")).toBeInTheDocument();
+    expect(screen.getByText("Email is required.")).toBeInTheDocument();
+    expect(screen.getByText("Password must be at least 8 characters.")).toBeInTheDocument();
+    expect(screen.getByText("Please confirm your password.")).toBeInTheDocument();
+    expect(signUpEmail).not.toHaveBeenCalled();
+  });
+
+  it("reports a password mismatch on the confirmation field", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
+    await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "hunter2hunter2");
+    await user.type(screen.getByLabelText(/confirm password/i), "something-else");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByText("Passwords don't match.")).toBeInTheDocument();
+    expect(signUpEmail).not.toHaveBeenCalled();
+  });
+
+  it("rejects a password under eight characters", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
+    await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "short");
+    await user.type(screen.getByLabelText(/confirm password/i), "short");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByText("Password must be at least 8 characters.")).toBeInTheDocument();
+    expect(signUpEmail).not.toHaveBeenCalled();
+  });
+
+  it("submits name, email and password but never the confirmation", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(signUpEmail).toHaveBeenCalledWith({
+        name: "Ana Bubniak",
+        email: "ana@example.com",
+        password: "hunter2hunter2",
+      });
+    });
+  });
+
+  it("redirects to the dashboard on success", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("renders the duplicate-account error", async () => {
+    const user = userEvent.setup();
+    signUpEmail.mockResolvedValue({ error: { code: "USER_ALREADY_EXISTS" } });
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "An account with this email already exists.",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("shows the generic error when the call throws instead of returning one", async () => {
+    const user = userEvent.setup();
+    signUpEmail.mockRejectedValue(new Error("network down"));
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("disables the button while the request is in flight", async () => {
+    const user = userEvent.setup();
+    signUpEmail.mockImplementation(() => new Promise(() => {}));
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("button", { name: /creating account/i })).toBeDisabled();
+  });
+});

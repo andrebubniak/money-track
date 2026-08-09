@@ -508,7 +508,9 @@ Expected: `The schema at prisma/schema.prisma is valid 🚀`
 npx prisma migrate dev --name init
 ```
 
-Expected: a new `prisma/migrations/<timestamp>_init/` directory, all eight tables created, and `prisma generate` running automatically at the end.
+Expected: a new `prisma/migrations/<timestamp>_init/` directory and all ten tables created — the seven pre-existing app models (`users`, `categories`, `cards`, `transactions`, `recurring_transactions`, `expense_plans`, `expense_plan_items`) plus the three new ones (`sessions`, `accounts`, `verifications`).
+
+`prisma migrate dev` may or may not run `prisma generate` for you on Prisma 7. Run `npx prisma generate` explicitly afterwards and confirm it succeeds before the type-check in Step 5 — a stale client will produce confusing type errors.
 
 This is the project's **first** migration — the schema has never been applied. If Prisma reports drift or a non-empty existing database, stop and report rather than resetting: the target database may not be the one you think it is.
 

@@ -59,7 +59,7 @@ Every task's requirements implicitly include this section.
 
 | File | Responsibility |
 | --- | --- |
-| `vitest.config.ts` | Vitest config. jsdom, path aliases, `src/**/*.spec.*` only. |
+| `vitest.config.mts` | Vitest config. jsdom, path aliases, `src/**/*.spec.*` only. `.mts` so Vite loads it as ESM without a project-wide `"type": "module"`. |
 | `vitest.setup.ts` | jest-dom matchers, RTL cleanup. |
 | `playwright.config.ts` | Playwright config. `e2e/` only, dev server pointed at the test database. |
 | `e2e/global-setup.ts` | Migrate + truncate the test database before the suite. |
@@ -109,8 +109,16 @@ Do **not** install `@better-auth/prisma-adapter`. better-auth 1.6.26 ships the P
 - [ ] **Step 2: Install test dependencies**
 
 ```bash
-npm install -D vitest@^4.1.10 @vitejs/plugin-react@^6.0.5 vite-tsconfig-paths@^6.1.1 jsdom@^30.0.1 @testing-library/react@^16.3.2 @testing-library/jest-dom@^7.0.0 @testing-library/user-event@^14.6.3 @playwright/test@^1.62.1
+npm install -D vitest@^4.1.10 @vitejs/plugin-react@^6.0.5 jsdom@^30.0.1 @testing-library/react@^16.3.2 @testing-library/jest-dom@^7.0.0 @testing-library/user-event@^14.6.3 @playwright/test@^1.62.1
 ```
+
+> **Amended 2026-08-08 during execution.** `vite-tsconfig-paths` was originally
+> in this list. Vitest 4 bundles Vite 8, which resolves tsconfig paths natively
+> via `resolve.tsconfigPaths` and prints a deprecation warning when the plugin
+> is present. The plugin is obsolete here; Task 2 uses the native option.
+> `@testing-library/dom@^10.4.1` must also be installed — npm's
+> `--legacy-peer-deps` (needed for an unrelated optional-peer conflict)
+> suppresses auto-install of that required peer.
 
 - [ ] **Step 3: Install the Playwright browser**
 
@@ -188,15 +196,17 @@ This task ends with a deliberately trivial spec proving the harness works, which
 
 - [ ] **Step 1: Create the Vitest config**
 
-Create `vitest.config.ts`:
+Create `vitest.config.mts`:
 
 ```ts
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [react()],
+  // Vite 8 resolves tsconfig `paths` natively. Do not add
+  // `vite-tsconfig-paths` — Vite warns that the plugin is redundant.
+  resolve: { tsconfigPaths: true },
   test: {
     environment: "jsdom",
     globals: true,
@@ -372,7 +382,7 @@ Its only job was proving the harness. Leaving it behind would mean permanently t
 - [ ] **Step 10: Commit**
 
 ```bash
-git add vitest.config.ts vitest.setup.ts playwright.config.ts e2e/global-setup.ts package.json package-lock.json .gitignore
+git add vitest.config.mts vitest.setup.ts playwright.config.ts e2e/global-setup.ts package.json package-lock.json .gitignore
 git commit -m "chore(testing): set up vitest and playwright"
 ```
 

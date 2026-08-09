@@ -276,9 +276,12 @@ pending, and the signed-in dashboard.
 
 Runtime: `better-auth`, `react-hook-form`, `zod`, `@hookform/resolvers`.
 
-Testing: `vitest`, `@vitejs/plugin-react`, `vite-tsconfig-paths`, `jsdom`,
-`@testing-library/react`, `@testing-library/jest-dom`,
+Testing: `vitest`, `@vitejs/plugin-react`, `jsdom`, `@testing-library/react`,
+`@testing-library/dom`, `@testing-library/jest-dom`,
 `@testing-library/user-event`, `@playwright/test`.
+
+Path aliases in tests come from Vite 8's native `resolve.tsconfigPaths`, not
+the `vite-tsconfig-paths` plugin, which Vite now reports as redundant.
 
 New shadcn components: `card`, `input`, `label`, `form`, `alert`, `separator`.
 `button` already exists.

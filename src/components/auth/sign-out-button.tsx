@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -26,8 +27,17 @@ export function SignOutButton() {
   }
 
   return (
-    <Button variant="outline" size="sm" disabled={pending} onClick={handleClick}>
-      {pending ? "Signing out…" : "Sign out"}
+    <Button
+      variant="ghost"
+      size="sm"
+      className="w-full justify-start"
+      disabled={pending}
+      onClick={handleClick}
+    >
+      <LogOut aria-hidden="true" />
+      <span className="group-data-[collapsible=icon]:hidden">
+        {pending ? "Signing out…" : "Sign out"}
+      </span>
     </Button>
   );
 }

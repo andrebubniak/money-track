@@ -2646,6 +2646,11 @@ test.describe("route protection", () => {
 
   test("keeps the dashboard reachable while the session is valid", async ({ page }) => {
     await registerUser(page);
+    // Synchronisation point, not decoration. registerUser returns once the
+    // submit click is dispatched — it deliberately does NOT await navigation,
+    // because callers testing a rejected signup never navigate at all. Without
+    // this wait, the goto below races the session cookie and can land on /login.
+    await expect(page).toHaveURL("/dashboard");
 
     await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();

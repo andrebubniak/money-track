@@ -2299,6 +2299,16 @@ export async function registerUser(
 }
 ```
 
+> **Amended 2026-08-08 during execution.** Every alert assertion is scoped
+> with `page.locator("form")`. Next.js renders its own route announcer —
+> `<p role="alert" id="__next-route-announcer__">` (see
+> `node_modules/next/dist/client/route-announcer.js`) — on *every* page, so a
+> bare `page.getByRole("alert")` matches two elements and trips Playwright's
+> strict mode. Scoping to the form keeps the role assertion meaningful (both
+> auth alerts render inside their `<form>`) while disambiguating. Do not
+> "simplify" it back, and do not swap it for `getByText`, which would stop
+> asserting the accessible role.
+
 `getByLabel("Password", { exact: true })` is required — without it the locator matches both "Password" and "Confirm password" and Playwright throws a strict-mode violation.
 
 - [ ] **Step 2: Write the registration spec**
@@ -2330,7 +2340,7 @@ test.describe("registration", () => {
 
     await registerUser(page, { email });
 
-    await expect(page.getByRole("alert")).toHaveText(
+    await expect(page.locator("form").getByRole("alert")).toHaveText(
       "An account with this email already exists.",
     );
     await expect(page).toHaveURL("/register");
@@ -2437,7 +2447,7 @@ test.describe("login", () => {
     await page.getByLabel("Password").fill("definitely-not-the-password");
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page.getByRole("alert")).toHaveText("Incorrect email or password.");
+    await expect(page.locator("form").getByRole("alert")).toHaveText("Incorrect email or password.");
     await expect(page).toHaveURL("/login");
   });
 
@@ -2449,7 +2459,7 @@ test.describe("login", () => {
     await page.getByLabel("Password").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page.getByRole("alert")).toHaveText("Incorrect email or password.");
+    await expect(page.locator("form").getByRole("alert")).toHaveText("Incorrect email or password.");
   });
 
   test("validates the email format before submitting", async ({ page }) => {
@@ -2459,7 +2469,7 @@ test.describe("login", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page.getByText("Enter a valid email address.")).toBeVisible();
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   });
 
   test("accepts the email in a different case", async ({ page }) => {

@@ -1,0 +1,118 @@
+{
+  "metadata": {
+    "title": "MoneyTrack",
+    "description": "Behalte im Blick, wohin dein Geld fließt."
+  },
+  "common": {
+    "appName": "MoneyTrack",
+    "loading": "Wird geladen…",
+    "or": "oder"
+  },
+  "auth": {
+    "login": {
+      "title": "Willkommen zurück",
+      "description": "Melde dich an, um fortzufahren",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "du@beispiel.de",
+      "passwordLabel": "Passwort",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Anmelden",
+      "submitting": "Anmeldung läuft…",
+      "noAccount": "Noch kein Konto?",
+      "signUpLink": "Registrieren"
+    },
+    "register": {
+      "title": "Konto erstellen",
+      "description": "Behalte im Blick, wohin dein Geld fließt",
+      "nameLabel": "Name",
+      "namePlaceholder": "Ana Bubniak",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "du@beispiel.de",
+      "passwordLabel": "Passwort",
+      "passwordPlaceholder": "Mindestens 8 Zeichen",
+      "confirmPasswordLabel": "Passwort bestätigen",
+      "confirmPasswordPlaceholder": "Passwort erneut eingeben",
+      "submit": "Konto erstellen",
+      "submitting": "Konto wird erstellt…",
+      "hasAccount": "Du hast bereits ein Konto?",
+      "signInLink": "Anmelden"
+    },
+    "google": {
+      "continue": "Mit Google fortfahren",
+      "redirecting": "Weiterleitung zu Google…"
+    },
+    "signOut": {
+      "label": "Abmelden",
+      "pending": "Abmeldung läuft…"
+    },
+    "errorDialog": {
+      "dismiss": "Verstanden",
+      "account_not_linked": {
+        "title": "Diese E-Mail nutzt bereits ein Passwort",
+        "description": "Diese E-Mail-Adresse ist bereits mit einem Passwort registriert. Melde dich mit E-Mail und Passwort an statt mit Google."
+      },
+      "state_mismatch": {
+        "title": "Dieser Anmeldelink ist abgelaufen",
+        "description": "Dieser Anmeldeversuch ist nicht mehr gültig – meist, weil er bereits abgeschlossen oder aus dem Verlauf erneut geöffnet wurde. Bitte starte neu."
+      },
+      "fallback": {
+        "title": "Anmeldung nicht abgeschlossen",
+        "description": "Bei der Anmeldung ist etwas schiefgelaufen. Bitte versuche es erneut."
+      }
+    }
+  },
+  "dashboard": {
+    "navLabel": "Dashboard",
+    "signedInAs": "Angemeldet ({name})",
+    "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard."
+  },
+  "validation": {
+    "auth": {
+      "email": {
+        "required": "E-Mail ist erforderlich.",
+        "invalid": "Gib eine gültige E-Mail-Adresse ein."
+      },
+      "name": {
+        "tooShort": "Der Name muss mindestens {min} Zeichen lang sein.",
+        "tooLong": "Der Name darf höchstens {max} Zeichen lang sein."
+      },
+      "password": {
+        "required": "Passwort ist erforderlich.",
+        "tooShort": "Das Passwort muss mindestens {min} Zeichen lang sein.",
+        "tooLong": "Das Passwort darf höchstens {max} Zeichen lang sein.",
+        "composition": "Das Passwort muss einen Kleinbuchstaben, einen Großbuchstaben und eine Ziffer enthalten."
+      },
+      "confirmPassword": {
+        "required": "Bitte bestätige dein Passwort.",
+        "mismatch": "Die Passwörter stimmen nicht überein."
+      }
+    }
+  },
+  "errors": {
+    "auth": {
+      "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "Es existiert bereits ein Konto mit dieser E-Mail-Adresse.",
+      "USER_ALREADY_EXISTS": "Es existiert bereits ein Konto mit dieser E-Mail-Adresse.",
+      "INVALID_EMAIL_OR_PASSWORD": "E-Mail oder Passwort ist falsch.",
+      "PASSWORD_TOO_SHORT": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+      "INVALID_NAME": "Der Name muss zwischen 2 und 60 Zeichen lang sein.",
+      "PASSWORD_DOES_NOT_MEET_REQUIREMENTS": "Das Passwort muss 8-60 Zeichen lang sein und einen Kleinbuchstaben, einen Großbuchstaben und eine Ziffer enthalten.",
+      "PASSWORD_TOO_LONG": "Das Passwort ist zu lang.",
+      "INVALID_EMAIL": "Gib eine gültige E-Mail-Adresse ein.",
+      "fallback": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
+  },
+  "ui": {
+    "passwordInput": {
+      "show": "Passwort anzeigen",
+      "hide": "Passwort verbergen"
+    },
+    "sidebar": {
+      "toggle": "Seitenleiste umschalten",
+      "title": "Seitenleiste",
+      "description": "Zeigt die mobile Seitenleiste an."
+    },
+    "sheet": {
+      "close": "Schließen"
+    }
+  }
+}

@@ -21,6 +21,12 @@ describe("GoogleButton", () => {
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
   });
 
+  it("hides the icon from assistive tech so it does not pollute the accessible name", () => {
+    const { container } = render(<GoogleButton />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("starts the Google flow with the dashboard callback", async () => {
     const user = userEvent.setup();
     render(<GoogleButton />);
@@ -48,6 +54,17 @@ describe("GoogleButton", () => {
   it("recovers to the idle label when the call fails", async () => {
     const user = userEvent.setup();
     signInSocial.mockResolvedValue({ error: { code: "SOMETHING_BROKE" } });
+    render(<GoogleButton />);
+
+    await user.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    const button = await screen.findByRole("button", { name: /continue with google/i });
+    expect(button).toBeEnabled();
+  });
+
+  it("recovers when the call throws instead of returning an error", async () => {
+    const user = userEvent.setup();
+    signInSocial.mockRejectedValue(new Error("network down"));
     render(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));

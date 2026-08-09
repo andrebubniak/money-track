@@ -10,13 +10,20 @@ export function GoogleButton() {
 
   async function handleClick() {
     setPending(true);
-    // On success this navigates away, so `pending` is never cleared on the
-    // happy path. It is only reset if the call fails and we stay on the page.
-    const { error } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
-    if (error) setPending(false);
+    try {
+      // On success this navigates away, so `pending` is never cleared on the
+      // happy path. It is only reset if the call fails and we stay on the page.
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+      });
+      if (error) setPending(false);
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must not strand the button in a
+      // permanently disabled state with no way to retry.
+      setPending(false);
+    }
   }
 
   return (

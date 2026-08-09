@@ -2747,10 +2747,19 @@ git commit -m "test(authentication): add route protection and google redirect te
 - [ ] **Step 1: Clean build and both suites**
 
 ```bash
-rm -rf .next && npx tsc --noEmit && npm run build && npm test && npm run test:e2e
+rm -rf .next && npx next typegen && npx tsc --noEmit && npm run build && npm test && npm run test:e2e
 ```
 
 Expected: type-check clean, build clean, 55 unit tests passed, 20 e2e tests passed.
+
+> **Amended 2026-08-09 during execution.** `npx next typegen` is required and
+> must come first. `src/app/layout.tsx:23` uses `LayoutProps<"/">`, which Next
+> 16 generates into `.next/types/` — and `tsconfig.json` includes that path. On
+> a clean checkout, or straight after `rm -rf .next`, the type does not exist
+> yet, so `tsc --noEmit` fails with `Cannot find name 'LayoutProps'`. This is
+> not a code defect; `npm run build` passes either way because it runs typegen
+> internally. **Anyone wiring up CI must run `next typegen` (or a build) before
+> a standalone type-check**, or the pipeline will fail on a fresh clone.
 
 - [ ] **Step 2: Confirm every spec is co-located as required**
 

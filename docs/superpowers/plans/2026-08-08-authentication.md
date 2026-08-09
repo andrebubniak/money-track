@@ -1067,6 +1067,17 @@ describe("GoogleButton", () => {
     const button = await screen.findByRole("button", { name: /continue with google/i });
     expect(button).toBeEnabled();
   });
+
+  it("recovers when the call throws instead of returning an error", async () => {
+    const user = userEvent.setup();
+    signInSocial.mockRejectedValue(new Error("network down"));
+    render(<GoogleButton />);
+
+    await user.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    const button = await screen.findByRole("button", { name: /continue with google/i });
+    expect(button).toBeEnabled();
+  });
 });
 ```
 
@@ -1095,13 +1106,20 @@ export function GoogleButton() {
 
   async function handleClick() {
     setPending(true);
-    // On success this navigates away, so `pending` is never cleared on the
-    // happy path. It is only reset if the call fails and we stay on the page.
-    const { error } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
-    if (error) setPending(false);
+    try {
+      // On success this navigates away, so `pending` is never cleared on the
+      // happy path. It is only reset if the call fails and we stay on the page.
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+      });
+      if (error) setPending(false);
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must not strand the button in a
+      // permanently disabled state with no way to retry.
+      setPending(false);
+    }
   }
 
   return (
@@ -1143,7 +1161,7 @@ export function GoogleButton() {
 npm test
 ```
 
-Expected: PASS, 25 tests across 3 files.
+Expected: PASS, 26 tests across 3 files.
 
 If the button's accessible name includes stray whitespace and the regex misses, check that the `<svg>` carries `aria-hidden="true"` — without it the SVG contributes to the accessible name.
 
@@ -1278,6 +1296,21 @@ describe("LoginForm", () => {
     );
   });
 
+  it("shows the generic error when the call throws instead of returning one", async () => {
+    const user = userEvent.setup();
+    signInEmail.mockRejectedValue(new Error("network down"));
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText(/email/i), "ana@example.com");
+    await user.type(screen.getByLabelText(/password/i), "secret123");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("clears a previous error when resubmitting", async () => {
     const user = userEvent.setup();
     signInEmail.mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
@@ -1362,13 +1395,21 @@ export function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setFormError(null);
 
-    const { error } = await authClient.signIn.email({
-      email: values.email,
-      password: values.password,
-    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email: values.email,
+        password: values.password,
+      });
 
-    if (error) {
-      setFormError(authErrorMessage(error.code));
+      if (error) {
+        setFormError(authErrorMessage(error.code));
+        return;
+      }
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must surface as a message rather
+      // than leaving the form looking like nothing happened.
+      setFormError(authErrorMessage(null));
       return;
     }
 
@@ -1429,7 +1470,7 @@ export function LoginForm() {
 npm test -- src/components/auth/login-form.spec.tsx
 ```
 
-Expected: PASS, 9 tests.
+Expected: PASS, 10 tests.
 
 If "submits normalised credentials" fails because the email arrives untrimmed, the resolver is not applying the schema's `.transform()` — confirm `zodResolver` is wired and the schema is `loginSchema`, not a hand-rolled duplicate.
 
@@ -1643,6 +1684,20 @@ describe("RegisterForm", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("shows the generic error when the call throws instead of returning one", async () => {
+    const user = userEvent.setup();
+    signUpEmail.mockRejectedValue(new Error("network down"));
+    render(<RegisterForm />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("disables the button while the request is in flight", async () => {
     const user = userEvent.setup();
     signUpEmail.mockImplementation(() => new Promise(() => {}));
@@ -1701,14 +1756,22 @@ export function RegisterForm() {
   async function onSubmit(values: RegisterValues) {
     setFormError(null);
 
-    const { error } = await authClient.signUp.email({
-      name: values.name,
-      email: values.email,
-      password: values.password,
-    });
+    try {
+      const { error } = await authClient.signUp.email({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      });
 
-    if (error) {
-      setFormError(authErrorMessage(error.code));
+      if (error) {
+        setFormError(authErrorMessage(error.code));
+        return;
+      }
+    } catch {
+      // better-fetch returns errors as values by default, so this is the
+      // defensive path. A thrown rejection must surface as a message rather
+      // than leaving the form looking like nothing happened.
+      setFormError(authErrorMessage(null));
       return;
     }
 
@@ -1797,7 +1860,7 @@ export function RegisterForm() {
 npm test
 ```
 
-Expected: PASS, 41 tests across 5 files.
+Expected: PASS, 44 tests across 5 files.
 
 - [ ] **Step 5: Create the register page**
 
@@ -1947,6 +2010,19 @@ describe("SignOutButton", () => {
 
     expect(await screen.findByRole("button", { name: /signing out/i })).toBeDisabled();
   });
+
+  it("stays put and re-enables when sign-out throws", async () => {
+    const user = userEvent.setup();
+    signOut.mockRejectedValue(new Error("network down"));
+    render(<SignOutButton />);
+
+    await user.click(screen.getByRole("button", { name: /^sign out$/i }));
+
+    // The session may still be live, so redirecting would falsely imply
+    // the user is signed out.
+    expect(await screen.findByRole("button", { name: /^sign out$/i })).toBeEnabled();
+    expect(push).not.toHaveBeenCalled();
+  });
 });
 ```
 
@@ -2029,7 +2105,15 @@ export function SignOutButton() {
 
   async function handleClick() {
     setPending(true);
-    await authClient.signOut();
+    try {
+      await authClient.signOut();
+    } catch {
+      // Sign-out failed, so the session may still be live. Re-enable the
+      // button and stay put rather than redirecting to /login and implying
+      // the user is signed out when they might not be.
+      setPending(false);
+      return;
+    }
     router.push("/login");
     router.refresh();
   }
@@ -2077,7 +2161,7 @@ The file lives at `src/proxy.ts`, next to `app/` — not at the repo root, becau
 npm test
 ```
 
-Expected: PASS, 49 tests across 7 files.
+Expected: PASS, 53 tests across 7 files.
 
 - [ ] **Step 7: Create the protected page**
 
@@ -2592,7 +2676,7 @@ git commit -m "test(authentication): add route protection and google redirect te
 rm -rf .next && npx tsc --noEmit && npm run build && npm test && npm run test:e2e
 ```
 
-Expected: type-check clean, build clean, 49 unit tests passed, 20 e2e tests passed.
+Expected: type-check clean, build clean, 53 unit tests passed, 20 e2e tests passed.
 
 - [ ] **Step 2: Confirm every spec is co-located as required**
 
@@ -2640,7 +2724,7 @@ State plainly: unit test count passed, e2e count passed, and the outcome of each
 
 **Spec coverage.** Architecture → Task 5. Database schema → Task 3. Route structure → Tasks 6–9. Two-layer protection → Task 9, proven in Task 12's forged-cookie test. Components → Tasks 6–9. Validation → Task 4. Error handling → Task 4, exercised in 7–8. Visual design → Tasks 7–8 against the prototype. Dependencies and environment → Task 1. Unit testing → Tasks 4, 6, 7, 8, 9. End-to-end → Tasks 10–12. Manual checklist → Task 13. Account linking → Task 5 config, manual item 2 in Task 13 (deliberately not automated; see Task 12's note).
 
-**Test count arithmetic.** 13 (schemas) + 8 (error mapping) + 4 (google button) + 9 (login form) + 7 (register form) + 4 (sign-out) + 4 (proxy) = 49 unit. 5 (registration) + 5 (login) + 3 (logout) + 5 (route protection) + 2 (google) = 20 e2e. These are the numbers each task's run step expects; if your count differs, something did not run.
+**Test count arithmetic.** 13 (schemas) + 8 (error mapping) + 5 (google button) + 10 (login form) + 8 (register form) + 5 (sign-out) + 4 (proxy) = 53 unit. 5 (registration) + 5 (login) + 3 (logout) + 5 (route protection) + 2 (google) = 20 e2e. These are the numbers each task's run step expects; if your count differs, something did not run.
 
 **Type consistency.** `authErrorMessage(code?: string | null)` defined Task 4, called with `error.code` in Tasks 7 and 8. `LoginValues`/`RegisterValues` produced Task 4, used as `useForm` generics in 7/8. `<GoogleButton />` defined Task 6, imported unchanged in 7 and 8. `registerUser`/`uniqueEmail`/`TEST_PASSWORD` defined Task 10, imported in 11 and 12. `prismaAdapter` imported from `better-auth/adapters/prisma` in Task 5, the exact path probed in Task 1 Step 4. `proxy` and `config` exported from `src/proxy.ts` in Task 9 and imported by its spec in the same task.
 

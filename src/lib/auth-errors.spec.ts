@@ -3,7 +3,14 @@ import { describe, expect, it } from "vitest";
 import { authErrorMessage } from "@/lib/auth-errors";
 
 describe("authErrorMessage", () => {
-  it("maps a duplicate signup", () => {
+  it("maps the duplicate-signup code better-auth actually returns", () => {
+    // Verified against node_modules/better-auth/dist/api/routes/sign-up.mjs:208.
+    expect(authErrorMessage("USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL")).toBe(
+      "An account with this email already exists.",
+    );
+  });
+
+  it("also maps the admin-plugin spelling, against version drift", () => {
     expect(authErrorMessage("USER_ALREADY_EXISTS")).toBe(
       "An account with this email already exists.",
     );

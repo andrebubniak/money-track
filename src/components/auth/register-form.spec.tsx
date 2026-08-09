@@ -103,7 +103,13 @@ describe("RegisterForm", () => {
 
   it("renders the duplicate-account error", async () => {
     const user = userEvent.setup();
-    signUpEmail.mockResolvedValue({ error: { code: "USER_ALREADY_EXISTS" } });
+    // This must stay USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL, the code
+    // better-auth's sign-up route actually throws (sign-up.mjs:208) — a
+    // mock of the shorter, admin-plugin-only USER_ALREADY_EXISTS is what
+    // hid the real mapping bug that the registration e2e test caught.
+    signUpEmail.mockResolvedValue({
+      error: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" },
+    });
     render(<RegisterForm />);
 
     await fillValidForm(user);

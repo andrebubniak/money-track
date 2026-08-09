@@ -1,4 +1,9 @@
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  // What better-auth's sign-up route actually throws (sign-up.mjs:208).
+  // The shorter USER_ALREADY_EXISTS exists only in the admin plugin, which
+  // this app does not use — it is mapped too, purely against version drift.
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
+    "An account with this email already exists.",
   USER_ALREADY_EXISTS: "An account with this email already exists.",
   // Deliberately identical for unknown-email and wrong-password, so the form
   // never confirms which addresses have accounts.

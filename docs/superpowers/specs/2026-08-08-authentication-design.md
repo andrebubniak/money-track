@@ -68,17 +68,40 @@ The rest of the schema's conventions are preserved. Prisma `@map` handles
 snake_case columns and plural table names at the database level; better-auth
 never sees them.
 
-### Google accounts link to existing users by email
+### Google accounts do NOT link to existing password accounts
 
-`account.accountLinking` is enabled with `trustedProviders: ["google"]`.
+**Corrected 2026-08-09, after the final review.** This section previously
+claimed that `trustedProviders: ["google"]` links a Google sign-in to an
+existing password account by email, justified by "Google asserts the email
+address as verified, so linking by email is safe."
 
-Register with `ana@example.com` and a password, then later click "Continue with
-Google" with that same address, and the Google account links to the existing
-user rather than erroring or creating a duplicate.
+Both halves were wrong.
 
-This is safe specifically because Google asserts the email address as verified.
-It would not be safe for an untrusted provider, and this list must not be
-widened without that same reasoning.
+The rationale reasoned about the wrong side of the trust relationship. The risk
+is *pre-hijacking*: with `requireEmailVerification: false`, anyone can register
+`victim@gmail.com` with a password without proving ownership. Had linking
+occurred, the attacker would retain password access to the victim's account
+permanently. Whether Google's email is trustworthy is irrelevant to that.
+
+And the linking never happened. better-auth gates it on a second, independent
+condition — `requireLocalEmailVerified`, which defaults to `true`
+(`node_modules/better-auth/dist/oauth2/link-account.mjs:22-24`).
+`trustedProviders` satisfies only the *first* clause. Because password accounts
+keep `emailVerified: false` permanently by this spec's own design, the local
+check always fails and the link is always refused.
+
+**The behaviour we ship, deliberately:** a Google sign-in to an address that
+already has a password account is rejected with `account_not_linked`. The user
+keeps the two credentials separate. This is the safe outcome.
+
+**Known rough edge:** better-auth redirects that failure to its own unstyled
+`/api/auth/error?error=account_not_linked` page, outside the app. Giving it a
+styled landing page is follow-up work, tracked below under Manual verification.
+
+**Do not** set `requireLocalEmailVerified: false` to make linking work. It
+reintroduces the takeover, and the option is deprecated — the gate becomes
+unconditional in a coming release. If linking is genuinely wanted, verify email
+ownership first, which means bringing email verification into scope.
 
 ### Forms use react-hook-form + zod
 
@@ -135,7 +158,9 @@ components import.
 
 **Google.** `authClient.signIn.social({ provider: 'google' })` → full-page
 redirect to Google → back to `/api/auth/callback/google` → better-auth creates
-or links the user and account rows → redirect to `/dashboard`.
+the user and account rows → redirect to `/dashboard`. If the address already has
+a password account the callback refuses with `account_not_linked`; see the
+Decisions section.
 
 ## Database schema
 
@@ -371,8 +396,11 @@ After the suites pass, walk this checklist:
    confirmation → correct inline field errors, no request sent.
 7. Sign in with Google → lands on `/dashboard` showing the Google profile name.
 8. Sign out, then sign in with Google using the same address as an existing
-   password account → links to that account instead of creating a second user.
-   Verify one `users` row and two `accounts` rows.
+   password account → the sign-in is **refused** with `account_not_linked`, and
+   no second user row is created. Verify the `users` table still holds exactly
+   one row for that address, with a single `credential` account. Note the
+   failure currently lands on better-auth's unstyled error page — confirm that
+   is what you see, and treat the styling as known follow-up work.
 9. Visit `/dashboard` while signed out → redirected to `/login`.
 10. Visit `/login` while signed in → redirected to `/dashboard`.
 11. Render both screens under `.dark`.

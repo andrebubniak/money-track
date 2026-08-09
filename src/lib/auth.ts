@@ -27,9 +27,26 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      // Google asserts the email address as verified, so linking by email is
-      // safe here. Do not widen this list without that same guarantee.
       trustedProviders: ["google"],
+      // `requireLocalEmailVerified` is left at its default of `true`, and that
+      // default is what actually protects this app — NOT `trustedProviders`.
+      //
+      // The risk is pre-hijacking: because `requireEmailVerification` is off,
+      // anyone can register victim@gmail.com with a password without proving
+      // they own it. If a Google sign-in then linked into that row, the
+      // attacker would keep password access to the victim's account forever.
+      // Trusting Google's assertion says nothing about whether the *local*
+      // account was ever proven — it is the wrong side of the relationship.
+      //
+      // Consequence, and it is deliberate: since password accounts keep
+      // `emailVerified: false` permanently, a Google sign-in to an address
+      // that already has a password account is REFUSED, not linked. See
+      // node_modules/better-auth/dist/oauth2/link-account.mjs:22-24.
+      //
+      // Do NOT set `requireLocalEmailVerified: false` to "make linking work".
+      // That reintroduces the takeover above, and better-auth has deprecated
+      // the option — the gate becomes unconditional in a coming release. The
+      // real fix, if linking is wanted, is to verify email ownership first.
     },
   },
 

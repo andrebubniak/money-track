@@ -244,7 +244,7 @@ error codes are mapped to plain English in one lookup table:
 
 | Code | Message |
 | --- | --- |
-| `USER_ALREADY_EXISTS` | An account with this email already exists. |
+| `USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL` | An account with this email already exists. |
 | `INVALID_EMAIL_OR_PASSWORD` | Incorrect email or password. |
 | `PASSWORD_TOO_SHORT` | Password must be at least 8 characters. |
 | *unmapped* | Something went wrong. Please try again. |

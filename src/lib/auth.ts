@@ -1,8 +1,19 @@
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { prisma } from "@/lib/prisma";
+import { signUpPayloadSchema } from "@/lib/validations/auth";
+
+/**
+ * Maps a failed sign-up payload to a stable error code the client can look up
+ * in `authErrorMessage`. better-auth does not derive a code from the message,
+ * so it is passed explicitly.
+ */
+function signUpErrorCode(path: PropertyKey | undefined) {
+  return path === "name" ? "INVALID_NAME" : "PASSWORD_DOES_NOT_MEET_REQUIREMENTS";
+}
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -56,6 +67,25 @@ export const auth = betterAuth({
       numberFormat: { type: "string", required: false, input: false },
       dateFormat: { type: "string", required: false, input: false },
     },
+  },
+
+  hooks: {
+    // Server-side enforcement of the sign-up rules. The forms validate with
+    // the same schema for fast feedback, but a direct POST to
+    // /api/auth/sign-up/email bypasses the browser entirely — and better-auth's
+    // own body schema accepts `name: z.string()` with no bounds at all.
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/sign-up/email") return;
+
+      const result = signUpPayloadSchema.safeParse(ctx.body);
+      if (result.success) return;
+
+      const issue = result.error.issues[0];
+      throw new APIError("BAD_REQUEST", {
+        message: issue.message,
+        code: signUpErrorCode(issue.path[0]),
+      });
+    }),
   },
 
   // nextCookies() must stay last — it is what lets server-side calls set cookies.

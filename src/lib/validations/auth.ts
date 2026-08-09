@@ -26,6 +26,23 @@ const email = z
   .pipe(z.email("Enter a valid email address."))
   .transform((value) => value.toLowerCase());
 
+/**
+ * Field schemas are defined once and composed into both the browser-facing
+ * `registerSchema` and the server-facing `signUpPayloadSchema`, so the two
+ * sides cannot drift. See `.claude/rules/validation.md`.
+ */
+const name = z
+  .string()
+  .trim()
+  .min(2, "Name must be at least 2 characters.")
+  .max(MAX_NAME_LENGTH, `Name must be at most ${MAX_NAME_LENGTH} characters.`);
+
+const password = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
+  .max(MAX_PASSWORD_LENGTH, `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`)
+  .refine(hasRequiredComposition, PASSWORD_COMPOSITION_MESSAGE);
+
 export const loginSchema = z.object({
   email,
   // Non-empty only. No length or composition rules: those have changed before
@@ -33,22 +50,23 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
+/**
+ * What the server accepts at `/sign-up/email`.
+ *
+ * The browser is not a trust boundary: better-auth's own body schema types
+ * `name` as an unbounded `z.string()` and knows nothing about our composition
+ * rules, so a direct POST would otherwise bypass both. Enforced by the
+ * `before` hook in `src/lib/auth.ts`.
+ *
+ * No `confirmPassword` — that is a UI concern and never reaches the server.
+ */
+export const signUpPayloadSchema = z.object({ name, email, password });
+
 export const registerSchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .min(2, "Name must be at least 2 characters.")
-      .max(MAX_NAME_LENGTH, `Name must be at most ${MAX_NAME_LENGTH} characters.`),
+    name,
     email,
-    password: z
-      .string()
-      .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
-      .max(
-        MAX_PASSWORD_LENGTH,
-        `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`,
-      )
-      .refine(hasRequiredComposition, PASSWORD_COMPOSITION_MESSAGE),
+    password,
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
   .superRefine((values, ctx) => {

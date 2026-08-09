@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, registerSchema } from "@/lib/validations/auth";
+import { loginSchema, registerSchema, signUpPayloadSchema } from "@/lib/validations/auth";
 
 function errorsFor(result: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) {
   if (result.success || !result.error) return {};
@@ -149,5 +149,30 @@ describe("registerSchema", () => {
     });
     const errors = errorsFor(result);
     expect(Object.keys(errors).sort()).toEqual(["confirmPassword", "email", "name", "password"]);
+  });
+});
+
+describe("signUpPayloadSchema", () => {
+  const valid = { name: "Ana Bubniak", email: "ana@example.com", password: "Hunter2hunter2" };
+
+  it("accepts what the register form sends", () => {
+    expect(signUpPayloadSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("enforces the same name bounds as the form", () => {
+    expect(signUpPayloadSchema.safeParse({ ...valid, name: "A" }).success).toBe(false);
+    expect(signUpPayloadSchema.safeParse({ ...valid, name: "a".repeat(61) }).success).toBe(false);
+  });
+
+  it("enforces the same password rules as the form", () => {
+    expect(signUpPayloadSchema.safeParse({ ...valid, password: "short1A" }).success).toBe(false);
+    expect(signUpPayloadSchema.safeParse({ ...valid, password: "nouppercase1" }).success).toBe(false);
+    expect(signUpPayloadSchema.safeParse({ ...valid, password: "NoDigitsHere" }).success).toBe(false);
+  });
+
+  it("ignores confirmPassword, which never reaches the server", () => {
+    const result = signUpPayloadSchema.safeParse({ ...valid, confirmPassword: "anything" });
+    expect(result.success).toBe(true);
+    expect(result.success && "confirmPassword" in result.data).toBe(false);
   });
 });

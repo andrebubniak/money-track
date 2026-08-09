@@ -9,6 +9,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   // never confirms which addresses have accounts.
   INVALID_EMAIL_OR_PASSWORD: "Incorrect email or password.",
   PASSWORD_TOO_SHORT: "Password must be at least 8 characters.",
+  // Raised by the sign-up `before` hook in src/lib/auth.ts when a payload
+  // reaches the server without passing the browser's validation.
+  INVALID_NAME: "Name must be between 2 and 60 characters.",
+  PASSWORD_DOES_NOT_MEET_REQUIREMENTS:
+    "Password must be 8-60 characters and include a lowercase letter, an uppercase letter, and a number.",
   PASSWORD_TOO_LONG: "Password is too long.",
   INVALID_EMAIL: "Enter a valid email address.",
 };

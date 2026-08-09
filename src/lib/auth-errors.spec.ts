@@ -28,6 +28,18 @@ describe("authErrorMessage", () => {
     );
   });
 
+  it("maps the server-side name rejection", () => {
+    expect(authErrorMessage("INVALID_NAME")).toBe(
+      "Name must be between 2 and 60 characters.",
+    );
+  });
+
+  it("maps the server-side password rejection", () => {
+    expect(authErrorMessage("PASSWORD_DOES_NOT_MEET_REQUIREMENTS")).toBe(
+      "Password must be 8-60 characters and include a lowercase letter, an uppercase letter, and a number.",
+    );
+  });
+
   it("falls back for an unrecognised code", () => {
     expect(authErrorMessage("SOME_FUTURE_CODE")).toBe(
       "Something went wrong. Please try again.",

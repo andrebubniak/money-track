@@ -26,9 +26,44 @@ for correctness. **Neither replaces the other**, and they must never disagree.
 A rule enforced only in the browser is not enforced. A rule enforced only on the
 server produces a round trip to tell the user something the page already knew.
 
-Where a library owns the server-side check — better-auth's `minPasswordLength`,
-for example — the zod schema and the library configuration must be kept in
-sync, with a comment on each pointing at the other.
+### When a library owns the endpoint
+
+Our auth forms call `authClient` directly, so there is no Server Action or
+Route Handler of ours in between where a schema could run. That does **not**
+excuse the server side — it just moves where the check lives.
+
+Use a better-auth **`before` hook** (`src/lib/auth.ts`), which runs on the real
+endpoint before its handler:
+
+```ts
+hooks: {
+  before: createAuthMiddleware(async (ctx) => {
+    if (ctx.path !== "/sign-up/email") return;
+    const result = signUpPayloadSchema.safeParse(ctx.body);
+    if (result.success) return;
+    const issue = result.error.issues[0];
+    throw new APIError("BAD_REQUEST", { message: issue.message, code: "…" });
+  }),
+}
+```
+
+Two things to know:
+
+- **better-auth does not derive an error code from the message.** Pass `code`
+  explicitly, and map it in `src/lib/auth-errors.ts`, or the client falls back
+  to the generic message.
+- **Do not assume the library's own bounds are adequate.** better-auth types
+  `name` as an unbounded `z.string()`. Read the endpoint's body schema in
+  `node_modules/better-auth/dist/api/routes/` before deciding a field is
+  already covered.
+
+Where the library *does* own a check — `minPasswordLength` — keep it in sync
+with the zod schema, with a comment on each pointing at the other.
+
+**Test the bypass, not just the form.** A server-side rule that only the form
+exercises is untested. Post directly to the endpoint from an e2e test with a
+payload the browser would have rejected, and assert both the status and the
+error code — see `e2e/registration.spec.ts`.
 
 ## Always bound strings at both ends
 

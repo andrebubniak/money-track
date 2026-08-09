@@ -75,4 +75,35 @@ test.describe("registration", () => {
       page.getByText(email.toLowerCase(), { exact: true }),
     ).toBeVisible();
   });
+
+  test("rejects a weak password posted straight to the API", async ({ request }) => {
+    // The browser is not a trust boundary. This skips the form entirely, the
+    // way an attacker or a stray script would. better-auth's own body schema
+    // would accept this; the `before` hook in src/lib/auth.ts is what stops it.
+    const email = uniqueEmail("bypass-password");
+
+    const rejected = await request.post("/api/auth/sign-up/email", {
+      data: { name: "Ana Bubniak", email, password: "nouppercaseordigit" },
+    });
+
+    expect(rejected.status()).toBe(400);
+    expect((await rejected.json()).code).toBe("PASSWORD_DOES_NOT_MEET_REQUIREMENTS");
+
+    // Nothing was written: the same address is still free.
+    const accepted = await request.post("/api/auth/sign-up/email", {
+      data: { name: "Ana Bubniak", email, password: TEST_PASSWORD },
+    });
+    expect(accepted.status()).toBe(200);
+  });
+
+  test("rejects an over-long name posted straight to the API", async ({ request }) => {
+    // better-auth types `name` as an unbounded z.string(), so without the hook
+    // this would write a 5000-character name to the database.
+    const rejected = await request.post("/api/auth/sign-up/email", {
+      data: { name: "a".repeat(5000), email: uniqueEmail("bypass-name"), password: TEST_PASSWORD },
+    });
+
+    expect(rejected.status()).toBe(400);
+    expect((await rejected.json()).code).toBe("INVALID_NAME");
+  });
 });

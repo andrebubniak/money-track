@@ -1523,7 +1523,12 @@ export default async function LoginPage() {
   return (
     <Card className="w-full max-w-100">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardTitle className="text-xl">
+          {/* A real <h1>: CardTitle renders a plain div, so without this the
+              page has no heading element at all. Tailwind preflight resets
+              h1 size/weight/margin to inherit, so this is visually identical. */}
+          <h1>Welcome back</h1>
+        </CardTitle>
         <CardDescription>Sign in to continue to your account</CardDescription>
       </CardHeader>
 
@@ -1916,7 +1921,12 @@ export default async function RegisterPage() {
   return (
     <Card className="w-full max-w-100">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Create your account</CardTitle>
+        <CardTitle className="text-xl">
+          {/* A real <h1>: CardTitle renders a plain div, so without this the
+              page has no heading element at all. Tailwind preflight resets
+              h1 size/weight/margin to inherit, so this is visually identical. */}
+          <h1>Create your account</h1>
+        </CardTitle>
         <CardDescription>Start tracking where your money goes</CardDescription>
       </CardHeader>
 
@@ -2218,9 +2228,9 @@ export default async function DashboardPage() {
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10 text-center">
-        <p className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Signed in ({displayName})
-        </p>
+        </h1>
         <p className="font-mono text-sm text-muted-foreground">{session.user.email}</p>
         <p className="mt-4 max-w-[42ch] rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">
           Placeholder page. This route becomes the real spending dashboard

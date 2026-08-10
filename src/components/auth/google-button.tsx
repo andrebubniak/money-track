@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export function GoogleButton() {
   const locale = useLocale();
+  const t = useTranslations("auth.google");
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
@@ -63,7 +64,7 @@ export function GoogleButton() {
           d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z"
         />
       </svg>
-      {pending ? "Redirecting to Google…" : "Continue with Google"}
+      {pending ? t("redirecting") : t("continue")}
     </Button>
   );
 }

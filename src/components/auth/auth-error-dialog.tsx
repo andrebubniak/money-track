@@ -1,8 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-
-import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 
 import {
   AlertDialog,
@@ -13,33 +12,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-type AuthErrorCopy = { title: string; description: string };
+import { useRouter } from "@/i18n/navigation";
 
 /**
  * Slugs better-auth appends to `?error=` when it redirects a failure here.
- * See `onAPIError.errorURL` in `src/lib/auth.ts`.
+ * See `onAPIError.errorURL` in `src/lib/auth.ts`. Each has a matching entry
+ * under `auth.errorDialog` in every catalog.
  */
-const AUTH_ERROR_COPY: Record<string, AuthErrorCopy> = {
-  account_not_linked: {
-    title: "This email already uses a password",
-    description:
-      "This email is already registered with the password method. Please sign in with your email and password instead of Google.",
-  },
-  // Raised when a finished Google sign-in is replayed — most often by pressing
-  // Back into it — because its one-time state cookie has already been spent.
-  state_mismatch: {
-    title: "That sign-in link expired",
-    description:
-      "This sign-in attempt is no longer valid, usually because it was already completed or reopened from history. Please start again.",
-  },
-};
+const KNOWN_SLUGS = ["account_not_linked", "state_mismatch"] as const;
 
-const FALLBACK_COPY: AuthErrorCopy = {
-  title: "Sign-in didn't complete",
-  description:
-    "Something went wrong while signing you in. Please try again.",
-};
+type KnownSlug = (typeof KNOWN_SLUGS)[number];
+
+function isKnownSlug(value: string): value is KnownSlug {
+  return (KNOWN_SLUGS as readonly string[]).includes(value);
+}
 
 /**
  * Turns an auth failure redirect into an explanation on the login page.
@@ -49,10 +35,11 @@ const FALLBACK_COPY: AuthErrorCopy = {
  * releases.
  */
 export function AuthErrorDialog() {
+  const t = useTranslations("auth.errorDialog");
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
-  const copy = error ? (AUTH_ERROR_COPY[error] ?? FALLBACK_COPY) : null;
+  const key = error ? (isKnownSlug(error) ? error : "fallback") : null;
 
   function dismiss() {
     // Drop the query string so a refresh — or a back-and-forward — does not
@@ -61,14 +48,14 @@ export function AuthErrorDialog() {
   }
 
   return (
-    <AlertDialog open={copy !== null} onOpenChange={(next) => !next && dismiss()}>
+    <AlertDialog open={key !== null} onOpenChange={(next) => !next && dismiss()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{copy?.title}</AlertDialogTitle>
-          <AlertDialogDescription>{copy?.description}</AlertDialogDescription>
+          <AlertDialogTitle>{key && t(`${key}.title`)}</AlertDialogTitle>
+          <AlertDialogDescription>{key && t(`${key}.description`)}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={dismiss}>Got it</AlertDialogAction>
+          <AlertDialogAction onClick={dismiss}>{t("dismiss")}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

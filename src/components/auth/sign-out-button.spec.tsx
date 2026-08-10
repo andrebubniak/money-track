@@ -1,6 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithIntl } from "@/test-utils/intl";
 
 const { signOut, replace, refresh } = vi.hoisted(() => ({
   signOut: vi.fn(),
@@ -22,13 +24,13 @@ describe("SignOutButton", () => {
   });
 
   it("renders the idle label", () => {
-    render(<SignOutButton />);
+    renderWithIntl(<SignOutButton />);
     expect(screen.getByRole("button", { name: /^sign out$/i })).toBeInTheDocument();
   });
 
   it("signs out and returns to login", async () => {
     const user = userEvent.setup();
-    render(<SignOutButton />);
+    renderWithIntl(<SignOutButton />);
 
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
@@ -40,7 +42,7 @@ describe("SignOutButton", () => {
   it("does not redirect before sign-out resolves", async () => {
     const user = userEvent.setup();
     signOut.mockImplementation(() => new Promise(() => {}));
-    render(<SignOutButton />);
+    renderWithIntl(<SignOutButton />);
 
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
@@ -50,7 +52,7 @@ describe("SignOutButton", () => {
   it("disables itself while signing out", async () => {
     const user = userEvent.setup();
     signOut.mockImplementation(() => new Promise(() => {}));
-    render(<SignOutButton />);
+    renderWithIntl(<SignOutButton />);
 
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
@@ -60,7 +62,7 @@ describe("SignOutButton", () => {
   it("stays put and re-enables when sign-out throws", async () => {
     const user = userEvent.setup();
     signOut.mockRejectedValue(new Error("network down"));
-    render(<SignOutButton />);
+    renderWithIntl(<SignOutButton />);
 
     await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 

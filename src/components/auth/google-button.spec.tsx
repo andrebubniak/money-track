@@ -1,14 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithIntl } from "@/test-utils/intl";
 
 const { signInSocial } = vi.hoisted(() => ({ signInSocial: vi.fn() }));
 
 vi.mock("@/lib/auth-client", () => ({
   authClient: { signIn: { social: signInSocial } },
 }));
-
-vi.mock("next-intl", () => ({ useLocale: () => "en-US" }));
 
 import { GoogleButton } from "@/components/auth/google-button";
 
@@ -19,19 +19,19 @@ describe("GoogleButton", () => {
   });
 
   it("renders the idle label", () => {
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
   });
 
   it("hides the icon from assistive tech so it does not pollute the accessible name", () => {
-    const { container } = render(<GoogleButton />);
+    const { container } = renderWithIntl(<GoogleButton />);
     const svg = container.querySelector("svg");
     expect(svg).toHaveAttribute("aria-hidden", "true");
   });
 
   it("starts the Google flow with the dashboard callback", async () => {
     const user = userEvent.setup();
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 
@@ -48,7 +48,7 @@ describe("GoogleButton", () => {
     const user = userEvent.setup();
     // Never resolves — the redirect would normally navigate away.
     signInSocial.mockImplementation(() => new Promise(() => {}));
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 
@@ -59,7 +59,7 @@ describe("GoogleButton", () => {
   it("recovers to the idle label when the call fails", async () => {
     const user = userEvent.setup();
     signInSocial.mockResolvedValue({ error: { code: "SOMETHING_BROKE" } });
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 
@@ -70,7 +70,7 @@ describe("GoogleButton", () => {
   it("recovers when the call throws instead of returning an error", async () => {
     const user = userEvent.setup();
     signInSocial.mockRejectedValue(new Error("network down"));
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 

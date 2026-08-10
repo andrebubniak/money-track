@@ -1,7 +1,10 @@
 import { AppLink } from "@/components/nav/app-link";
 import { Suspense } from "react";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
+import { redirect } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
 
 import { AuthErrorDialog } from "@/components/auth/auth-error-dialog";
 
@@ -17,9 +20,15 @@ import { GoogleButton } from "@/components/auth/google-button";
 import { LoginForm } from "@/components/auth/login-form";
 import { auth } from "@/lib/auth";
 
-export default async function LoginPage() {
+export default async function LoginPage({ params }: PageProps<"/[locale]/login">) {
+  const { locale } = await params;
+  // Next generates `locale` as a plain `string`; `hasLocale` narrows it to
+  // next-intl's `Locale` union, which `redirect` requires. The layout above
+  // already 404s on anything outside `routing.locales`, so this is never
+  // actually reached with an unsupported tag.
+  if (!hasLocale(routing.locales, locale)) notFound();
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session) redirect("/dashboard");
+  if (session) redirect({ href: "/dashboard", locale });
 
   return (
     <>

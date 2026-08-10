@@ -3,11 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { useLinkStatus } = vi.hoisted(() => ({ useLinkStatus: vi.fn() }));
 
-vi.mock("next/link", () => ({
-  default: ({ children, ...props }: React.ComponentProps<"a">) => (
+vi.mock("next/link", () => ({ useLinkStatus }));
+
+// Stubbed to a plain anchor: the real next-intl Link needs a router context
+// this test has no reason to stand up, and every assertion here is about the
+// pending overlay, not about href resolution.
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, ...props }: React.ComponentProps<"a">) => (
     <a {...props}>{children}</a>
   ),
-  useLinkStatus,
 }));
 
 import { AppLink } from "@/components/nav/app-link";

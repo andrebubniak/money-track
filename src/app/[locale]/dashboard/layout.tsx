@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { LayoutDashboard } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   Sidebar,
   SidebarContent,

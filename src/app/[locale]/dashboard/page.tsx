@@ -1,12 +1,27 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
+import { redirect } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
 
 import { auth } from "@/lib/auth";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ params }: PageProps<"/[locale]/dashboard">) {
+  const { locale } = await params;
+  // Next generates `locale` as a plain `string`; `hasLocale` narrows it to
+  // next-intl's `Locale` union, which `redirect` requires. The layout above
+  // already 404s on anything outside `routing.locales`, so this is never
+  // actually reached with an unsupported tag.
+  if (!hasLocale(routing.locales, locale)) notFound();
   // Authoritative check. This queries Postgres; src/proxy.ts does not.
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/login");
+  // `return`, not a bare statement: next-intl's `redirect` return type is
+  // structurally `never`, but it is built from a conditional type TypeScript
+  // does not resolve to the exact `never` singleton its unreachable-code
+  // analysis checks for — so without `return`, `session` below stays typed
+  // as possibly `null`. An explicit `return` sidesteps that: the statement
+  // itself, not the callee's type, is what narrows.
+  if (!session) return redirect({ href: "/login", locale });
 
   // `||` not `??`: a Google profile with no name persists as an empty string,
   // which `??` would pass through and render as "Signed in ()".

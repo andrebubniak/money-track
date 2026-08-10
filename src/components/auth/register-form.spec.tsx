@@ -12,7 +12,7 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: { signUp: { email: signUpEmail } },
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, refresh }),
 }));
 

@@ -9,7 +9,7 @@ const { signOut, replace, refresh } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth-client", () => ({ authClient: { signOut } }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
+vi.mock("@/i18n/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 

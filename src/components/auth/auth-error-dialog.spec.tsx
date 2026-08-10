@@ -8,8 +8,11 @@ const { replace, searchParams } = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
   useSearchParams: () => searchParams,
+}));
+
+vi.mock("@/i18n/navigation", () => ({
+  useRouter: () => ({ replace }),
 }));
 
 import { AuthErrorDialog } from "@/components/auth/auth-error-dialog";

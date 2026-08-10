@@ -8,6 +8,8 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: { signIn: { social: signInSocial } },
 }));
 
+vi.mock("next-intl", () => ({ useLocale: () => "en-US" }));
+
 import { GoogleButton } from "@/components/auth/google-button";
 
 describe("GoogleButton", () => {
@@ -35,10 +37,10 @@ describe("GoogleButton", () => {
 
     expect(signInSocial).toHaveBeenCalledWith({
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: "/en-US/dashboard",
       // Keeps a refused link inside the app instead of on better-auth's
       // unstyled error page.
-      errorCallbackURL: "/login",
+      errorCallbackURL: "/en-US/login",
     });
   });
 

@@ -82,6 +82,11 @@ export const auth = betterAuth({
     // Google sign-in replays a callback whose state cookie is already spent,
     // producing `state_mismatch`. Without this the user lands on a raw error
     // page outside the app with no way home.
+    //
+    // Stays unprefixed: this is static config with no request to negotiate
+    // from. The proxy adds the locale on the redirect. `errorCallbackURL` in
+    // GoogleButton covers the failures a user actually reaches, so the extra
+    // hop only affects flows that bypass the client entirely.
     errorURL: "/login",
   },
 

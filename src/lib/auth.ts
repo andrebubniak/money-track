@@ -4,7 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { prisma } from "@/lib/prisma";
-import { signUpPayloadSchema } from "@/lib/validations/auth";
+import { signUpPayloadSchema } from "@/lib/validations/auth.server";
 
 /**
  * Maps a failed sign-up payload to a stable error code the client can look up

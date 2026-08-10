@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "@/i18n/navigation";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 
 import { CircleAlert } from "lucide-react";
 
@@ -12,20 +12,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "@/i18n/navigation";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
-import { loginSchema, type LoginValues } from "@/lib/validations/auth";
+import { createLoginSchema, type LoginValues } from "@/lib/validations/auth";
 
 export function LoginForm() {
+  const t = useTranslations("auth.login");
+  const tValidation = useTranslations("validation.auth");
+  const tErrors = useTranslations("errors.auth");
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Rebuilt when the translator changes — which is when the locale changes.
+  const schema = useMemo(() => createLoginSchema(tValidation), [tValidation]);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
 
@@ -39,14 +46,16 @@ export function LoginForm() {
       });
 
       if (error) {
-        setFormError(authErrorMessage(error.code));
+        // The code, never error.message — the server's message is English by
+        // design. See `.claude/rules/validation.md`.
+        setFormError(authErrorMessage(tErrors, error.code));
         return;
       }
     } catch {
       // better-fetch returns errors as values by default, so this is the
       // defensive path. A thrown rejection must surface as a message rather
       // than leaving the form looking like nothing happened.
-      setFormError(authErrorMessage(null));
+      setFormError(authErrorMessage(tErrors, null));
       return;
     }
 
@@ -66,12 +75,12 @@ export function LoginForm() {
       )}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("emailLabel")}</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email")}
@@ -80,11 +89,11 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("passwordLabel")}</Label>
         <PasswordInput
           id="password"
           autoComplete="current-password"
-          placeholder="••••••••"
+          placeholder={t("passwordPlaceholder")}
           aria-invalid={Boolean(errors.password)}
           aria-describedby={errors.password ? "password-error" : undefined}
           {...register("password")}
@@ -95,7 +104,7 @@ export function LoginForm() {
       </div>
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Signing in…" : "Sign in"}
+        {isSubmitting ? t("submitting") : t("submit")}
       </Button>
     </form>
   );

@@ -66,6 +66,10 @@
     "signedInAs": "Conectado ({name})",
     "placeholder": "Página provisória. Esta rota vai se tornar o painel de gastos descrito no PRD."
   },
+  "notFound": {
+    "title": "404",
+    "description": "Esta página não existe."
+  },
   "validation": {
     "auth": {
       "email": {

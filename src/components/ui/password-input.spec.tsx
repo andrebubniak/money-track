@@ -1,18 +1,19 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { PasswordInput } from "@/components/ui/password-input";
+import { renderWithIntl } from "@/test-utils/intl";
 
 describe("PasswordInput", () => {
   it("masks the value by default", () => {
-    render(<PasswordInput aria-label="Password" />);
+    renderWithIntl(<PasswordInput aria-label="Password" />);
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
 
   it("reveals the value when the toggle is pressed", async () => {
     const user = userEvent.setup();
-    render(<PasswordInput aria-label="Password" />);
+    renderWithIntl(<PasswordInput aria-label="Password" />);
 
     await user.click(screen.getByRole("button", { name: "Show password" }));
 
@@ -21,7 +22,7 @@ describe("PasswordInput", () => {
 
   it("masks it again on a second press", async () => {
     const user = userEvent.setup();
-    render(<PasswordInput aria-label="Password" />);
+    renderWithIntl(<PasswordInput aria-label="Password" />);
 
     await user.click(screen.getByRole("button", { name: "Show password" }));
     await user.click(screen.getByRole("button", { name: "Hide password" }));
@@ -31,7 +32,7 @@ describe("PasswordInput", () => {
 
   it("exposes its state to assistive technology", async () => {
     const user = userEvent.setup();
-    render(<PasswordInput aria-label="Password" />);
+    renderWithIntl(<PasswordInput aria-label="Password" />);
 
     const toggle = screen.getByRole("button", { name: "Show password" });
     expect(toggle).toHaveAttribute("aria-pressed", "false");
@@ -46,7 +47,7 @@ describe("PasswordInput", () => {
 
   it("keeps the typed value across a visibility toggle", async () => {
     const user = userEvent.setup();
-    render(<PasswordInput aria-label="Password" />);
+    renderWithIntl(<PasswordInput aria-label="Password" />);
 
     const input = screen.getByLabelText("Password");
     await user.type(input, "Hunter2hunter2");
@@ -60,7 +61,7 @@ describe("PasswordInput", () => {
     // type="submit", so toggling visibility would submit the form.
     const user = userEvent.setup();
     let submitted = false;
-    render(
+    renderWithIntl(
       <form onSubmit={() => { submitted = true; }}>
         <PasswordInput aria-label="Password" />
       </form>,
@@ -73,7 +74,7 @@ describe("PasswordInput", () => {
 
   it("stays keyboard reachable", async () => {
     const user = userEvent.setup();
-    render(<PasswordInput aria-label="Password" />);
+    renderWithIntl(<PasswordInput aria-label="Password" />);
 
     await user.tab();
     await user.tab();

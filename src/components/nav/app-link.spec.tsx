@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { useLinkStatus } = vi.hoisted(() => ({ useLinkStatus: vi.fn() }));
@@ -15,6 +15,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 import { AppLink } from "@/components/nav/app-link";
+import { renderWithIntl } from "@/test-utils/intl";
 
 describe("AppLink", () => {
   beforeEach(() => {
@@ -23,18 +24,18 @@ describe("AppLink", () => {
   });
 
   it("renders its children as a link", () => {
-    render(<AppLink href="/register">Sign up</AppLink>);
+    renderWithIntl(<AppLink href="/register">Sign up</AppLink>);
     expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/register");
   });
 
   it("shows no loader while idle", () => {
-    render(<AppLink href="/register">Sign up</AppLink>);
+    renderWithIntl(<AppLink href="/register">Sign up</AppLink>);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("shows the loader while the navigation is pending", () => {
     useLinkStatus.mockReturnValue({ pending: true });
-    render(<AppLink href="/register">Sign up</AppLink>);
+    renderWithIntl(<AppLink href="/register">Sign up</AppLink>);
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
@@ -43,7 +44,7 @@ describe("AppLink", () => {
     // <p> that wraps these links — invalid HTML, and React 19 raises a
     // hydration error for it.
     useLinkStatus.mockReturnValue({ pending: true });
-    render(
+    renderWithIntl(
       <p>
         Don&apos;t have an account? <AppLink href="/register">Sign up</AppLink>
       </p>,
@@ -57,7 +58,7 @@ describe("AppLink", () => {
 
   it("does not leave the loader behind once pending clears", () => {
     useLinkStatus.mockReturnValue({ pending: true });
-    const { rerender } = render(<AppLink href="/register">Sign up</AppLink>);
+    const { rerender } = renderWithIntl(<AppLink href="/register">Sign up</AppLink>);
     expect(screen.getByRole("status")).toBeInTheDocument();
 
     useLinkStatus.mockReturnValue({ pending: false });

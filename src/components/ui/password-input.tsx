@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ function PasswordInput({
   ...props
 }: Omit<React.ComponentProps<"input">, "type">) {
   const [visible, setVisible] = React.useState(false);
+  const t = useTranslations("ui.passwordInput");
 
   return (
     <div className="relative">
@@ -30,7 +32,7 @@ function PasswordInput({
       <button
         type="button"
         onClick={() => setVisible((current) => !current)}
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t("hide") : t("show")}
         aria-pressed={visible}
         className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >

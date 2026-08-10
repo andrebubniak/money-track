@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { LayoutDashboard } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Link } from "@/i18n/navigation";
@@ -29,7 +30,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
  * and invite the mistake of treating a layout as a security boundary, which it
  * is not: layouts do not re-render on client-side navigation.
  */
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const t = await getTranslations("dashboard");
+  const tCommon = await getTranslations("common");
+
   return (
     <TooltipProvider>
       <SidebarProvider>
@@ -37,7 +41,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <SidebarHeader>
             <div className="flex items-center gap-2 px-2 py-1.5">
               <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">
-                MoneyTrack
+                {tCommon("appName")}
               </span>
             </div>
           </SidebarHeader>
@@ -48,7 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      tooltip="Dashboard"
+                      tooltip={t("navLabel")}
                       isActive
                       // Plain Link, not AppLink: navigation *inside* the shell is covered
                       // by the segment's loading.tsx skeleton. See
@@ -56,7 +60,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       render={<Link href="/dashboard" />}
                     >
                       <LayoutDashboard aria-hidden="true" />
-                      <span>Dashboard</span>
+                      <span>{t("navLabel")}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>

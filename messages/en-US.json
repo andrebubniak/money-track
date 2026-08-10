@@ -66,6 +66,10 @@
     "signedInAs": "Signed in ({name})",
     "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD."
   },
+  "notFound": {
+    "title": "404",
+    "description": "This page does not exist."
+  },
   "validation": {
     "auth": {
       "email": {

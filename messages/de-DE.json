@@ -66,6 +66,10 @@
     "signedInAs": "Angemeldet ({name})",
     "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard."
   },
+  "notFound": {
+    "title": "404",
+    "description": "Diese Seite existiert nicht."
+  },
   "validation": {
     "auth": {
       "email": {

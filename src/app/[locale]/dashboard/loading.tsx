@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -11,13 +13,15 @@ import { Skeleton } from "@/components/ui/skeleton";
  * Mirror the real page's layout here as `/dashboard` grows, or the content
  * will jump when it arrives.
  */
-export default function DashboardLoading() {
+export default async function DashboardLoading() {
+  const t = await getTranslations("common");
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-2.5 px-5 py-10">
       <Skeleton className="h-8 w-64" />
       <Skeleton className="h-4 w-48" />
       <Skeleton className="mt-4 h-16 w-80" />
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{t("loading")}</span>
     </main>
   );
 }

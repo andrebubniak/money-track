@@ -1,4 +1,5 @@
 import { LoaderCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -11,12 +12,16 @@ import { cn } from "@/lib/utils";
  * so the user never sees a flash.
  */
 function FullscreenLoader({
-  label = "Loading…",
+  label,
   className,
 }: {
   label?: string;
   className?: string;
 }) {
+  // Rendered from both a Server Component (loading.tsx) and a Client one
+  // (AppLink's portal). `useTranslations` works in both.
+  const t = useTranslations("common");
+
   return (
     <div
       role="status"
@@ -28,7 +33,7 @@ function FullscreenLoader({
       )}
     >
       <LoaderCircle className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-muted-foreground">{label ?? t("loading")}</span>
     </div>
   );
 }

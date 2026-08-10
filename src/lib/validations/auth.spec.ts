@@ -118,10 +118,32 @@ describe("createRegisterSchema", () => {
     expect(errorsFor(result).password).toBe(`password.tooLong:{"max":${MAX_PASSWORD_LENGTH}}`);
   });
 
-  it("reports all three composition rules in one message", () => {
-    const password = "alllowercase";
+  // One case per composition clause. A single fixture violating two clauses at
+  // once would let any one of them be deleted with the suite still green —
+  // including the digit requirement, which weakens every password in the
+  // product. Each fixture below satisfies the other two clauses exactly.
+  it.each([
+    ["no lowercase letter", "PASSWORD1"],
+    ["no uppercase letter", "password1"],
+    ["no number", "PasswordOnly"],
+  ])("rejects a password with %s", (_label, password) => {
     const result = registerSchema.safeParse({ ...valid, password, confirmPassword: password });
     expect(errorsFor(result).password).toBe("password.composition");
+  });
+
+  it("reports one issue for the password, not one per broken rule", () => {
+    // `.claude/rules/validation.md`: one message per field. `errorsFor`
+    // collapses same-path issues, so this has to count them directly —
+    // splitting the single .refine() into three would otherwise pass.
+    //
+    // Long enough to clear `.min()`, so composition is the only rule it
+    // breaks. A short password would fail two rules and prove nothing here.
+    const password = "PasswordOnly";
+    const result = registerSchema.safeParse({ ...valid, password, confirmPassword: password });
+    const issues = result.success
+      ? []
+      : result.error.issues.filter((i) => i.path[0] === "password");
+    expect(issues).toHaveLength(1);
   });
 
   it("requires a confirmation", () => {

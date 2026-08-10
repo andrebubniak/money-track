@@ -17,9 +17,11 @@ import { AppLink } from "@/components/nav/app-link";
 <AppLink href="/register">Sign up</AppLink>
 ```
 
-Use it for **all** internal navigation. Reach for a bare `next/link` only when
-you have a specific reason and can say what it is — a link inside a tight list
-where an overlay would be wrong, for instance.
+Use it for **all** internal navigation. Reach for a bare `Link` from
+`@/i18n/navigation` only when you have a specific reason and can say what it
+is — a link inside a tight list where an overlay would be wrong, for
+instance. A bare `next/link` is not that reason: with `localePrefix:
+"always"`, it sends an internal `href` out with no locale segment at all.
 
 External links (`<a href="https://…">`) are unaffected; there is nothing to
 prefetch and no client transition to cover.

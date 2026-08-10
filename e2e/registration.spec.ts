@@ -108,4 +108,15 @@ test.describe("registration", () => {
     expect(rejected.status()).toBe(400);
     expect((await rejected.json()).code).toBe("INVALID_NAME");
   });
+
+  test("rejects a malformed email posted straight to the API", async ({ request }) => {
+    // signUpErrorCode in src/lib/auth.ts must distinguish email from password
+    // failures, or the user is told to fix the wrong field.
+    const rejected = await request.post("/api/auth/sign-up/email", {
+      data: { name: "Ana Bubniak", email: "not-an-email", password: TEST_PASSWORD },
+    });
+
+    expect(rejected.status()).toBe(400);
+    expect((await rejected.json()).code).toBe("INVALID_EMAIL");
+  });
 });

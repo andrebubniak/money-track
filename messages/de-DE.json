@@ -11,7 +11,7 @@
   "auth": {
     "login": {
       "title": "Willkommen zurück",
-      "description": "Melde dich an, um fortzufahren",
+      "description": "Melde dich an, um zu deinem Konto zu gelangen",
       "emailLabel": "E-Mail",
       "emailPlaceholder": "du@beispiel.de",
       "passwordLabel": "Passwort",
@@ -23,7 +23,7 @@
     },
     "register": {
       "title": "Konto erstellen",
-      "description": "Behalte im Blick, wohin dein Geld fließt",
+      "description": "Fang an zu verfolgen, wohin dein Geld fließt",
       "nameLabel": "Name",
       "namePlaceholder": "Ana Bubniak",
       "emailLabel": "E-Mail",

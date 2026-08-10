@@ -44,6 +44,19 @@ describe("GoogleButton", () => {
     });
   });
 
+  it("builds the callback URLs from the active locale, not a hardcoded one", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<GoogleButton />, "de-DE");
+
+    await user.click(screen.getByRole("button", { name: /mit google fortfahren/i }));
+
+    expect(signInSocial).toHaveBeenCalledWith({
+      provider: "google",
+      callbackURL: "/de-DE/dashboard",
+      errorCallbackURL: "/de-DE/login",
+    });
+  });
+
   it("shows a pending label and disables itself while redirecting", async () => {
     const user = userEvent.setup();
     // Never resolves — the redirect would normally navigate away.

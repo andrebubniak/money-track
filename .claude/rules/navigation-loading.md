@@ -28,11 +28,11 @@ prefetch and no client transition to cover.
 
 ## Why `loading.tsx` alone is not enough
 
-`src/app/loading.tsx` provides the route-level Suspense fallback, and it is the
-right tool once a navigation is under way. But **Next prefetches the fallback
-itself**. On a cold link — first visit, slow network, a route not yet compiled
-in development — the fallback has not arrived either, so the user gets nothing
-between the click and the transition.
+`src/app/[locale]/loading.tsx` provides the route-level Suspense fallback, and
+it is the right tool once a navigation is under way. But **Next prefetches the
+fallback itself**. On a cold link — first visit, slow network, a route not yet
+compiled in development — the fallback has not arrived either, so the user
+gets nothing between the click and the transition.
 
 `AppLink` closes that gap using `useLinkStatus` from `next/link`, which reports
 pending state from the moment of the click. The two mechanisms are

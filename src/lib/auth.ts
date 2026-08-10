@@ -12,7 +12,9 @@ import { signUpPayloadSchema } from "@/lib/validations/auth.server";
  * so it is passed explicitly.
  */
 function signUpErrorCode(path: PropertyKey | undefined) {
-  return path === "name" ? "INVALID_NAME" : "PASSWORD_DOES_NOT_MEET_REQUIREMENTS";
+  if (path === "name") return "INVALID_NAME";
+  if (path === "email") return "INVALID_EMAIL";
+  return "PASSWORD_DOES_NOT_MEET_REQUIREMENTS";
 }
 
 export const auth = betterAuth({

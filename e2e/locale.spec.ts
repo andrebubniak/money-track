@@ -1,12 +1,21 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("locale negotiation", () => {
-  test("falls back to en-US with no cookie and no usable header", async ({ page }) => {
+  test("falls back to en-US with no cookie and no header we support", async ({ browser }) => {
+    // The default context inherits the host's own Accept-Language, which on
+    // an en-US host would match by negotiation rather than by falling back —
+    // indistinguishable from this test's actual claim. ja-JP matches none of
+    // our three locales, so landing on en-US here can only be the fallback.
+    const context = await browser.newContext({ locale: "ja-JP" });
+    const page = await context.newPage();
+
     await page.goto("/dashboard");
 
     // Unauthenticated, so the proxy's auth gate sends us on to /login.
     await expect(page).toHaveURL("/en-US/login");
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+
+    await context.close();
   });
 
   test("negotiates from Accept-Language", async ({ browser }) => {

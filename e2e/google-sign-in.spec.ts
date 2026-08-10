@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { path } from "./helpers";
+
 // This suite verifies our half of the OAuth handshake only. It deliberately
 // stops at Google's door: Google blocks automated browsers, so completing the
 // consent flow here would be flaky rather than informative. The full round
@@ -7,7 +9,7 @@ import { expect, test } from "@playwright/test";
 // checklist in the spec.
 test.describe("google sign-in", () => {
   test("sends the browser to Google with the right parameters", async ({ page }) => {
-    await page.goto("/login");
+    await page.goto(path("/login"));
 
     await page.getByRole("button", { name: "Continue with Google" }).click();
     await page.waitForURL(/accounts\.google\.com/, { timeout: 20_000 });
@@ -23,7 +25,7 @@ test.describe("google sign-in", () => {
   });
 
   test("offers the same Google entry point on register", async ({ page }) => {
-    await page.goto("/register");
+    await page.goto(path("/register"));
 
     await page.getByRole("button", { name: "Continue with Google" }).click();
     await page.waitForURL(/accounts\.google\.com/, { timeout: 20_000 });

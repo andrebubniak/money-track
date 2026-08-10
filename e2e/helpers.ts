@@ -2,6 +2,17 @@ import type { Page } from "@playwright/test";
 
 export const TEST_PASSWORD = "Hunter2hunter2";
 
+export const DEFAULT_LOCALE = "en-US";
+
+/**
+ * Builds a locale-prefixed path. Every in-app URL carries its locale
+ * (`localePrefix: "always"`), so a bare `/login` only ever arrives as a
+ * redirect — asserting on it would be asserting on the redirect, not the page.
+ */
+export function path(route: string, locale = DEFAULT_LOCALE): string {
+  return `/${locale}${route}`;
+}
+
 let counter = 0;
 
 /**
@@ -24,7 +35,7 @@ export async function registerUser(
     password: overrides.password ?? TEST_PASSWORD,
   };
 
-  await page.goto("/register");
+  await page.goto(path("/register"));
   await page.getByLabel("Name").fill(user.name);
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password", { exact: true }).fill(user.password);

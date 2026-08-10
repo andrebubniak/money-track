@@ -6,8 +6,10 @@ reads as a broken button, and users click again.
 
 ## Use `AppLink`, not `next/link`
 
-`src/components/nav/app-link.tsx` wraps `next/link` and shows
-`FullscreenLoader` while the destination is being fetched.
+`src/components/nav/app-link.tsx` wraps next-intl's `Link`
+(`@/i18n/navigation`) and shows `FullscreenLoader` while the destination is
+being fetched. `href` stays locale-free — `href="/register"`, not
+`href="/en-US/register"` — the active locale is added automatically.
 
 ```tsx
 import { AppLink } from "@/components/nav/app-link";
@@ -61,9 +63,10 @@ like a page load. Inside the shell:
   column count. Use `Skeleton` from `@/components/ui/skeleton`.
 - The skeleton renders inside `SidebarInset`, so the sidebar stays put,
   interactive, and correct. Only the content area changes.
-- Do **not** use `AppLink` for sidebar navigation; a plain `next/link` is
-  right, because the segment's `loading.tsx` already covers it. `AppLink` is
-  for entering the shell, not for moving around inside it.
+- Do **not** use `AppLink` for sidebar navigation; a plain `Link` from
+  `@/i18n/navigation` is right, because the segment's `loading.tsx` already
+  covers it. `AppLink` is for entering the shell, not for moving around
+  inside it.
 
 A skeleton that does not match the real layout is worse than a spinner: the
 content jumps when it arrives. If you cannot mirror the layout closely, use a

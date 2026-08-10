@@ -18,3 +18,4 @@ The project conventions are defined by subject on `.claude/rules`. **Before chan
 | [commit-guideline.md](.claude/rules/commit-guideline.md)       | You need to commit/push any changes on git                                           |
 | [validation.md](.claude/rules/validation.md)                   | You are validating any input — forms, Server Actions, Route Handlers, schemas        |
 | [navigation-loading.md](.claude/rules/navigation-loading.md)   | You are adding a link, a route, or any in-app navigation                             |
+| [i18n.md](.claude/rules/i18n.md)                               | You are adding or changing any user-visible copy, or a locale                        |

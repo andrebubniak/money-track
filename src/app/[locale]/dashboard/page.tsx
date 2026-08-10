@@ -1,18 +1,11 @@
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import { hasLocale } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
 
 import { auth } from "@/lib/auth";
 
-export default async function DashboardPage({ params }: PageProps<"/[locale]/dashboard">) {
-  const { locale } = await params;
-  // Next generates `locale` as a plain `string`; `hasLocale` narrows it to
-  // next-intl's `Locale` union, which `redirect` requires. The layout above
-  // already 404s on anything outside `routing.locales`, so this is never
-  // actually reached with an unsupported tag.
-  if (!hasLocale(routing.locales, locale)) notFound();
+export default async function DashboardPage() {
+  const locale = await getLocale();
   // Authoritative check. This queries Postgres; src/proxy.ts does not.
   const session = await auth.api.getSession({ headers: await headers() });
   // `return`, not a bare statement: next-intl's `redirect` return type is

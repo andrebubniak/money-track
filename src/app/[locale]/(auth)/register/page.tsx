@@ -1,9 +1,7 @@
 import { AppLink } from "@/components/nav/app-link";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import { hasLocale } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
 
 import {
   Card,
@@ -17,13 +15,8 @@ import { GoogleButton } from "@/components/auth/google-button";
 import { RegisterForm } from "@/components/auth/register-form";
 import { auth } from "@/lib/auth";
 
-export default async function RegisterPage({ params }: PageProps<"/[locale]/register">) {
-  const { locale } = await params;
-  // Next generates `locale` as a plain `string`; `hasLocale` narrows it to
-  // next-intl's `Locale` union, which `redirect` requires. The layout above
-  // already 404s on anything outside `routing.locales`, so this is never
-  // actually reached with an unsupported tag.
-  if (!hasLocale(routing.locales, locale)) notFound();
+export default async function RegisterPage() {
+  const locale = await getLocale();
   const session = await auth.api.getSession({ headers: await headers() });
   if (session) redirect({ href: "/dashboard", locale });
 

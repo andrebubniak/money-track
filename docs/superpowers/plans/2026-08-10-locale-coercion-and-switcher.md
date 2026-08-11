@@ -19,7 +19,7 @@
 - **Navigate with `@/i18n/navigation`**, never `next/link` or `next/navigation`.
 - **`npm test` must be green before every commit.** `npx tsc --noEmit` must be clean.
 - **`npm run lint` must report exactly one error** — the pre-existing `src/hooks/use-mobile.ts:14` `react-hooks/set-state-in-effect`, deliberately out of scope (commit `e560d7e`). Any second error is yours.
-- **Every test must be proven RED before it is made GREEN.** State in your report what you saw fail and the exact message.
+- **Every test covering new production code must be proven RED before it is made GREEN.** State in your report what you saw fail and the exact message. The one deliberate exception is the group of casing tests in Task 2, which pin behaviour next-intl already has and therefore pass on arrival; that task says so where they appear. Do not rewrite them to fail.
 - **Ask of every test: "what single line of production code could I delete and still pass?"** The preceding i18n branch produced eight findings that were all assertions unable to fail. A test that survives deleting the code it covers is not coverage.
 - **Do not run the full `npm run test:e2e` except where a task says to.** It truncates every table in the test database. Run single spec files with `npx playwright test e2e/<file>`.
 - Commit messages follow `.claude/rules/commit-guideline.md`: `<type>(<subject>): <imperative description>`, no trailing period.
@@ -929,17 +929,18 @@ and replace the `SidebarFooter` block:
 Run: `npx playwright test e2e/locale.spec.ts`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 5: Check it by eye**
+- [ ] **Step 5: Skip — visual check belongs to the controller**
 
-Run `npm run dev`, register, and confirm at `/en-US/dashboard`:
+Do **not** start `next dev`. A subagent cannot see a browser, and a stray dev
+server holds Windows file locks that break later git operations.
+
+Note in your report that the visual check is outstanding. The controller
+confirms these by eye after the task closes:
 
 - The switcher sits directly above "Sign out" and matches its styling.
-- Collapsing the rail (the trigger in the header) leaves a globe icon with no
-  clipped text, and the menu still opens.
+- Collapsing the rail leaves a globe icon with no clipped text, and the menu
+  still opens.
 - Switching to Deutsch changes the sidebar copy and the URL.
-
-Stop the dev server afterwards. A stray `next dev` holds Windows file locks
-that break later `git mv` operations.
 
 - [ ] **Step 6: Document it**
 

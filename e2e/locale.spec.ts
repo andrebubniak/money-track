@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { path, registerUser } from "./helpers";
+
 test.describe("locale negotiation", () => {
   test("falls back to en-US with no cookie and no header we support", async ({ browser }) => {
     // The default context inherits the host's own Accept-Language, which on
@@ -72,5 +74,31 @@ test.describe("locale negotiation", () => {
     await page.goto("/pt-BR/login");
 
     await expect(page.locator("html")).toHaveAttribute("lang", "pt-BR");
+  });
+
+  test("switches locale from the sidebar and remembers the choice", async ({ page }) => {
+    await registerUser(page);
+    await expect(page).toHaveURL(path("/dashboard"));
+
+    await page.getByRole("button", { name: /language/i }).click();
+    await page.getByRole("menuitemradio", { name: "Deutsch" }).click();
+
+    await expect(page).toHaveURL(path("/dashboard", "de-DE"));
+    await expect(page.getByRole("button", { name: "Abmelden" })).toBeVisible();
+
+    // The real proof the cookie was written: an unprefixed URL now negotiates
+    // to German. Reloading the German URL would prove nothing.
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(path("/dashboard", "de-DE"));
+  });
+
+  test("coerces an unknown locale for a signed-in visitor", async ({ page }) => {
+    await registerUser(page);
+    await expect(page).toHaveURL(path("/dashboard"));
+
+    await page.goto("/abc/dashboard");
+
+    await expect(page).toHaveURL(path("/dashboard"));
+    await expect(page.getByRole("heading", { name: /Signed in/ })).toBeVisible();
   });
 });

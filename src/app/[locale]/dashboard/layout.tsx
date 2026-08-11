@@ -3,6 +3,7 @@ import { LayoutDashboard } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { LocaleSwitcher } from "@/components/nav/locale-switcher";
 import { Link } from "@/i18n/navigation";
 import {
   Sidebar,
@@ -71,6 +72,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {/* Pinned to the bottom: SidebarContent above it takes the flex-1. */}
           <SidebarFooter>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <LocaleSwitcher />
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SignOutButton />
               </SidebarMenuItem>

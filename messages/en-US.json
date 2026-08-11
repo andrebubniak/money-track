@@ -66,6 +66,16 @@
     "signedInAs": "Signed in ({name})",
     "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD."
   },
+  "nav": {
+    "localeSwitcher": {
+      "label": "Language",
+      "locales": {
+        "en-US": "English",
+        "pt-BR": "Português (Brasil)",
+        "de-DE": "Deutsch"
+      }
+    }
+  },
   "notFound": {
     "title": "404",
     "description": "This page does not exist."

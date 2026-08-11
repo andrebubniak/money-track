@@ -66,6 +66,16 @@
     "signedInAs": "Angemeldet ({name})",
     "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard."
   },
+  "nav": {
+    "localeSwitcher": {
+      "label": "Sprache",
+      "locales": {
+        "en-US": "English",
+        "pt-BR": "Português (Brasil)",
+        "de-DE": "Deutsch"
+      }
+    }
+  },
   "notFound": {
     "title": "404",
     "description": "Diese Seite existiert nicht."

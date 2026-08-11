@@ -52,13 +52,106 @@ describe("proxy", () => {
       expect(response.headers.get("location")).toBeNull();
     });
 
-    it("does not treat an unknown first segment as a locale", () => {
+    it("coerces an unknown locale segment and keeps the rest of the path", () => {
+      const response = proxy(request("/abc/dashboard"));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/en-US/dashboard",
+      );
+    });
+
+    it("coerces a real-but-unsupported language tag", () => {
       const response = proxy(request("/fr/dashboard"));
 
-      // Prefixed, not coerced — the resulting route does not exist and 404s.
       expect(response.headers.get("location")).toBe(
-        "http://localhost:3000/en-US/fr/dashboard",
+        "http://localhost:3000/en-US/dashboard",
       );
+    });
+
+    it("does not invent a region for a bare language subtag", () => {
+      // `/de` is not coerced to `de-DE`. Only casing is corrected; everything
+      // else falls back. Deliberate — see the spec's non-goals.
+      const response = proxy(request("/de/dashboard"));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/en-US/dashboard",
+      );
+    });
+
+    it("resolves the replacement locale from the cookie, not a hardcoded default", () => {
+      const response = proxy(
+        request("/abc/dashboard", { cookie: "NEXT_LOCALE=de-DE" }),
+      );
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/de-DE/dashboard",
+      );
+    });
+
+    it("preserves the query string while coercing", () => {
+      const response = proxy(request("/abc/dashboard?tab=x&y=2"));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/en-US/dashboard?tab=x&y=2",
+      );
+    });
+
+    it("redirects a coerced path that already carried a valid locale", () => {
+      // `/abc/de-DE/x` strips to `/de-DE/x`, which next-intl considers
+      // correct and does not redirect. Without a redirect of our own the
+      // browser would sit on the bogus URL.
+      const response = proxy(request("/abc/de-DE/login"));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/de-DE/login",
+      );
+    });
+
+    it("carries the locale cookie onto that redirect", () => {
+      // next-intl sets NEXT_LOCALE on the response it returns for
+      // `/de-DE/login`; issuing a bare redirect would throw it away and force
+      // renegotiation on the next request.
+      const response = proxy(request("/abc/de-DE/login"));
+
+      expect(response.cookies.get("NEXT_LOCALE")?.value).toBe("de-DE");
+    });
+
+    it("still prefixes an unprefixed path rather than stripping it", () => {
+      // The guard against over-eager stripping: `dashboard` is also an
+      // unrecognised first segment, and it must survive.
+      const response = proxy(request("/dashboard"));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/en-US/dashboard",
+      );
+    });
+
+    it.each(["/en-us/dashboard", "/EN-US/dashboard"])(
+      "redirects %s to the canonical casing",
+      (path) => {
+        // next-intl's own behaviour, pinned here so an upgrade cannot drop it
+        // silently. We deliberately write no code for this.
+        const response = proxy(request(path));
+
+        expect(response.headers.get("location")).toBe(
+          "http://localhost:3000/en-US/dashboard",
+        );
+      },
+    );
+
+    it("redirects /pt-br/login to the canonical casing", () => {
+      const response = proxy(request("/pt-br/login"));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/pt-BR/login",
+      );
+    });
+
+    it("leaves a valid locale with an unknown route to the router", () => {
+      // Only the locale segment is coerced. A 404 on a real locale stays a 404.
+      const response = proxy(request("/en-US/nonexistent"));
+
+      expect(response.headers.get("location")).toBeNull();
     });
   });
 

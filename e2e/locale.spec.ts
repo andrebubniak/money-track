@@ -53,10 +53,19 @@ test.describe("locale negotiation", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "de-DE");
   });
 
-  test("404s on an unsupported locale rather than coercing it", async ({ page }) => {
+  test("coerces an unsupported locale instead of 404ing", async ({ page }) => {
     const response = await page.goto("/fr/dashboard");
 
-    expect(response?.status()).toBe(404);
+    // Unauthenticated, so the pre-existing auth gate carries on to /login —
+    // on the coerced URL, not the bogus one.
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL("/en-US/login");
+  });
+
+  test("coerces a nonsense locale and keeps the path", async ({ page }) => {
+    await page.goto("/abc/dashboard");
+
+    await expect(page).toHaveURL("/en-US/login");
   });
 
   test("sets html lang to match the URL", async ({ page }) => {

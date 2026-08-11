@@ -37,9 +37,10 @@ export default async function LocaleLayout({
 }: LayoutProps<"/[locale]">) {
   const { locale } = await params;
 
-  // The proxy prefixes an unknown first segment rather than coercing it, so
-  // `/fr/dashboard` arrives here as `/en-US/fr/dashboard` and 404s below on
-  // the missing route — but a direct hit on an unsupported tag must 404 too.
+  // The proxy coerces an unknown locale segment before the router sees it, so
+  // `/fr/dashboard` arrives here as `/en-US/dashboard`. This guard is for the
+  // requests the proxy matcher skips — anything with a file extension — where
+  // an unsupported tag must still 404.
   if (!hasLocale(routing.locales, locale)) notFound();
 
   return (

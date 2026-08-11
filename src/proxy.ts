@@ -1,8 +1,9 @@
 import createIntlMiddleware from "next-intl/middleware";
 import { hasLocale } from "next-intl";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
+import { stripUnknownLocale } from "@/i18n/locale-segment";
 import { routing } from "@/i18n/routing";
 
 const handleLocaleRouting = createIntlMiddleware(routing);
@@ -26,11 +27,53 @@ function splitLocale(pathname: string) {
     : { locale: routing.defaultLocale, path: pathname };
 }
 
+/**
+ * Moves any cookie the locale middleware set — most importantly NEXT_LOCALE —
+ * onto a redirect of our own. A bare redirect would drop it and the negotiated
+ * locale would have to be worked out again on the next request.
+ */
+function carryCookies(target: NextResponse, source: NextResponse) {
+  for (const cookie of source.cookies.getAll()) {
+    target.cookies.set(cookie);
+  }
+  return target;
+}
+
+/**
+ * `/abc/dashboard` → `/en-US/dashboard`, rather than next-intl's default of
+ * prefixing the bogus segment into `/en-US/abc/dashboard` and 404ing.
+ *
+ * The shortened path is handed to next-intl so its own resolution order —
+ * NEXT_LOCALE cookie, then Accept-Language, then the default — decides the
+ * replacement. Nothing here reimplements that.
+ *
+ * Returns `undefined` when the path needs no coercion, which is every
+ * well-formed request.
+ */
+function coerceUnknownLocale(request: NextRequest) {
+  const stripped = stripUnknownLocale(request.nextUrl.pathname);
+  if (stripped === null) return undefined;
+
+  const url = request.nextUrl.clone();
+  url.pathname = stripped;
+
+  const response = handleLocaleRouting(new NextRequest(url, request));
+  if (response.headers.has("location")) return response;
+
+  // The stripped path already carried a valid locale — `/abc/de-DE/login`.
+  // next-intl saw nothing to correct, so the browser is still sitting on the
+  // bogus URL and we have to move it ourselves.
+  return carryCookies(NextResponse.redirect(url), response);
+}
+
 // The auth check here is NOT a security boundary. It only checks that a
 // session cookie exists — a hand-forged cookie passes it. Its only job is
 // skipping a wasted render for signed-out visitors. The real check is
 // auth.api.getSession() inside app/[locale]/dashboard/page.tsx.
 export function proxy(request: NextRequest) {
+  const coerced = coerceUnknownLocale(request);
+  if (coerced) return coerced;
+
   const response = handleLocaleRouting(request);
 
   // The path carried no locale prefix, so this is a redirect to the negotiated
@@ -44,16 +87,8 @@ export function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}/login`;
-  const redirect = NextResponse.redirect(url);
 
-  // Carry over anything the locale middleware set — most importantly the
-  // NEXT_LOCALE cookie. Returning a bare redirect would drop it, and the
-  // negotiated locale would have to be worked out again on the next request.
-  for (const cookie of response.cookies.getAll()) {
-    redirect.cookies.set(cookie);
-  }
-
-  return redirect;
+  return carryCookies(NextResponse.redirect(url), response);
 }
 
 export const config = {

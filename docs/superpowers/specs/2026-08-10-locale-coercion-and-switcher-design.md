@@ -137,10 +137,24 @@ The cookie needs no code of ours. `createNavigation`'s router calls
 `syncCookie` in the middleware ignores non-`document` requests, so a prefetch
 or revalidation cannot clobber a fresh choice.
 
-Wrapped in `useTransition`; the trigger is disabled while pending. Per
-`.claude/rules/navigation-loading.md`, in-place async work uses local pending
-state on the control — not a full-screen overlay, which would throw away the
-user's sense of place inside the shell.
+**No local pending state.** This was reversed during planning; the original
+decision here was a `useTransition` with the trigger disabled while pending.
+
+`.claude/rules/navigation-loading.md` splits the world in two: *navigation*
+inside the shell is covered by the segment's `loading.tsx` skeleton, while
+*in-place async work* — submitting a form, signing out — uses pending state on
+the control. A locale switch is navigation, not in-place work: it is a route
+change, and `src/app/[locale]/dashboard/loading.tsx` already exists to cover
+it. Classifying it as in-place work was a misreading of the rule.
+
+The practical argument is the same one. With the router mocked, a
+`startTransition` around a synchronous call resolves before any assertion can
+observe it, so `disabled={pending}` could not be tested — it would be a line of
+production code that no test could hold to account. This branch has already
+produced eight findings of exactly that shape.
+
+A full-screen overlay remains wrong here regardless; it would blank the
+sidebar.
 
 Note for later: a dynamic route would need `params` passed alongside
 `pathname`. Every current route is static, so it is omitted rather than

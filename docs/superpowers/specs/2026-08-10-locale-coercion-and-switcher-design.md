@@ -137,21 +137,23 @@ The cookie needs no code of ours. `createNavigation`'s router calls
 `syncCookie` in the middleware ignores non-`document` requests, so a prefetch
 or revalidation cannot clobber a fresh choice.
 
-**No local pending state.** This was reversed during planning; the original
-decision here was a `useTransition` with the trigger disabled while pending.
+**`useTransition`, with the trigger disabled while pending.** Planning
+briefly reversed this, reasoning that `src/app/[locale]/dashboard/loading.tsx`
+would already cover a locale switch the way a `loading.tsx` covers navigation
+inside the shell per `.claude/rules/navigation-loading.md`. That reasoning was
+wrong: a `loading.tsx` only wraps its own segment's children, and a locale
+switch changes the `[locale]` segment itself — `dashboard/loading.tsx` is
+nested *inside* `[locale]`, not above it, and `src/app/` has no `loading.tsx`
+of its own. So no route-level Suspense fallback is guaranteed to cover the
+click, and without local pending state it could produce no visible response at
+all while the new page is fetched and the session re-read. The final review
+caught this and restored `useTransition`.
 
-`.claude/rules/navigation-loading.md` splits the world in two: *navigation*
-inside the shell is covered by the segment's `loading.tsx` skeleton, while
-*in-place async work* — submitting a form, signing out — uses pending state on
-the control. A locale switch is navigation, not in-place work: it is a route
-change, and `src/app/[locale]/dashboard/loading.tsx` already exists to cover
-it. Classifying it as in-place work was a misreading of the rule.
-
-The practical argument is the same one. With the router mocked, a
+`disabled={pending}` is knowingly not unit-tested: with the router mocked, a
 `startTransition` around a synchronous call resolves before any assertion can
-observe it, so `disabled={pending}` could not be tested — it would be a line of
-production code that no test could hold to account. This branch has already
-produced eight findings of exactly that shape.
+observe it. This branch has already produced eight findings shaped like an
+assertion that cannot fail; a test that could not fail either way is not
+worth writing here — verify it by hand instead.
 
 A full-screen overlay remains wrong here regardless; it would blank the
 sidebar.

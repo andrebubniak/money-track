@@ -31,11 +31,14 @@ describe("LocaleSwitcher", () => {
     return screen.getByRole("button");
   }
 
-  it("shows the active locale on the trigger", () => {
-    renderWithIntl(<LocaleSwitcher />, "pt-BR");
+  it.each([
+    ["en-US", "English"],
+    ["pt-BR", "Português (Brasil)"],
+    ["de-DE", "Deutsch"],
+  ] as const)("shows %s on the trigger as %s", (locale, expected) => {
+    renderWithIntl(<LocaleSwitcher />, locale);
 
-    // The endonym, and the same one in every interface language.
-    expect(trigger()).toHaveTextContent("Português (Brasil)");
+    expect(trigger()).toHaveTextContent(expected);
   });
 
   it("offers one option per configured locale", async () => {

@@ -355,7 +355,7 @@ Rewrite `src/proxy.ts` as follows. The `carryCookies` helper is extracted becaus
 ```ts
 import createIntlMiddleware from "next-intl/middleware";
 import { hasLocale } from "next-intl";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
 import { stripUnknownLocale } from "@/i18n/locale-segment";

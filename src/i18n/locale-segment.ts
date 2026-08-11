@@ -9,9 +9,11 @@ import { routing } from "./routing";
  * that is deliberate: someone hand-editing the locale in the URL should land
  * somewhere useful rather than on a 404.
  *
- * The cost is that a top-level route named with two or three letters — `/faq`
- * — would be swallowed. `locale-segment.spec.ts` walks `src/app/[locale]/` and
- * fails the day one is added, so this cannot break silently.
+ * The cost is that a top-level route whose first hyphen-delimited part is two
+ * or three letters — `/faq`, but also `/tx-import`, `/co-owners`,
+ * `/faq-page` — would be swallowed. `locale-segment.spec.ts` walks
+ * `src/app/[locale]/` and fails the day one is added, so this cannot break
+ * silently.
  */
 const LOCALE_SHAPED = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i;
 

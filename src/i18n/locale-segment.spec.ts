@@ -7,19 +7,32 @@ import { isLocaleShaped, stripUnknownLocale } from "@/i18n/locale-segment";
 describe("isLocaleShaped", () => {
   // Both directions are asserted. A regex that matched everything would pass
   // the first block alone; one that matched nothing would pass the second.
-  it.each(["en", "de", "abc", "fr", "pt-BR", "en-us", "ja-JP", "zh-Hans-CN"])(
-    "%s is shaped like a language tag",
-    (segment) => {
-      expect(isLocaleShaped(segment)).toBe(true);
-    },
-  );
+  it.each([
+    "en",
+    "de",
+    "abc",
+    "fr",
+    "pt-BR",
+    "en-us",
+    "ja-JP",
+    "zh-Hans-CN",
+    "en-abcdefgh",
+  ])("%s is shaped like a language tag", (segment) => {
+    expect(isLocaleShaped(segment)).toBe(true);
+  });
 
-  it.each(["dashboard", "login", "register", "", "a", "settings", "some-page"])(
-    "%s is not shaped like a language tag",
-    (segment) => {
-      expect(isLocaleShaped(segment)).toBe(false);
-    },
-  );
+  it.each([
+    "dashboard",
+    "login",
+    "register",
+    "",
+    "a",
+    "settings",
+    "some-page",
+    "en-abcdefghi",
+  ])("%s is not shaped like a language tag", (segment) => {
+    expect(isLocaleShaped(segment)).toBe(false);
+  });
 });
 
 describe("stripUnknownLocale", () => {

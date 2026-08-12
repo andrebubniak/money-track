@@ -18,8 +18,10 @@ is a top-level function, not `z.string().email()`.
 Client-side validation exists for fast feedback. Server-side validation exists
 for correctness. **Neither replaces the other**, and they must never disagree.
 
-- Define the schema once, in `src/lib/validations/<subject>.ts`.
-- Import that same schema in the client component and on the server.
+- Define the schema factory once, in `src/lib/validations/<subject>.ts`. It
+  takes a translator and returns the schema, so messages are localized
+  without the client and the server ever holding different rules.
+- Import that same factory in the client component and on the server.
 - Export the inferred type (`export type XValues = z.infer<typeof xSchema>`) and
   use it rather than redeclaring the shape.
 
@@ -46,6 +48,12 @@ hooks: {
   }),
 }
 ```
+
+The hook runs at `/api/auth/[...all]`, outside the `[locale]` segment, so no
+locale is resolved there. Build its schema with `createTranslator` and the
+English catalog — see `src/lib/validations/auth.server.ts`. The error
+**code** is the contract; the client translates it. Never render
+`error.message`.
 
 Two things to know:
 
@@ -81,8 +89,9 @@ name: z
 An unbounded string is an unbounded database write, an unbounded render, and an
 unbounded log line. `.max()` is the cheap defence.
 
-Put shared bounds in exported constants (`MAX_NAME_LENGTH`) and interpolate them
-into the message, so the number and the copy cannot drift apart.
+Put shared bounds in exported constants (`MAX_NAME_LENGTH`) and interpolate
+them into the message as `{max}` rather than writing the number in — see
+`.claude/rules/i18n.md` — so the number and the copy cannot drift apart.
 
 ## Normalise inside the schema, not in the component
 

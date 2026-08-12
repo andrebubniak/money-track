@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 
 import { CircleAlert } from "lucide-react";
 
@@ -12,20 +12,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "@/i18n/navigation";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
-import { registerSchema, type RegisterValues } from "@/lib/validations/auth";
+import { createRegisterSchema, type RegisterValues } from "@/lib/validations/auth";
 
 export function RegisterForm() {
+  const t = useTranslations("auth.register");
+  const tValidation = useTranslations("validation.auth");
+  const tErrors = useTranslations("errors.auth");
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Rebuilt when the translator changes — which is when the locale changes.
+  const schema = useMemo(() => createRegisterSchema(tValidation), [tValidation]);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(schema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
@@ -40,14 +47,16 @@ export function RegisterForm() {
       });
 
       if (error) {
-        setFormError(authErrorMessage(error.code));
+        // The code, never error.message — the server's message is English by
+        // design. See `.claude/rules/validation.md`.
+        setFormError(authErrorMessage(tErrors, error.code));
         return;
       }
     } catch {
       // better-fetch returns errors as values by default, so this is the
       // defensive path. A thrown rejection must surface as a message rather
       // than leaving the form looking like nothing happened.
-      setFormError(authErrorMessage(null));
+      setFormError(authErrorMessage(tErrors, null));
       return;
     }
 
@@ -67,12 +76,12 @@ export function RegisterForm() {
       )}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{t("nameLabel")}</Label>
         <Input
           id="name"
           type="text"
           autoComplete="name"
-          placeholder="Ana Bubniak"
+          placeholder={t("namePlaceholder")}
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? "name-error" : undefined}
           {...register("name")}
@@ -81,12 +90,12 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("emailLabel")}</Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email")}
@@ -95,11 +104,11 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("passwordLabel")}</Label>
         <PasswordInput
           id="password"
           autoComplete="new-password"
-          placeholder="At least 8 characters"
+          placeholder={t("passwordPlaceholder")}
           aria-invalid={Boolean(errors.password)}
           aria-describedby={errors.password ? "password-error" : undefined}
           {...register("password")}
@@ -110,11 +119,11 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
+        <Label htmlFor="confirmPassword">{t("confirmPasswordLabel")}</Label>
         <PasswordInput
           id="confirmPassword"
           autoComplete="new-password"
-          placeholder="Re-enter your password"
+          placeholder={t("confirmPasswordPlaceholder")}
           aria-invalid={Boolean(errors.confirmPassword)}
           aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
           {...register("confirmPassword")}
@@ -125,7 +134,7 @@ export function RegisterForm() {
       </div>
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Creating account…" : "Create account"}
+        {isSubmitting ? t("submitting") : t("submit")}
       </Button>
     </form>
   );

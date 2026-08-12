@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export function GoogleButton() {
+  const locale = useLocale();
+  const t = useTranslations("auth.google");
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
@@ -13,13 +16,17 @@ export function GoogleButton() {
     try {
       // On success this navigates away, so `pending` is never cleared on the
       // happy path. It is only reset if the call fails and we stay on the page.
+      //
+      // These two are the only places in the app where a locale is written
+      // into a path by hand. They have to be: both are absolute URLs handed
+      // to a third party, so `@/i18n/navigation` never sees them.
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: `/${locale}/dashboard`,
         // Keep failures inside the app. Without this, a refused link lands on
         // better-auth's unstyled /api/auth/error page with no way back.
         // AuthErrorDialog picks the reason up from ?error=.
-        errorCallbackURL: "/login",
+        errorCallbackURL: `/${locale}/login`,
       });
       if (error) setPending(false);
     } catch {
@@ -57,7 +64,7 @@ export function GoogleButton() {
           d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z"
         />
       </svg>
-      {pending ? "Redirecting to Google…" : "Continue with Google"}
+      {pending ? t("redirecting") : t("continue")}
     </Button>
   );
 }

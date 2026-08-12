@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "title": "MoneyTrack",
+    "description": "Track where your money goes."
+  },
+  "common": {
+    "appName": "MoneyTrack",
+    "loading": "Loading…",
+    "or": "or"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "description": "Sign in to continue to your account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "signUpLink": "Sign up"
+    },
+    "register": {
+      "title": "Create your account",
+      "description": "Start tracking where your money goes",
+      "nameLabel": "Name",
+      "namePlaceholder": "Ana Bubniak",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in"
+    },
+    "google": {
+      "continue": "Continue with Google",
+      "redirecting": "Redirecting to Google…"
+    },
+    "signOut": {
+      "label": "Sign out",
+      "pending": "Signing out…"
+    },
+    "errorDialog": {
+      "dismiss": "Got it",
+      "account_not_linked": {
+        "title": "This email already uses a password",
+        "description": "This email is already registered with the password method. Please sign in with your email and password instead of Google."
+      },
+      "state_mismatch": {
+        "title": "That sign-in link expired",
+        "description": "This sign-in attempt is no longer valid, usually because it was already completed or reopened from history. Please start again."
+      },
+      "fallback": {
+        "title": "Sign-in didn't complete",
+        "description": "Something went wrong while signing you in. Please try again."
+      }
+    }
+  },
+  "dashboard": {
+    "navLabel": "Dashboard",
+    "signedInAs": "Signed in ({name})",
+    "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD."
+  },
+  "nav": {
+    "localeSwitcher": {
+      "label": "Language",
+      "locales": {
+        "en-US": "English",
+        "pt-BR": "Português (Brasil)",
+        "de-DE": "Deutsch"
+      }
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "description": "This page does not exist."
+  },
+  "validation": {
+    "auth": {
+      "email": {
+        "required": "Email is required.",
+        "invalid": "Enter a valid email address."
+      },
+      "name": {
+        "tooShort": "Name must be at least {min} characters.",
+        "tooLong": "Name must be at most {max} characters."
+      },
+      "password": {
+        "required": "Password is required.",
+        "tooShort": "Password must be at least {min} characters.",
+        "tooLong": "Password must be at most {max} characters.",
+        "composition": "Password must include a lowercase letter, an uppercase letter, and a number."
+      },
+      "confirmPassword": {
+        "required": "Please confirm your password.",
+        "mismatch": "Passwords don't match."
+      }
+    }
+  },
+  "errors": {
+    "auth": {
+      "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "An account with this email already exists.",
+      "USER_ALREADY_EXISTS": "An account with this email already exists.",
+      "INVALID_EMAIL_OR_PASSWORD": "Incorrect email or password.",
+      "PASSWORD_TOO_SHORT": "Password must be at least {min} characters.",
+      "INVALID_NAME": "Name must be between {min} and {max} characters.",
+      "PASSWORD_DOES_NOT_MEET_REQUIREMENTS": "Password must be {min}-{max} characters and include a lowercase letter, an uppercase letter, and a number.",
+      "PASSWORD_TOO_LONG": "Password is too long.",
+      "INVALID_EMAIL": "Enter a valid email address.",
+      "fallback": "Something went wrong. Please try again."
+    }
+  },
+  "ui": {
+    "passwordInput": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
+    "sidebar": {
+      "toggle": "Toggle Sidebar",
+      "title": "Sidebar",
+      "description": "Displays the mobile sidebar."
+    },
+    "sheet": {
+      "close": "Close"
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "title": "MoneyTrack",
+    "description": "Acompanhe para onde vai o seu dinheiro."
+  },
+  "common": {
+    "appName": "MoneyTrack",
+    "loading": "Carregando…",
+    "or": "ou"
+  },
+  "auth": {
+    "login": {
+      "title": "Que bom ter você de volta",
+      "description": "Entre para continuar na sua conta",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "voce@exemplo.com",
+      "passwordLabel": "Senha",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Entrar",
+      "submitting": "Entrando…",
+      "noAccount": "Não tem uma conta?",
+      "signUpLink": "Cadastre-se"
+    },
+    "register": {
+      "title": "Crie sua conta",
+      "description": "Comece a acompanhar para onde vai o seu dinheiro",
+      "nameLabel": "Nome",
+      "namePlaceholder": "Ana Bubniak",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "voce@exemplo.com",
+      "passwordLabel": "Senha",
+      "passwordPlaceholder": "Pelo menos 8 caracteres",
+      "confirmPasswordLabel": "Confirme a senha",
+      "confirmPasswordPlaceholder": "Digite a senha novamente",
+      "submit": "Criar conta",
+      "submitting": "Criando conta…",
+      "hasAccount": "Já tem uma conta?",
+      "signInLink": "Entrar"
+    },
+    "google": {
+      "continue": "Continuar com o Google",
+      "redirecting": "Redirecionando para o Google…"
+    },
+    "signOut": {
+      "label": "Sair",
+      "pending": "Saindo…"
+    },
+    "errorDialog": {
+      "dismiss": "Entendi",
+      "account_not_linked": {
+        "title": "Este e-mail já usa uma senha",
+        "description": "Este e-mail já está cadastrado com o método de senha. Entre com seu e-mail e senha em vez de usar o Google."
+      },
+      "state_mismatch": {
+        "title": "Este link de acesso expirou",
+        "description": "Esta tentativa de entrada não é mais válida, normalmente porque já foi concluída ou reaberta pelo histórico. Comece novamente."
+      },
+      "fallback": {
+        "title": "Não foi possível entrar",
+        "description": "Algo deu errado ao entrar na sua conta. Tente novamente."
+      }
+    }
+  },
+  "dashboard": {
+    "navLabel": "Painel",
+    "signedInAs": "Conectado ({name})",
+    "placeholder": "Página provisória. Esta rota vai se tornar o painel de gastos descrito no PRD."
+  },
+  "nav": {
+    "localeSwitcher": {
+      "label": "Idioma",
+      "locales": {
+        "en-US": "English",
+        "pt-BR": "Português (Brasil)",
+        "de-DE": "Deutsch"
+      }
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "description": "Esta página não existe."
+  },
+  "validation": {
+    "auth": {
+      "email": {
+        "required": "O e-mail é obrigatório.",
+        "invalid": "Digite um e-mail válido."
+      },
+      "name": {
+        "tooShort": "O nome deve ter pelo menos {min} caracteres.",
+        "tooLong": "O nome deve ter no máximo {max} caracteres."
+      },
+      "password": {
+        "required": "A senha é obrigatória.",
+        "tooShort": "A senha deve ter pelo menos {min} caracteres.",
+        "tooLong": "A senha deve ter no máximo {max} caracteres.",
+        "composition": "A senha deve incluir uma letra minúscula, uma letra maiúscula e um número."
+      },
+      "confirmPassword": {
+        "required": "Confirme sua senha.",
+        "mismatch": "As senhas não coincidem."
+      }
+    }
+  },
+  "errors": {
+    "auth": {
+      "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "Já existe uma conta com este e-mail.",
+      "USER_ALREADY_EXISTS": "Já existe uma conta com este e-mail.",
+      "INVALID_EMAIL_OR_PASSWORD": "E-mail ou senha incorretos.",
+      "PASSWORD_TOO_SHORT": "A senha deve ter pelo menos {min} caracteres.",
+      "INVALID_NAME": "O nome deve ter entre {min} e {max} caracteres.",
+      "PASSWORD_DOES_NOT_MEET_REQUIREMENTS": "A senha deve ter de {min} a {max} caracteres e incluir uma letra minúscula, uma letra maiúscula e um número.",
+      "PASSWORD_TOO_LONG": "A senha é muito longa.",
+      "INVALID_EMAIL": "Digite um e-mail válido.",
+      "fallback": "Algo deu errado. Tente novamente."
+    }
+  },
+  "ui": {
+    "passwordInput": {
+      "show": "Mostrar senha",
+      "hide": "Ocultar senha"
+    },
+    "sidebar": {
+      "toggle": "Alternar barra lateral",
+      "title": "Barra lateral",
+      "description": "Exibe a barra lateral no celular."
+    },
+    "sheet": {
+      "close": "Fechar"
+    }
+  }
+}

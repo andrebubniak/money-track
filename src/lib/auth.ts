@@ -4,7 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { prisma } from "@/lib/prisma";
-import { signUpPayloadSchema } from "@/lib/validations/auth";
+import { signUpPayloadSchema } from "@/lib/validations/auth.server";
 
 /**
  * Maps a failed sign-up payload to a stable error code the client can look up
@@ -12,7 +12,9 @@ import { signUpPayloadSchema } from "@/lib/validations/auth";
  * so it is passed explicitly.
  */
 function signUpErrorCode(path: PropertyKey | undefined) {
-  return path === "name" ? "INVALID_NAME" : "PASSWORD_DOES_NOT_MEET_REQUIREMENTS";
+  if (path === "name") return "INVALID_NAME";
+  if (path === "email") return "INVALID_EMAIL";
+  return "PASSWORD_DOES_NOT_MEET_REQUIREMENTS";
 }
 
 export const auth = betterAuth({
@@ -82,6 +84,11 @@ export const auth = betterAuth({
     // Google sign-in replays a callback whose state cookie is already spent,
     // producing `state_mismatch`. Without this the user lands on a raw error
     // page outside the app with no way home.
+    //
+    // Stays unprefixed: this is static config with no request to negotiate
+    // from. The proxy adds the locale on the redirect. `errorCallbackURL` in
+    // GoogleButton covers the failures a user actually reaches, so the extra
+    // hop only affects flows that bypass the client entirely.
     errorURL: "/login",
   },
 

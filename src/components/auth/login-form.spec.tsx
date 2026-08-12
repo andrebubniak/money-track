@@ -1,6 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithIntl } from "@/test-utils/intl";
 
 const { signInEmail, replace, refresh } = vi.hoisted(() => ({
   signInEmail: vi.fn(),
@@ -12,7 +14,7 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: { signIn: { email: signInEmail } },
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, refresh }),
 }));
 
@@ -28,7 +30,7 @@ describe("LoginForm", () => {
 
   it("blocks submission and shows field errors when empty", async () => {
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
@@ -39,7 +41,7 @@ describe("LoginForm", () => {
 
   it("rejects a malformed email without calling the server", async () => {
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "nope");
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
@@ -51,7 +53,7 @@ describe("LoginForm", () => {
 
   it("submits normalised credentials", async () => {
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "  ANA@Example.com ");
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
@@ -67,7 +69,7 @@ describe("LoginForm", () => {
 
   it("redirects to the dashboard on success", async () => {
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "ana@example.com");
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
@@ -80,7 +82,7 @@ describe("LoginForm", () => {
   it("renders a mapped server error and stays put", async () => {
     const user = userEvent.setup();
     signInEmail.mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "ana@example.com");
     await user.type(screen.getByLabelText(/^password$/i), "wrong-password");
@@ -94,7 +96,7 @@ describe("LoginForm", () => {
   it("falls back for an unrecognised server error", async () => {
     const user = userEvent.setup();
     signInEmail.mockResolvedValue({ error: { code: "WAT" } });
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "ana@example.com");
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
@@ -108,7 +110,7 @@ describe("LoginForm", () => {
   it("shows the generic error when the call throws instead of returning one", async () => {
     const user = userEvent.setup();
     signInEmail.mockRejectedValue(new Error("network down"));
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "ana@example.com");
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
@@ -123,7 +125,7 @@ describe("LoginForm", () => {
   it("clears a previous error when resubmitting", async () => {
     const user = userEvent.setup();
     signInEmail.mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "ana@example.com");
     await user.type(screen.getByLabelText(/^password$/i), "wrong-password");
@@ -139,7 +141,7 @@ describe("LoginForm", () => {
   it("disables the button while the request is in flight", async () => {
     const user = userEvent.setup();
     signInEmail.mockImplementation(() => new Promise(() => {}));
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.type(screen.getByLabelText(/email/i), "ana@example.com");
     await user.type(screen.getByLabelText(/^password$/i), "secret123");
@@ -150,7 +152,7 @@ describe("LoginForm", () => {
 
   it("marks invalid fields for assistive technology", async () => {
     const user = userEvent.setup();
-    render(<LoginForm />);
+    renderWithIntl(<LoginForm />);
 
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 

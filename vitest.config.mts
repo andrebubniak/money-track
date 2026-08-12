@@ -6,6 +6,13 @@ export default defineConfig({
   // Vite 8 resolves tsconfig `paths` natively. Do not add
   // `vite-tsconfig-paths` — Vite warns that the plugin is redundant.
   resolve: { tsconfigPaths: true },
+  // next-intl's middleware entrypoint is plain ESM importing bare
+  // `next/server`. Next 16's package.json has no `exports` map, so Node's
+  // native ESM resolver (which Vitest otherwise defers to for node_modules
+  // code) refuses it without a file extension. Routing next-intl through
+  // Vite's own resolver — which still does extension probing — sidesteps
+  // that gap; it's the module needing this, not our code.
+  ssr: { noExternal: ["next-intl"] },
   test: {
     environment: "jsdom",
     globals: true,

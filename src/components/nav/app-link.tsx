@@ -1,9 +1,10 @@
 "use client";
 
-import Link, { useLinkStatus } from "next/link";
+import { useLinkStatus } from "next/link";
 import type { ComponentProps } from "react";
 import { createPortal } from "react-dom";
 
+import { Link } from "@/i18n/navigation";
 import { FullscreenLoader } from "@/components/ui/fullscreen-loader";
 
 /**
@@ -30,6 +31,9 @@ function PendingOverlay() {
  * cold or slow link the user gets no feedback between the click and the
  * navigation. This closes that gap. Use it for in-app navigation instead of
  * `next/link` — see `.claude/rules/navigation-loading.md`.
+ *
+ * Wraps next-intl's `Link`, so `href="/register"` resolves to the active
+ * locale automatically.
  */
 function AppLink({ children, ...props }: ComponentProps<typeof Link>) {
   return (

@@ -1,7 +1,8 @@
 import { AppLink } from "@/components/nav/app-link";
 import { Suspense } from "react";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
 
 import { AuthErrorDialog } from "@/components/auth/auth-error-dialog";
 
@@ -18,8 +19,12 @@ import { LoginForm } from "@/components/auth/login-form";
 import { auth } from "@/lib/auth";
 
 export default async function LoginPage() {
+  const locale = await getLocale();
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session) redirect("/dashboard");
+  if (session) redirect({ href: "/dashboard", locale });
+
+  const t = await getTranslations("auth.login");
+  const tCommon = await getTranslations("common");
 
   return (
     <>
@@ -34,9 +39,9 @@ export default async function LoginPage() {
             {/* A real <h1>: CardTitle renders a plain div, so without this the
               page has no heading element at all. Tailwind preflight resets
               h1 size/weight/margin to inherit, so this is visually identical. */}
-            <h1>Welcome back</h1>
+            <h1>{t("title")}</h1>
           </CardTitle>
-          <CardDescription>Sign in to continue to your account</CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
 
         <CardContent className="flex flex-col gap-6">
@@ -44,19 +49,19 @@ export default async function LoginPage() {
 
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">or</span>
+            <span className="text-xs text-muted-foreground">{tCommon("or")}</span>
             <Separator className="flex-1" />
           </div>
 
           <GoogleButton />
 
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            {t("noAccount")}{" "}
             <AppLink
               href="/register"
               className="font-medium text-foreground underline underline-offset-4"
             >
-              Sign up
+              {t("signUpLink")}
             </AppLink>
           </p>
         </CardContent>

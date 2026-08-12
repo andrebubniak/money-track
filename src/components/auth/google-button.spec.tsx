@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithIntl } from "@/test-utils/intl";
 
 const { signInSocial } = vi.hoisted(() => ({ signInSocial: vi.fn() }));
 
@@ -17,28 +19,41 @@ describe("GoogleButton", () => {
   });
 
   it("renders the idle label", () => {
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
   });
 
   it("hides the icon from assistive tech so it does not pollute the accessible name", () => {
-    const { container } = render(<GoogleButton />);
+    const { container } = renderWithIntl(<GoogleButton />);
     const svg = container.querySelector("svg");
     expect(svg).toHaveAttribute("aria-hidden", "true");
   });
 
   it("starts the Google flow with the dashboard callback", async () => {
     const user = userEvent.setup();
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 
     expect(signInSocial).toHaveBeenCalledWith({
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: "/en-US/dashboard",
       // Keeps a refused link inside the app instead of on better-auth's
       // unstyled error page.
-      errorCallbackURL: "/login",
+      errorCallbackURL: "/en-US/login",
+    });
+  });
+
+  it("builds the callback URLs from the active locale, not a hardcoded one", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<GoogleButton />, "de-DE");
+
+    await user.click(screen.getByRole("button", { name: /mit google fortfahren/i }));
+
+    expect(signInSocial).toHaveBeenCalledWith({
+      provider: "google",
+      callbackURL: "/de-DE/dashboard",
+      errorCallbackURL: "/de-DE/login",
     });
   });
 
@@ -46,7 +61,7 @@ describe("GoogleButton", () => {
     const user = userEvent.setup();
     // Never resolves — the redirect would normally navigate away.
     signInSocial.mockImplementation(() => new Promise(() => {}));
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 
@@ -57,7 +72,7 @@ describe("GoogleButton", () => {
   it("recovers to the idle label when the call fails", async () => {
     const user = userEvent.setup();
     signInSocial.mockResolvedValue({ error: { code: "SOMETHING_BROKE" } });
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 
@@ -68,7 +83,7 @@ describe("GoogleButton", () => {
   it("recovers when the call throws instead of returning an error", async () => {
     const user = userEvent.setup();
     signInSocial.mockRejectedValue(new Error("network down"));
-    render(<GoogleButton />);
+    renderWithIntl(<GoogleButton />);
 
     await user.click(screen.getByRole("button", { name: /continue with google/i }));
 

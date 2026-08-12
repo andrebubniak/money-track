@@ -6,8 +6,10 @@ reads as a broken button, and users click again.
 
 ## Use `AppLink`, not `next/link`
 
-`src/components/nav/app-link.tsx` wraps `next/link` and shows
-`FullscreenLoader` while the destination is being fetched.
+`src/components/nav/app-link.tsx` wraps next-intl's `Link`
+(`@/i18n/navigation`) and shows `FullscreenLoader` while the destination is
+being fetched. `href` stays locale-free — `href="/register"`, not
+`href="/en-US/register"` — the active locale is added automatically.
 
 ```tsx
 import { AppLink } from "@/components/nav/app-link";
@@ -15,20 +17,22 @@ import { AppLink } from "@/components/nav/app-link";
 <AppLink href="/register">Sign up</AppLink>
 ```
 
-Use it for **all** internal navigation. Reach for a bare `next/link` only when
-you have a specific reason and can say what it is — a link inside a tight list
-where an overlay would be wrong, for instance.
+Use it for **all** internal navigation. Reach for a bare `Link` from
+`@/i18n/navigation` only when you have a specific reason and can say what it
+is — a link inside a tight list where an overlay would be wrong, for
+instance. A bare `next/link` is not that reason: with `localePrefix:
+"always"`, it sends an internal `href` out with no locale segment at all.
 
 External links (`<a href="https://…">`) are unaffected; there is nothing to
 prefetch and no client transition to cover.
 
 ## Why `loading.tsx` alone is not enough
 
-`src/app/loading.tsx` provides the route-level Suspense fallback, and it is the
-right tool once a navigation is under way. But **Next prefetches the fallback
-itself**. On a cold link — first visit, slow network, a route not yet compiled
-in development — the fallback has not arrived either, so the user gets nothing
-between the click and the transition.
+`src/app/[locale]/loading.tsx` provides the route-level Suspense fallback, and
+it is the right tool once a navigation is under way. But **Next prefetches the
+fallback itself**. On a cold link — first visit, slow network, a route not yet
+compiled in development — the fallback has not arrived either, so the user
+gets nothing between the click and the transition.
 
 `AppLink` closes that gap using `useLinkStatus` from `next/link`, which reports
 pending state from the moment of the click. The two mechanisms are
@@ -61,9 +65,10 @@ like a page load. Inside the shell:
   column count. Use `Skeleton` from `@/components/ui/skeleton`.
 - The skeleton renders inside `SidebarInset`, so the sidebar stays put,
   interactive, and correct. Only the content area changes.
-- Do **not** use `AppLink` for sidebar navigation; a plain `next/link` is
-  right, because the segment's `loading.tsx` already covers it. `AppLink` is
-  for entering the shell, not for moving around inside it.
+- Do **not** use `AppLink` for sidebar navigation; a plain `Link` from
+  `@/i18n/navigation` is right, because the segment's `loading.tsx` already
+  covers it. `AppLink` is for entering the shell, not for moving around
+  inside it.
 
 A skeleton that does not match the real layout is worse than a spinner: the
 content jumps when it arrives. If you cannot mirror the layout closely, use a

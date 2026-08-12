@@ -1,6 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithIntl } from "@/test-utils/intl";
 
 const { signUpEmail, replace, refresh } = vi.hoisted(() => ({
   signUpEmail: vi.fn(),
@@ -12,7 +14,7 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: { signUp: { email: signUpEmail } },
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, refresh }),
 }));
 
@@ -35,7 +37,7 @@ describe("RegisterForm", () => {
 
   it("shows an error for every empty field", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await user.click(screen.getByRole("button", { name: /create account/i }));
 
@@ -48,7 +50,7 @@ describe("RegisterForm", () => {
 
   it("reports a password mismatch on the confirmation field", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
     await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
@@ -62,7 +64,7 @@ describe("RegisterForm", () => {
 
   it("rejects a password under eight characters", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await user.type(screen.getByLabelText(/^name$/i), "Ana Bubniak");
     await user.type(screen.getByLabelText(/^email$/i), "ana@example.com");
@@ -76,7 +78,7 @@ describe("RegisterForm", () => {
 
   it("submits name, email and password but never the confirmation", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create account/i }));
@@ -92,7 +94,7 @@ describe("RegisterForm", () => {
 
   it("redirects to the dashboard on success", async () => {
     const user = userEvent.setup();
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create account/i }));
@@ -110,7 +112,7 @@ describe("RegisterForm", () => {
     signUpEmail.mockResolvedValue({
       error: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" },
     });
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create account/i }));
@@ -124,7 +126,7 @@ describe("RegisterForm", () => {
   it("shows the generic error when the call throws instead of returning one", async () => {
     const user = userEvent.setup();
     signUpEmail.mockRejectedValue(new Error("network down"));
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create account/i }));
@@ -138,7 +140,7 @@ describe("RegisterForm", () => {
   it("disables the button while the request is in flight", async () => {
     const user = userEvent.setup();
     signUpEmail.mockImplementation(() => new Promise(() => {}));
-    render(<RegisterForm />);
+    renderWithIntl(<RegisterForm />);
 
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create account/i }));

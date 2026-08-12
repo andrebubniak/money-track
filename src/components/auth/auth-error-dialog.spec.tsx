@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithIntl } from "@/test-utils/intl";
 
 const { replace, searchParams } = vi.hoisted(() => ({
   replace: vi.fn(),
@@ -8,8 +10,11 @@ const { replace, searchParams } = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
   useSearchParams: () => searchParams,
+}));
+
+vi.mock("@/i18n/navigation", () => ({
+  useRouter: () => ({ replace }),
 }));
 
 import { AuthErrorDialog } from "@/components/auth/auth-error-dialog";
@@ -26,13 +31,13 @@ describe("AuthErrorDialog", () => {
   });
 
   it("stays closed when there is no error", () => {
-    render(<AuthErrorDialog />);
+    renderWithIntl(<AuthErrorDialog />);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("explains a refused Google link", async () => {
     setError("account_not_linked");
-    render(<AuthErrorDialog />);
+    renderWithIntl(<AuthErrorDialog />);
 
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     expect(
@@ -43,7 +48,7 @@ describe("AuthErrorDialog", () => {
   it("explains a replayed sign-in whose state has expired", async () => {
     // What Back into a finished Google flow produces.
     setError("state_mismatch");
-    render(<AuthErrorDialog />);
+    renderWithIntl(<AuthErrorDialog />);
 
     expect(await screen.findByText(/sign-in link expired/i)).toBeInTheDocument();
   });
@@ -52,7 +57,7 @@ describe("AuthErrorDialog", () => {
     // better-auth's slug list grows between releases; swallowing a failed
     // sign-in silently is worse than a generic message.
     setError("some_future_slug");
-    render(<AuthErrorDialog />);
+    renderWithIntl(<AuthErrorDialog />);
 
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     expect(screen.getByText(/Please try again/i)).toBeInTheDocument();
@@ -61,7 +66,7 @@ describe("AuthErrorDialog", () => {
   it("clears the query string when dismissed", async () => {
     const user = userEvent.setup();
     setError("state_mismatch");
-    render(<AuthErrorDialog />);
+    renderWithIntl(<AuthErrorDialog />);
 
     await user.click(await screen.findByRole("button", { name: /got it/i }));
 

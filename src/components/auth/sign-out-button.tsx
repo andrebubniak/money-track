@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton() {
+  const t = useTranslations("auth.signOut");
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -39,7 +41,7 @@ export function SignOutButton() {
           accessibility tree, leaving the button with no accessible name at
           all once the rail collapses to icons. */}
       <span className="group-data-[collapsible=icon]:sr-only">
-        {pending ? "Signing out…" : "Sign out"}
+        {pending ? t("pending") : t("label")}
       </span>
     </Button>
   );

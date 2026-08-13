@@ -130,7 +130,7 @@ export async function createCategory(
       locale: resolveLocale(locale),
       namespace: "categories",
     });
-    return { success: false, error: t("limitReached") };
+    return { success: false, error: t("limitReached", { max: MAX_ACTIVE_CATEGORIES }) };
   }
 
   await prisma.category.create({

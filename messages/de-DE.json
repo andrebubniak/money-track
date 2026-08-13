@@ -107,7 +107,7 @@
       "searchPlaceholder": "Symbole suchen…",
       "noResults": "Keine Symbole gefunden."
     },
-    "limitReached": "Du hast das Limit von 50 Kategorien erreicht.",
+    "limitReached": "Du hast das Limit von {max} Kategorien erreicht.",
     "notFound": "Diese Kategorie existiert nicht oder du hast keinen Zugriff darauf.",
     "invalidInput": "Bei deinen Angaben ist ein Problem aufgetreten. Bitte überprüfe die Felder und versuche es erneut.",
     "presets": {

@@ -15,7 +15,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createCategory, deleteCategory, updateCategory } from "@/lib/actions/categories";
-import type { CategoryValues } from "@/lib/validations/category";
+import { MAX_ACTIVE_CATEGORIES, type CategoryValues } from "@/lib/validations/category";
 
 /**
  * Echoes the key back, with any interpolated values appended, so a test can
@@ -87,7 +87,10 @@ describe("createCategory", () => {
 
     const result = await createCategory(validValues, LOCALE);
 
-    expect(result).toEqual({ success: false, error: "limitReached" });
+    expect(result).toEqual({
+      success: false,
+      error: `limitReached:${JSON.stringify({ max: MAX_ACTIVE_CATEGORIES })}`,
+    });
     expect(prisma.category.count).toHaveBeenCalledWith({
       where: { userId: "user-1", deactivatedAt: null },
     });
@@ -391,7 +394,10 @@ describe("locale resolution", () => {
 
     const result = await createCategory(validValues, "pt-BR");
 
-    expect(result).toEqual({ success: false, error: "limitReached" });
+    expect(result).toEqual({
+      success: false,
+      error: `limitReached:${JSON.stringify({ max: MAX_ACTIVE_CATEGORIES })}`,
+    });
     expect(getTranslations).toHaveBeenCalledWith({
       locale: "pt-BR",
       namespace: "categories",

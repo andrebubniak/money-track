@@ -69,7 +69,9 @@ export default async function CategoriesPage() {
               <Plus data-icon="inline-start" aria-hidden="true" />
               {t("actions.new")}
             </Button>
-            <p className="text-sm text-muted-foreground">{t("limitReached")}</p>
+            <p className="text-sm text-muted-foreground">
+              {t("limitReached", { max: MAX_ACTIVE_CATEGORIES })}
+            </p>
           </div>
         ) : (
           // A plain `Link`, not `AppLink`: this segment's own `loading.tsx`

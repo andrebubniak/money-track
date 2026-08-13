@@ -107,7 +107,7 @@
       "searchPlaceholder": "Search icons…",
       "noResults": "No icons found."
     },
-    "limitReached": "You've reached the limit of 50 categories.",
+    "limitReached": "You've reached the limit of {max} categories.",
     "notFound": "This category doesn't exist or you don't have access to it.",
     "invalidInput": "There was a problem with the information you submitted. Please check the fields and try again.",
     "presets": {

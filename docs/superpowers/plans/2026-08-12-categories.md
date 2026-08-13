@@ -215,12 +215,23 @@ not copies of English — write all three in this task's commit, per
 
 ### Task 5: Preset data and seeding
 
+**No vitest spec in this repo touches the real database.** Confirmed by
+grep: only `src/lib/auth.ts` imports `@/lib/prisma`; every other Prisma
+usage in `src/` is production code. `vitest.config.mts` runs under
+`jsdom` with no database setup/teardown and no reference to
+`DATABASE_URL_TEST` — that variable is Playwright's alone
+(`.claude/rules/...` and the Global Constraints note e2e uses a
+truncatable test database; unit tests never do). So this task's unit test
+covers the **pure data-shaping logic** only — it must not call
+`auth.api.signUpEmail` or otherwise touch Postgres. The actual "registering
+a user creates 11 rows in the database" assertion belongs to Task 12
+(`e2e/categories.spec.ts`), which already runs against the real,
+Playwright-managed test database — add it there, not here.
+
 **Files:**
 - Create: `src/lib/category-presets.ts`
+- Create: `src/lib/category-presets.spec.ts`
 - Modify: `src/lib/auth.ts`
-- Create/modify: seeding test (co-locate as `auth.spec.ts` addition, or a
-  new `category-presets.spec.ts` if `auth.ts` has no existing spec — check
-  first)
 
 **Interfaces:**
 - Produces (`category-presets.ts`):
@@ -239,15 +250,31 @@ not copies of English — write all three in this task's commit, per
     { key: "savingsAndInvestments", icon: "piggy-bank" },
   ] as const;
   export type CategoryPresetKey = (typeof CATEGORY_PRESETS)[number]["key"];
-  ```
 
-- [ ] **Step 1: Write the failing test** — registering a user (via
-  `auth.api.signUpEmail` or the equivalent test harness already used for
-  auth specs) results in exactly 11 `Category` rows for that user, each with
-  a `systemLocaleKey` matching a `CATEGORY_PRESETS` key, the paired icon,
-  and English literal `name`/`description` matching that key's catalog
-  entry.
-- [ ] **Step 2: Implement** `category-presets.ts`.
+  // Pure — no Prisma import, no I/O. Builds exactly the row shape
+  // `prisma.category.createMany`'s `data` array needs, so it's testable
+  // without a database and reusable from the databaseHooks callback.
+  export function buildPresetCategoriesData(userId: string) {
+    return CATEGORY_PRESETS.map(({ key, icon }) => ({
+      userId,
+      icon,
+      systemLocaleKey: key,
+      name: enUS.categories.presets[key].name,
+      description: enUS.categories.presets[key].description,
+    }));
+  }
+  ```
+  Import `enUS` from `../../messages/en-US.json` the same way
+  `auth.server.ts` already does.
+
+- [ ] **Step 1: Write the failing test** (`category-presets.spec.ts`,
+  no database) — `buildPresetCategoriesData("some-user-id")` returns
+  exactly 11 rows, each `userId: "some-user-id"`, each `systemLocaleKey`
+  matching a distinct `CATEGORY_PRESETS` key, each `icon` matching that
+  key's paired icon and present in `CATEGORY_ICONS` (Task 2), and each
+  `name`/`description` equal to that key's English catalog entry
+  (`messages/en-US.json`'s `categories.presets.<key>`).
+- [ ] **Step 2: Implement** `category-presets.ts` per the interface above.
 - [ ] **Step 3:** in `src/lib/auth.ts`, add:
   ```ts
   databaseHooks: {
@@ -255,28 +282,22 @@ not copies of English — write all three in this task's commit, per
       create: {
         after: async (user) => {
           await prisma.category.createMany({
-            data: CATEGORY_PRESETS.map(({ key, icon }) => ({
-              userId: user.id,
-              icon,
-              systemLocaleKey: key,
-              name: enUS.categories.presets[key].name,
-              description: enUS.categories.presets[key].description,
-            })),
+            data: buildPresetCategoriesData(user.id),
           });
         },
       },
     },
   },
   ```
-  Import `enUS` from `../../messages/en-US.json` the same way
-  `auth.server.ts` already does, and note why in a short comment: the
-  literal columns are an English fallback, not what most users will ever
-  see — display resolves through `systemLocaleKey` (Task 6).
-- [ ] Confirm the test passes for an email/password sign-up. Note in the
-  task report whether a Google-flow test is feasible with the existing test
-  harness (mocked OAuth) or whether it's covered only by reasoning about
-  `databaseHooks` firing for every provider — don't invent OAuth test
-  infrastructure that doesn't already exist for this task alone.
+  Note in a short comment why the literal `name`/`description` columns
+  exist: they're an English fallback, not what most users will ever see —
+  display resolves through `systemLocaleKey` (Task 6).
+- [ ] `databaseHooks.user.create.after` fires for every provider
+  (confirmed against the better-auth docs during spec research) — no
+  provider-specific test is needed here; Task 12's e2e spec covers the
+  live email/password flow, which is what this repo's e2e suite can
+  exercise (there's no existing mocked-OAuth harness — don't build one for
+  this task alone).
 
 ---
 

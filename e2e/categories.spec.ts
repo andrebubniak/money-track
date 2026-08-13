@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import deDE from "../messages/de-DE.json";
+import enUS from "../messages/en-US.json";
+
 import { path, registerUser } from "./helpers";
 
 /**
@@ -26,6 +29,27 @@ const PRESET_NAMES_SORTED = [
 function sorted(names: string[]): string[] {
   return [...names].sort((a, b) => a.localeCompare(b, "en-US"));
 }
+
+/**
+ * The same 11 preset keys, used to build the German expectations below from
+ * the actual catalogs rather than hardcoding translated strings — mirroring
+ * how `PRESET_NAMES_SORTED` above stands in for the English catalog, so a
+ * changed translation can't silently desync this test.
+ */
+const PRESET_KEYS = Object.keys(deDE.categories.presets) as (keyof typeof deDE.categories.presets)[];
+
+/** Preset keys ordered by their *German* translated name, German collation. */
+const GERMAN_PRESET_KEY_ORDER = [...PRESET_KEYS].sort((a, b) =>
+  new Intl.Collator("de-DE").compare(deDE.categories.presets[a].name, deDE.categories.presets[b].name),
+);
+
+/** The same keys ordered by their *English* translated name, for comparison. */
+const ENGLISH_PRESET_KEY_ORDER = [...PRESET_KEYS].sort((a, b) =>
+  enUS.categories.presets[a].name.localeCompare(enUS.categories.presets[b].name, "en-US"),
+);
+
+/** The German preset names, in the order the list page is expected to render them. */
+const GERMAN_PRESET_NAMES_SORTED = GERMAN_PRESET_KEY_ORDER.map((key) => deDE.categories.presets[key].name);
 
 /**
  * The table's "Name" column, top to bottom.
@@ -61,6 +85,28 @@ test.describe("categories", () => {
 
     const names = await categoryNameColumn(page, 11);
     expect(names).toEqual(PRESET_NAMES_SORTED);
+  });
+
+  test("shows the 11 presets translated and sorted in German collation order", async ({ page }) => {
+    // en-US alone can't tell "translation resolved correctly" apart from
+    // "translation never happened; the raw English fallback columns were
+    // rendered as-is" — the two are byte-identical in that locale (see the
+    // comment on `resolveCategoryDisplay` in src/lib/category-display.ts).
+    // Visiting in de-DE, and asserting against the German catalog rather than
+    // hardcoded strings, closes that gap.
+    await registerUser(page);
+    await expect(page).toHaveURL(path("/dashboard"));
+
+    await page.goto(path("/dashboard/categories", "de-DE"));
+
+    const names = await categoryNameColumn(page, 11);
+    expect(names).toEqual(GERMAN_PRESET_NAMES_SORTED);
+
+    // The same 11 categories, identified by key, sort into a different
+    // relative order in German than in English — proof the sort key is the
+    // translated text, not a coincidence that would also hold for the raw
+    // English fallback columns.
+    expect(GERMAN_PRESET_KEY_ORDER).not.toEqual(ENGLISH_PRESET_KEY_ORDER);
   });
 
   test("creating a category inserts it in sorted position among the presets", async ({ page }) => {

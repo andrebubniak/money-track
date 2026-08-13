@@ -229,6 +229,9 @@
     },
     "sheet": {
       "close": "Fechar"
+    },
+    "dialog": {
+      "close": "Fechar"
     }
   }
 }

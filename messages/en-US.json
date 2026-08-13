@@ -229,6 +229,9 @@
     },
     "sheet": {
       "close": "Close"
+    },
+    "dialog": {
+      "close": "Close"
     }
   }
 }

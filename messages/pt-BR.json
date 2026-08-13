@@ -87,6 +87,7 @@
       "title": "Excluir esta categoria?",
       "description": "Isso removerá a categoria da sua lista. Essa ação não pode ser desfeita.",
       "confirm": "Excluir",
+      "confirming": "Excluindo…",
       "cancel": "Cancelar"
     },
     "form": {

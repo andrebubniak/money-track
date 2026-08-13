@@ -87,6 +87,7 @@
       "title": "Diese Kategorie löschen?",
       "description": "Dadurch wird die Kategorie aus deiner Liste entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
       "confirm": "Löschen",
+      "confirming": "Wird gelöscht…",
       "cancel": "Abbrechen"
     },
     "form": {

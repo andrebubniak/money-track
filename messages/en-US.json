@@ -87,6 +87,7 @@
       "title": "Delete this category?",
       "description": "This will remove the category from your list. This can't be undone.",
       "confirm": "Delete",
+      "confirming": "Deleting…",
       "cancel": "Cancel"
     },
     "form": {

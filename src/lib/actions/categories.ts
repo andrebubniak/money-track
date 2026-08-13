@@ -1,21 +1,21 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { hasLocale, type Locale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
+import { routing } from "@/i18n/routing";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createCategorySchema, type CategoryValues } from "@/lib/validations/category";
+import {
+  createCategorySchema,
+  MAX_ACTIVE_CATEGORIES,
+  type CategoryValues,
+} from "@/lib/validations/category";
 
 export type ActionResult = { success: true } | { success: false; error: string };
-
-/**
- * Counted against `deactivatedAt: null` rows only — a soft-deleted category
- * frees a slot. See createCategory.
- */
-const MAX_ACTIVE_CATEGORIES = 50;
 
 /**
  * `updateCategory`/`deleteCategory` receive `id` as a bare Server Action
@@ -41,12 +41,44 @@ async function getSessionUserId(): Promise<string | null> {
 }
 
 /**
+ * The active locale, for `getTranslations`.
+ *
+ * A bare `getTranslations("…")` **throws** in here. `src/i18n/request.ts`
+ * resolves the locale from `next/root-params`, and root params are only
+ * readable while rendering a route — inside a Server Action Next raises
+ * "`import('next/root-params').locale()` was used inside a Server Action",
+ * which takes the whole action down with it. Passing an explicit `locale` to
+ * `getTranslations` makes next-intl skip that lookup entirely.
+ *
+ * Fixing it in `request.ts` instead is not an option: telling "no route
+ * context" apart from a prerender bail-out there means catching broadly, and a
+ * broad catch swallows the postpone signal that keeps `/[locale]` statically
+ * rendered. Measured — it turns every `●` in the build output into `ƒ`.
+ *
+ * NEXT_LOCALE is the right source. Its name is pinned in `src/i18n/routing.ts`
+ * precisely so app code may read it; the proxy carries it onto its own
+ * redirects and the locale switcher's `syncLocaleCookie` keeps it current.
+ * Falling back to the default locale only matters for a request that somehow
+ * carries no cookie, where an English message beats a thrown action.
+ */
+async function getRequestLocale(): Promise<Locale> {
+  const cookieName =
+    typeof routing.localeCookie === "object" ? routing.localeCookie.name : undefined;
+  const value = cookieName ? (await cookies()).get(cookieName)?.value : undefined;
+
+  return hasLocale(routing.locales, value) ? value : routing.defaultLocale;
+}
+
+/**
  * One error message covers both "no session" and "not your category" (or
  * nonexistent) cases across all three actions — deliberately not telling the
  * caller which case it was.
  */
 async function notFoundError(): Promise<ActionResult> {
-  const t = await getTranslations("categories");
+  const t = await getTranslations({
+    locale: await getRequestLocale(),
+    namespace: "categories",
+  });
   return { success: false, error: t("notFound") };
 }
 
@@ -59,12 +91,18 @@ async function notFoundError(): Promise<ActionResult> {
  * English message, which would otherwise reach the UI untranslated.
  */
 async function invalidInputError(): Promise<ActionResult> {
-  const t = await getTranslations("categories");
+  const t = await getTranslations({
+    locale: await getRequestLocale(),
+    namespace: "categories",
+  });
   return { success: false, error: t("invalidInput") };
 }
 
 async function parseValues(values: CategoryValues) {
-  const t = await getTranslations("validation.categories");
+  const t = await getTranslations({
+    locale: await getRequestLocale(),
+    namespace: "validation.categories",
+  });
   return createCategorySchema(t).safeParse(values);
 }
 
@@ -79,7 +117,10 @@ export async function createCategory(values: CategoryValues): Promise<ActionResu
     where: { userId, deactivatedAt: null },
   });
   if (activeCount >= MAX_ACTIVE_CATEGORIES) {
-    const t = await getTranslations("categories");
+    const t = await getTranslations({
+      locale: await getRequestLocale(),
+      namespace: "categories",
+    });
     return { success: false, error: t("limitReached") };
   }
 

@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,7 +7,14 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { category: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(), update: vi.fn() } },
 }));
 vi.mock("@/lib/auth", () => ({ auth: { api: { getSession: vi.fn() } } }));
-vi.mock("next/headers", () => ({ headers: vi.fn().mockResolvedValue(new Headers()) }));
+// `cookies` as well as `headers`: the actions read NEXT_LOCALE to pass an
+// explicit locale to `getTranslations`, because `next/root-params` — which
+// `src/i18n/request.ts` normally resolves the locale from — throws inside a
+// Server Action. See `getRequestLocale` in the module under test.
+vi.mock("next/headers", () => ({
+  headers: vi.fn().mockResolvedValue(new Headers()),
+  cookies: vi.fn(),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn() }));
 
@@ -37,6 +44,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getTranslations).mockResolvedValue(t as never);
   vi.mocked(headers).mockResolvedValue(new Headers());
+  // No NEXT_LOCALE set, so `getRequestLocale` falls back to the default —
+  // which is all these specs need, since `getTranslations` is stubbed to echo
+  // keys and never reads a catalog.
+  vi.mocked(cookies).mockResolvedValue({ get: () => undefined } as never);
 });
 
 describe("createCategory", () => {
@@ -333,5 +344,53 @@ describe("deleteCategory", () => {
     });
     expect(prisma.category.update).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * These actions run without a route context, so `src/i18n/request.ts`'s
+ * `next/root-params` lookup throws in them — a bare `getTranslations("…")`
+ * takes the whole action down. The fix is to pass an explicit locale, read
+ * from NEXT_LOCALE. Nothing else in the suite would notice if that regressed:
+ * `getTranslations` is stubbed, so the call would still "work" here while
+ * failing for every real user.
+ */
+describe("locale resolution", () => {
+  it("passes the NEXT_LOCALE cookie's locale to getTranslations", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
+    vi.mocked(cookies).mockResolvedValue({
+      get: (name: string) => (name === "NEXT_LOCALE" ? { value: "pt-BR" } : undefined),
+    } as never);
+
+    await deleteCategory("cat-1");
+
+    expect(getTranslations).toHaveBeenCalledWith({
+      locale: "pt-BR",
+      namespace: "categories",
+    });
+  });
+
+  it("falls back to the default locale rather than throwing when no cookie is set", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
+    vi.mocked(cookies).mockResolvedValue({ get: () => undefined } as never);
+
+    await deleteCategory("cat-1");
+
+    expect(getTranslations).toHaveBeenCalledWith({
+      locale: "en-US",
+      namespace: "categories",
+    });
+  });
+
+  it("ignores a NEXT_LOCALE cookie holding an unsupported locale", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
+    vi.mocked(cookies).mockResolvedValue({ get: () => ({ value: "fr-FR" }) } as never);
+
+    await deleteCategory("cat-1");
+
+    expect(getTranslations).toHaveBeenCalledWith({
+      locale: "en-US",
+      namespace: "categories",
+    });
   });
 });

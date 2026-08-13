@@ -108,6 +108,7 @@
     },
     "limitReached": "You've reached the limit of 50 categories.",
     "notFound": "This category doesn't exist or you don't have access to it.",
+    "invalidInput": "There was a problem with the information you submitted. Please check the fields and try again.",
     "presets": {
       "housing": {
         "name": "Housing",

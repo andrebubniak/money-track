@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
+import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,18 @@ export type ActionResult = { success: true } | { success: false; error: string }
  * frees a slot. See createCategory.
  */
 const MAX_ACTIVE_CATEGORIES = 50;
+
+/**
+ * `updateCategory`/`deleteCategory` receive `id` as a bare Server Action
+ * argument, deserialized straight from an attacker-controlled POST body — the
+ * `string` type annotation on the exported functions enforces nothing at
+ * runtime. Bounded the same way every other string field is (see
+ * `.claude/rules/validation.md`) so an unbounded value never reaches Prisma.
+ * `@default(cuid())` in schema.prisma produces a 25-character id; 30 leaves a
+ * little headroom without leaving the field unbounded.
+ */
+const CATEGORY_ID_MAX_LENGTH = 30;
+const categoryIdSchema = z.string().trim().min(1).max(CATEGORY_ID_MAX_LENGTH);
 
 /**
  * Re-derives identity from the session on every call, the same authoritative
@@ -37,6 +50,19 @@ async function notFoundError(): Promise<ActionResult> {
   return { success: false, error: t("notFound") };
 }
 
+/**
+ * Generic, translated fallback for a schema failure. Deliberately never
+ * surfaces `parsed.error.issues[0].message` — most issues are our own bounds
+ * violations, translated via the schema factory, but a payload that bypasses
+ * the client entirely (a forged POST with the wrong shape, e.g. `name` as a
+ * number) fails zod's own type check first and produces zod's hardcoded
+ * English message, which would otherwise reach the UI untranslated.
+ */
+async function invalidInputError(): Promise<ActionResult> {
+  const t = await getTranslations("categories");
+  return { success: false, error: t("invalidInput") };
+}
+
 async function parseValues(values: CategoryValues) {
   const t = await getTranslations("validation.categories");
   return createCategorySchema(t).safeParse(values);
@@ -47,9 +73,7 @@ export async function createCategory(values: CategoryValues): Promise<ActionResu
   if (!userId) return notFoundError();
 
   const parsed = await parseValues(values);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0].message };
-  }
+  if (!parsed.success) return invalidInputError();
 
   const activeCount = await prisma.category.count({
     where: { userId, deactivatedAt: null },
@@ -76,10 +100,13 @@ export async function updateCategory(id: string, values: CategoryValues): Promis
   const userId = await getSessionUserId();
   if (!userId) return notFoundError();
 
+  // `id` is a bare Server Action argument — validate its shape before it
+  // ever reaches a query. A malformed id can't match a real row anyway, so
+  // this collapses into the same not-found response as any other case.
+  if (!categoryIdSchema.safeParse(id).success) return notFoundError();
+
   const parsed = await parseValues(values);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0].message };
-  }
+  if (!parsed.success) return invalidInputError();
 
   // Ownership re-derived from the session's userId, never trusted from the
   // client. Not found (wrong owner or nonexistent) is the same error either
@@ -108,6 +135,8 @@ export async function updateCategory(id: string, values: CategoryValues): Promis
 export async function deleteCategory(id: string): Promise<ActionResult> {
   const userId = await getSessionUserId();
   if (!userId) return notFoundError();
+
+  if (!categoryIdSchema.safeParse(id).success) return notFoundError();
 
   const category = await prisma.category.findFirst({ where: { id, userId } });
   if (!category) return notFoundError();

@@ -50,13 +50,26 @@ describe("createCategory", () => {
     expect(prisma.category.create).not.toHaveBeenCalled();
   });
 
-  it("returns the schema's error and makes no writes for an invalid payload", async () => {
+  it("returns a generic invalid-input error and makes no writes for an out-of-bounds payload", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
     const result = await createCategory({ ...validValues, name: "A" });
 
-    expect(result.success).toBe(false);
-    expect((result as { error: string }).error).toBe('name.tooShort:{"min":3}');
+    expect(result).toEqual({ success: false, error: "invalidInput" });
+    expect(prisma.category.count).not.toHaveBeenCalled();
+    expect(prisma.category.create).not.toHaveBeenCalled();
+  });
+
+  it("returns the same generic invalid-input error, not zod's raw English text, for a wrong-shaped payload", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+
+    // Bypasses the client entirely — the form's own TypeScript types would
+    // never let `name` be a number, but a forged POST body can.
+    const forged = { ...validValues, name: 123 } as unknown as CategoryValues;
+    const result = await createCategory(forged);
+
+    expect(result).toEqual({ success: false, error: "invalidInput" });
+    expect((result as { error: string }).error).not.toMatch(/invalid input|expected string/i);
     expect(prisma.category.count).not.toHaveBeenCalled();
     expect(prisma.category.create).not.toHaveBeenCalled();
   });
@@ -121,13 +134,45 @@ describe("updateCategory", () => {
     expect(prisma.category.update).not.toHaveBeenCalled();
   });
 
-  it("returns the schema's error and makes no writes for an invalid payload", async () => {
+  it("returns a generic invalid-input error and makes no writes for an out-of-bounds payload", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
     const result = await updateCategory("cat-1", { ...validValues, name: "A" });
 
-    expect(result.success).toBe(false);
-    expect((result as { error: string }).error).toBe('name.tooShort:{"min":3}');
+    expect(result).toEqual({ success: false, error: "invalidInput" });
+    expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it("returns the same generic invalid-input error, not zod's raw English text, for a wrong-shaped payload", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+
+    const forged = { ...validValues, name: 123 } as unknown as CategoryValues;
+    const result = await updateCategory("cat-1", forged);
+
+    expect(result).toEqual({ success: false, error: "invalidInput" });
+    expect((result as { error: string }).error).not.toMatch(/invalid input|expected string/i);
+    expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty id before ever querying, with the same not-found-shaped error", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+
+    const result = await updateCategory("", validValues);
+
+    expect(result).toEqual({ success: false, error: "notFound" });
+    expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized id before ever querying, with the same not-found-shaped error", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+
+    // A cuid is 25 characters; nothing legitimate is anywhere near this long.
+    const result = await updateCategory("c".repeat(500), validValues);
+
+    expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
     expect(prisma.category.update).not.toHaveBeenCalled();
   });
@@ -232,6 +277,26 @@ describe("deleteCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
 
     const result = await deleteCategory("cat-1");
+
+    expect(result).toEqual({ success: false, error: "notFound" });
+    expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty id before ever querying, with the same not-found-shaped error", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+
+    const result = await deleteCategory("");
+
+    expect(result).toEqual({ success: false, error: "notFound" });
+    expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized id before ever querying, with the same not-found-shaped error", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+
+    const result = await deleteCategory("c".repeat(500));
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();

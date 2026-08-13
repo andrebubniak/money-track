@@ -108,6 +108,7 @@
     },
     "limitReached": "Você atingiu o limite de 50 categorias.",
     "notFound": "Esta categoria não existe ou você não tem acesso a ela.",
+    "invalidInput": "Houve um problema com as informações enviadas. Verifique os campos e tente novamente.",
     "presets": {
       "housing": {
         "name": "Moradia",

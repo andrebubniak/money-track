@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { resolveCategoryDisplay } from "./category-display";
-import type { CATEGORY_PRESETS } from "./category-presets";
+import { CATEGORY_PRESETS } from "./category-presets";
 
 type MockCategory = {
   name: string;
@@ -10,8 +10,16 @@ type MockCategory = {
 };
 
 describe("resolveCategoryDisplay", () => {
-  // Stub translator that returns a predictable string from the key
-  const stubTranslator = (key: string) => `[translated: ${key}]`;
+  // Stub translator that mimics next-intl's behavior:
+  // throws for unrecognized preset keys, returns predictable strings for known keys
+  const presetKeySet = new Set(CATEGORY_PRESETS.map((p) => p.key)) as Set<string>;
+  const stubTranslator = (key: string) => {
+    const presetKey = key.split(".")[0];
+    if (!presetKeySet.has(presetKey)) {
+      throw new Error(`MISSING_MESSAGE: no message for ${key}`);
+    }
+    return `[translated: ${key}]`;
+  };
 
   it("returns raw name and description when systemLocaleKey is null", () => {
     const category: MockCategory = {
@@ -53,19 +61,7 @@ describe("resolveCategoryDisplay", () => {
   });
 
   it("returns translated text for all preset keys", () => {
-    const presetKeys = [
-      "housing",
-      "utilities",
-      "food",
-      "transportation",
-      "healthAndPersonalCare",
-      "shopping",
-      "entertainment",
-      "travel",
-      "education",
-      "giftsAndDonations",
-      "savingsAndInvestments",
-    ];
+    const presetKeys = CATEGORY_PRESETS.map((p) => p.key);
 
     presetKeys.forEach((key) => {
       const category: MockCategory = {

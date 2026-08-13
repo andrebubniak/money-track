@@ -422,7 +422,7 @@ not copies of English — write all three in this task's commit, per
 - Authoritative session check (`auth.api.getSession`), same shape as
   `dashboard/page.tsx`.
 - `prisma.category.findMany({ where: { userId, deactivatedAt: null } })`.
-- Resolve each row with `resolveCategoryDisplay` (Task 5), sort with
+- Resolve each row with `resolveCategoryDisplay` (Task 6), sort with
   `Intl.Collator(locale)` per the spec's ordering decision.
 - Render the shadcn `Table`, an empty state if zero rows, a "New category"
   link (hidden/disabled if already at 50 active — read the count the same

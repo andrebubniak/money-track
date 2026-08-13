@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { hasLocale, type Locale } from "next-intl";
 import { getTranslations } from "next-intl/server";
@@ -41,32 +41,38 @@ async function getSessionUserId(): Promise<string | null> {
 }
 
 /**
- * The active locale, for `getTranslations`.
+ * Every action here takes the active `locale` as its last argument, because a
+ * Server Action has no other way to find it.
  *
- * A bare `getTranslations("…")` **throws** in here. `src/i18n/request.ts`
- * resolves the locale from `next/root-params`, and root params are only
- * readable while rendering a route — inside a Server Action Next raises
- * "`import('next/root-params').locale()` was used inside a Server Action",
- * which takes the whole action down with it. Passing an explicit `locale` to
- * `getTranslations` makes next-intl skip that lookup entirely.
+ * A bare `getTranslations("…")` **throws** in this file.
+ * `src/i18n/request.ts` resolves the locale from `next/root-params`, and root
+ * params are only readable while rendering a route — inside a Server Action
+ * Next raises "`import('next/root-params').locale()` was used inside a Server
+ * Action", which takes the whole action down with it. The same goes for
+ * `getLocale()`, which resolves through the same config. Passing an explicit
+ * `locale` to `getTranslations` makes next-intl skip that lookup entirely.
  *
  * Fixing it in `request.ts` instead is not an option: telling "no route
  * context" apart from a prerender bail-out there means catching broadly, and a
  * broad catch swallows the postpone signal that keeps `/[locale]` statically
  * rendered. Measured — it turns every `●` in the build output into `ƒ`.
  *
- * NEXT_LOCALE is the right source. Its name is pinned in `src/i18n/routing.ts`
- * precisely so app code may read it; the proxy carries it onto its own
- * redirects and the locale switcher's `syncLocaleCookie` keeps it current.
- * Falling back to the default locale only matters for a request that somehow
- * carries no cookie, where an English message beats a thrown action.
+ * Reading the NEXT_LOCALE cookie here does not work either, which is why the
+ * argument exists. next-intl's middleware only writes that cookie when an
+ * existing one is *outdated*, or when there is none and Accept-Language
+ * *disagrees* with the resolved locale (`syncCookie` in
+ * `node_modules/next-intl/dist/esm/development/middleware/syncCookie.js`). A
+ * browser sending `Accept-Language: pt-BR` that lands on `/pt-BR/…` matches
+ * neither branch, so no cookie is ever written and the read would silently
+ * fall back to `en-US` — a Portuguese page rendering English errors. The
+ * caller, which is a Client Component with `useLocale()` in hand, is the one
+ * place that reliably knows.
+ *
+ * The value still arrives over the wire in a POST body, so it is validated
+ * rather than trusted, exactly like `id` below.
  */
-async function getRequestLocale(): Promise<Locale> {
-  const cookieName =
-    typeof routing.localeCookie === "object" ? routing.localeCookie.name : undefined;
-  const value = cookieName ? (await cookies()).get(cookieName)?.value : undefined;
-
-  return hasLocale(routing.locales, value) ? value : routing.defaultLocale;
+function resolveLocale(locale: string): Locale {
+  return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
 /**
@@ -74,9 +80,9 @@ async function getRequestLocale(): Promise<Locale> {
  * nonexistent) cases across all three actions — deliberately not telling the
  * caller which case it was.
  */
-async function notFoundError(): Promise<ActionResult> {
+async function notFoundError(locale: string): Promise<ActionResult> {
   const t = await getTranslations({
-    locale: await getRequestLocale(),
+    locale: resolveLocale(locale),
     namespace: "categories",
   });
   return { success: false, error: t("notFound") };
@@ -90,35 +96,38 @@ async function notFoundError(): Promise<ActionResult> {
  * number) fails zod's own type check first and produces zod's hardcoded
  * English message, which would otherwise reach the UI untranslated.
  */
-async function invalidInputError(): Promise<ActionResult> {
+async function invalidInputError(locale: string): Promise<ActionResult> {
   const t = await getTranslations({
-    locale: await getRequestLocale(),
+    locale: resolveLocale(locale),
     namespace: "categories",
   });
   return { success: false, error: t("invalidInput") };
 }
 
-async function parseValues(values: CategoryValues) {
+async function parseValues(values: CategoryValues, locale: string) {
   const t = await getTranslations({
-    locale: await getRequestLocale(),
+    locale: resolveLocale(locale),
     namespace: "validation.categories",
   });
   return createCategorySchema(t).safeParse(values);
 }
 
-export async function createCategory(values: CategoryValues): Promise<ActionResult> {
+export async function createCategory(
+  values: CategoryValues,
+  locale: string,
+): Promise<ActionResult> {
   const userId = await getSessionUserId();
-  if (!userId) return notFoundError();
+  if (!userId) return notFoundError(locale);
 
-  const parsed = await parseValues(values);
-  if (!parsed.success) return invalidInputError();
+  const parsed = await parseValues(values, locale);
+  if (!parsed.success) return invalidInputError(locale);
 
   const activeCount = await prisma.category.count({
     where: { userId, deactivatedAt: null },
   });
   if (activeCount >= MAX_ACTIVE_CATEGORIES) {
     const t = await getTranslations({
-      locale: await getRequestLocale(),
+      locale: resolveLocale(locale),
       namespace: "categories",
     });
     return { success: false, error: t("limitReached") };
@@ -137,23 +146,27 @@ export async function createCategory(values: CategoryValues): Promise<ActionResu
   return { success: true };
 }
 
-export async function updateCategory(id: string, values: CategoryValues): Promise<ActionResult> {
+export async function updateCategory(
+  id: string,
+  values: CategoryValues,
+  locale: string,
+): Promise<ActionResult> {
   const userId = await getSessionUserId();
-  if (!userId) return notFoundError();
+  if (!userId) return notFoundError(locale);
 
   // `id` is a bare Server Action argument — validate its shape before it
   // ever reaches a query. A malformed id can't match a real row anyway, so
   // this collapses into the same not-found response as any other case.
-  if (!categoryIdSchema.safeParse(id).success) return notFoundError();
+  if (!categoryIdSchema.safeParse(id).success) return notFoundError(locale);
 
-  const parsed = await parseValues(values);
-  if (!parsed.success) return invalidInputError();
+  const parsed = await parseValues(values, locale);
+  if (!parsed.success) return invalidInputError(locale);
 
   // Ownership re-derived from the session's userId, never trusted from the
   // client. Not found (wrong owner or nonexistent) is the same error either
   // way.
   const category = await prisma.category.findFirst({ where: { id, userId } });
-  if (!category) return notFoundError();
+  if (!category) return notFoundError(locale);
 
   await prisma.category.update({
     where: { id },
@@ -173,14 +186,14 @@ export async function updateCategory(id: string, values: CategoryValues): Promis
   return { success: true };
 }
 
-export async function deleteCategory(id: string): Promise<ActionResult> {
+export async function deleteCategory(id: string, locale: string): Promise<ActionResult> {
   const userId = await getSessionUserId();
-  if (!userId) return notFoundError();
+  if (!userId) return notFoundError(locale);
 
-  if (!categoryIdSchema.safeParse(id).success) return notFoundError();
+  if (!categoryIdSchema.safeParse(id).success) return notFoundError(locale);
 
   const category = await prisma.category.findFirst({ where: { id, userId } });
-  if (!category) return notFoundError();
+  if (!category) return notFoundError(locale);
 
   // Soft delete — never a hard delete — so transactions and recurring
   // transactions referencing this category keep pointing at a real row.

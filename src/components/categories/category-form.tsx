@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { z } from "zod";
 
 import { CircleAlert } from "lucide-react";
@@ -27,6 +27,9 @@ type CategoryFormProps = {
 export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormProps) {
   const t = useTranslations("categories.form");
   const tValidation = useTranslations("validation.categories");
+  // Passed to the action explicitly: a Server Action cannot resolve the locale
+  // itself — see the header comment in `src/lib/actions/categories.ts`.
+  const locale = useLocale();
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -60,7 +63,9 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
     setFormError(null);
 
     const result =
-      mode === "create" ? await createCategory(values) : await updateCategory(categoryId!, values);
+      mode === "create"
+        ? await createCategory(values, locale)
+        : await updateCategory(categoryId!, values, locale);
 
     if (!result.success) {
       // The server already returns a translated, renderable string here —

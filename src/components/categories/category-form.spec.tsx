@@ -70,13 +70,28 @@ describe("CategoryForm", () => {
     await user.click(screen.getByRole("button", { name: /create category/i }));
 
     await waitFor(() => {
-      expect(createCategory).toHaveBeenCalledWith({
-        name: "Groceries",
-        icon: "house",
-        description: undefined,
-      });
+      expect(createCategory).toHaveBeenCalledWith(
+        { name: "Groceries", icon: "house", description: undefined },
+        "en-US",
+      );
     });
     expect(updateCategory).not.toHaveBeenCalled();
+  });
+
+  it("forwards the active locale, not a hardcoded one", async () => {
+    const user = userEvent.setup();
+    // Rendered in pt-BR specifically so this fails if the locale is ever
+    // hardcoded or dropped. The action cannot resolve its own locale — see
+    // the header comment in `src/lib/actions/categories.ts` — so a wrong
+    // value here means a Brazilian user reads English error messages.
+    renderWithIntl(<CategoryForm mode="create" defaultValues={defaultValues} />, "pt-BR");
+
+    await user.type(screen.getByLabelText("Nome"), "Groceries");
+    await user.click(screen.getByRole("button", { name: /criar categoria/i }));
+
+    await waitFor(() => {
+      expect(createCategory).toHaveBeenCalledWith(expect.anything(), "pt-BR");
+    });
   });
 
   it("calls updateCategory with the category id in edit mode, never createCategory", async () => {
@@ -89,11 +104,11 @@ describe("CategoryForm", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => {
-      expect(updateCategory).toHaveBeenCalledWith("cat_123", {
-        name: "Groceries",
-        icon: "house",
-        description: undefined,
-      });
+      expect(updateCategory).toHaveBeenCalledWith(
+        "cat_123",
+        { name: "Groceries", icon: "house", description: undefined },
+        "en-US",
+      );
     });
     expect(createCategory).not.toHaveBeenCalled();
   });
@@ -130,11 +145,10 @@ describe("CategoryForm", () => {
     await user.click(screen.getByRole("button", { name: /create category/i }));
 
     await waitFor(() => {
-      expect(createCategory).toHaveBeenCalledWith({
-        name: "Groceries",
-        icon: "pizza",
-        description: undefined,
-      });
+      expect(createCategory).toHaveBeenCalledWith(
+        { name: "Groceries", icon: "pizza", description: undefined },
+        "en-US",
+      );
     });
   });
 

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CircleAlert, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -37,6 +37,9 @@ type DeleteCategoryButtonProps = {
  */
 export function DeleteCategoryButton({ categoryId }: DeleteCategoryButtonProps) {
   const t = useTranslations("categories");
+  // Passed to the action explicitly: a Server Action cannot resolve the locale
+  // itself — see the header comment in `src/lib/actions/categories.ts`.
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -46,7 +49,7 @@ export function DeleteCategoryButton({ categoryId }: DeleteCategoryButtonProps) 
     // `startTransition` is how a Server Action is invoked from an event
     // handler rather than a `<form action>` — see the Server Actions guide.
     startTransition(async () => {
-      const result = await deleteCategory(categoryId);
+      const result = await deleteCategory(categoryId, locale);
 
       if (!result.success) {
         // Already a translated, renderable string from the server; there is no

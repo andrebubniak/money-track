@@ -1,4 +1,4 @@
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,14 +7,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { category: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(), update: vi.fn() } },
 }));
 vi.mock("@/lib/auth", () => ({ auth: { api: { getSession: vi.fn() } } }));
-// `cookies` as well as `headers`: the actions read NEXT_LOCALE to pass an
-// explicit locale to `getTranslations`, because `next/root-params` — which
-// `src/i18n/request.ts` normally resolves the locale from — throws inside a
-// Server Action. See `getRequestLocale` in the module under test.
-vi.mock("next/headers", () => ({
-  headers: vi.fn().mockResolvedValue(new Headers()),
-  cookies: vi.fn(),
-}));
+vi.mock("next/headers", () => ({ headers: vi.fn().mockResolvedValue(new Headers()) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn() }));
 
@@ -34,6 +27,13 @@ const t = (key: string, values?: Record<string, unknown>) =>
 
 const SESSION = { user: { id: "user-1" }, session: {} };
 
+/**
+ * Every action takes the active locale as its last argument — see the
+ * "locale resolution" block at the bottom of this file for why it cannot
+ * find one for itself.
+ */
+const LOCALE = "en-US";
+
 const validValues: CategoryValues = {
   name: "Groceries",
   icon: "shopping-basket",
@@ -44,17 +44,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getTranslations).mockResolvedValue(t as never);
   vi.mocked(headers).mockResolvedValue(new Headers());
-  // No NEXT_LOCALE set, so `getRequestLocale` falls back to the default —
-  // which is all these specs need, since `getTranslations` is stubbed to echo
-  // keys and never reads a catalog.
-  vi.mocked(cookies).mockResolvedValue({ get: () => undefined } as never);
 });
 
 describe("createCategory", () => {
   it("returns a generic error and makes no writes when there is no session", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
 
-    const result = await createCategory(validValues);
+    const result = await createCategory(validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.count).not.toHaveBeenCalled();
@@ -64,7 +60,7 @@ describe("createCategory", () => {
   it("returns a generic invalid-input error and makes no writes for an out-of-bounds payload", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
-    const result = await createCategory({ ...validValues, name: "A" });
+    const result = await createCategory({ ...validValues, name: "A" }, LOCALE);
 
     expect(result).toEqual({ success: false, error: "invalidInput" });
     expect(prisma.category.count).not.toHaveBeenCalled();
@@ -77,7 +73,7 @@ describe("createCategory", () => {
     // Bypasses the client entirely — the form's own TypeScript types would
     // never let `name` be a number, but a forged POST body can.
     const forged = { ...validValues, name: 123 } as unknown as CategoryValues;
-    const result = await createCategory(forged);
+    const result = await createCategory(forged, LOCALE);
 
     expect(result).toEqual({ success: false, error: "invalidInput" });
     expect((result as { error: string }).error).not.toMatch(/invalid input|expected string/i);
@@ -89,7 +85,7 @@ describe("createCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
     vi.mocked(prisma.category.count).mockResolvedValue(50);
 
-    const result = await createCategory(validValues);
+    const result = await createCategory(validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "limitReached" });
     expect(prisma.category.count).toHaveBeenCalledWith({
@@ -104,7 +100,7 @@ describe("createCategory", () => {
     vi.mocked(prisma.category.count).mockResolvedValue(49);
     vi.mocked(prisma.category.create).mockResolvedValue({ id: "cat-50" } as never);
 
-    const result = await createCategory(validValues);
+    const result = await createCategory(validValues, LOCALE);
 
     expect(result).toEqual({ success: true });
     expect(prisma.category.create).toHaveBeenCalledWith({
@@ -126,7 +122,7 @@ describe("createCategory", () => {
     vi.mocked(prisma.category.count).mockResolvedValue(0);
     vi.mocked(prisma.category.create).mockResolvedValue({ id: "cat-1" } as never);
 
-    await createCategory(validValues);
+    await createCategory(validValues, LOCALE);
 
     expect(prisma.category.count).toHaveBeenCalledWith({
       where: { userId: "user-1", deactivatedAt: null },
@@ -138,7 +134,7 @@ describe("updateCategory", () => {
   it("returns a generic error and makes no writes when there is no session", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
 
-    const result = await updateCategory("cat-1", validValues);
+    const result = await updateCategory("cat-1", validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -148,7 +144,7 @@ describe("updateCategory", () => {
   it("returns a generic invalid-input error and makes no writes for an out-of-bounds payload", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
-    const result = await updateCategory("cat-1", { ...validValues, name: "A" });
+    const result = await updateCategory("cat-1", { ...validValues, name: "A" }, LOCALE);
 
     expect(result).toEqual({ success: false, error: "invalidInput" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -159,7 +155,7 @@ describe("updateCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
     const forged = { ...validValues, name: 123 } as unknown as CategoryValues;
-    const result = await updateCategory("cat-1", forged);
+    const result = await updateCategory("cat-1", forged, LOCALE);
 
     expect(result).toEqual({ success: false, error: "invalidInput" });
     expect((result as { error: string }).error).not.toMatch(/invalid input|expected string/i);
@@ -170,7 +166,7 @@ describe("updateCategory", () => {
   it("rejects an empty id before ever querying, with the same not-found-shaped error", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
-    const result = await updateCategory("", validValues);
+    const result = await updateCategory("", validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -181,7 +177,7 @@ describe("updateCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
     // A cuid is 25 characters; nothing legitimate is anywhere near this long.
-    const result = await updateCategory("c".repeat(500), validValues);
+    const result = await updateCategory("c".repeat(500), validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -192,7 +188,7 @@ describe("updateCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
     vi.mocked(prisma.category.findFirst).mockResolvedValue(null as never);
 
-    const result = await updateCategory("cat-owned-by-someone-else", validValues);
+    const result = await updateCategory("cat-owned-by-someone-else", validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).toHaveBeenCalledWith({
@@ -206,7 +202,7 @@ describe("updateCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
     vi.mocked(prisma.category.findFirst).mockResolvedValue(null as never);
 
-    const result = await updateCategory("does-not-exist", validValues);
+    const result = await updateCategory("does-not-exist", validValues, LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.update).not.toHaveBeenCalled();
@@ -222,7 +218,7 @@ describe("updateCategory", () => {
     vi.mocked(prisma.category.update).mockResolvedValue({} as never);
 
     // Submitted values happen to equal what the preset would already render.
-    const result = await updateCategory("cat-1", validValues);
+    const result = await updateCategory("cat-1", validValues, LOCALE);
 
     expect(result).toEqual({ success: true });
     expect(prisma.category.update).toHaveBeenCalledWith({
@@ -246,7 +242,7 @@ describe("updateCategory", () => {
     } as never);
     vi.mocked(prisma.category.update).mockResolvedValue({} as never);
 
-    const result = await updateCategory("cat-1", validValues);
+    const result = await updateCategory("cat-1", validValues, LOCALE);
 
     expect(result).toEqual({ success: true });
     expect(prisma.category.update).toHaveBeenCalledWith({
@@ -269,7 +265,7 @@ describe("updateCategory", () => {
     } as never);
     vi.mocked(prisma.category.update).mockResolvedValue({} as never);
 
-    await updateCategory("cat-1", { ...validValues, description: "" });
+    await updateCategory("cat-1", { ...validValues, description: "" }, LOCALE);
 
     expect(prisma.category.update).toHaveBeenCalledWith({
       where: { id: "cat-1" },
@@ -287,7 +283,7 @@ describe("deleteCategory", () => {
   it("returns a generic error and makes no writes when there is no session", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
 
-    const result = await deleteCategory("cat-1");
+    const result = await deleteCategory("cat-1", LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -297,7 +293,7 @@ describe("deleteCategory", () => {
   it("rejects an empty id before ever querying, with the same not-found-shaped error", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
-    const result = await deleteCategory("");
+    const result = await deleteCategory("", LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -307,7 +303,7 @@ describe("deleteCategory", () => {
   it("rejects an oversized id before ever querying, with the same not-found-shaped error", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
-    const result = await deleteCategory("c".repeat(500));
+    const result = await deleteCategory("c".repeat(500), LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).not.toHaveBeenCalled();
@@ -322,7 +318,7 @@ describe("deleteCategory", () => {
     } as never);
     vi.mocked(prisma.category.update).mockResolvedValue({} as never);
 
-    const result = await deleteCategory("cat-1");
+    const result = await deleteCategory("cat-1", LOCALE);
 
     expect(result).toEqual({ success: true });
     expect(prisma.category.update).toHaveBeenCalledWith({
@@ -336,7 +332,7 @@ describe("deleteCategory", () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
     vi.mocked(prisma.category.findFirst).mockResolvedValue(null as never);
 
-    const result = await deleteCategory("cat-owned-by-someone-else");
+    const result = await deleteCategory("cat-owned-by-someone-else", LOCALE);
 
     expect(result).toEqual({ success: false, error: "notFound" });
     expect(prisma.category.findFirst).toHaveBeenCalledWith({
@@ -350,19 +346,20 @@ describe("deleteCategory", () => {
 /**
  * These actions run without a route context, so `src/i18n/request.ts`'s
  * `next/root-params` lookup throws in them — a bare `getTranslations("…")`
- * takes the whole action down. The fix is to pass an explicit locale, read
- * from NEXT_LOCALE. Nothing else in the suite would notice if that regressed:
- * `getTranslations` is stubbed, so the call would still "work" here while
- * failing for every real user.
+ * takes the whole action down. The fix is the `locale` argument every action
+ * now takes, forwarded to `getTranslations`.
+ *
+ * Nothing else in this suite would notice a regression: `getTranslations` is
+ * stubbed, so a bare `getTranslations("categories")` would still "work" here
+ * while throwing for every real user. Hence one case per namespace the actions
+ * can reach — `categories` *and* `validation.categories` — rather than one
+ * overall.
  */
 describe("locale resolution", () => {
-  it("passes the NEXT_LOCALE cookie's locale to getTranslations", async () => {
+  it("forwards the caller's locale to getTranslations", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
-    vi.mocked(cookies).mockResolvedValue({
-      get: (name: string) => (name === "NEXT_LOCALE" ? { value: "pt-BR" } : undefined),
-    } as never);
 
-    await deleteCategory("cat-1");
+    await deleteCategory("cat-1", "pt-BR");
 
     expect(getTranslations).toHaveBeenCalledWith({
       locale: "pt-BR",
@@ -370,23 +367,43 @@ describe("locale resolution", () => {
     });
   });
 
-  it("falls back to the default locale rather than throwing when no cookie is set", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
-    vi.mocked(cookies).mockResolvedValue({ get: () => undefined } as never);
+  it("forwards the caller's locale to the validation schema's translator too", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
 
-    await deleteCategory("cat-1");
+    // Fails the schema, so `parseValues` runs and then `invalidInputError`
+    // does — the two call sites the not-found path never reaches.
+    const result = await createCategory({ ...validValues, name: "A" }, "de-DE");
 
+    expect(result).toEqual({ success: false, error: "invalidInput" });
     expect(getTranslations).toHaveBeenCalledWith({
-      locale: "en-US",
+      locale: "de-DE",
+      namespace: "validation.categories",
+    });
+    expect(getTranslations).toHaveBeenCalledWith({
+      locale: "de-DE",
       namespace: "categories",
     });
   });
 
-  it("ignores a NEXT_LOCALE cookie holding an unsupported locale", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
-    vi.mocked(cookies).mockResolvedValue({ get: () => ({ value: "fr-FR" }) } as never);
+  it("forwards the caller's locale to the cap-refusal message", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(SESSION as never);
+    vi.mocked(prisma.category.count).mockResolvedValue(50);
 
-    await deleteCategory("cat-1");
+    const result = await createCategory(validValues, "pt-BR");
+
+    expect(result).toEqual({ success: false, error: "limitReached" });
+    expect(getTranslations).toHaveBeenCalledWith({
+      locale: "pt-BR",
+      namespace: "categories",
+    });
+  });
+
+  it("falls back to the default locale rather than throwing on an unsupported value", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
+
+    // Arrives in a POST body, so it is as untrusted as `id` — a forged
+    // request can put anything here.
+    await deleteCategory("cat-1", "fr-FR");
 
     expect(getTranslations).toHaveBeenCalledWith({
       locale: "en-US",

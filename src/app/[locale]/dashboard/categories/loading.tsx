@@ -10,6 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+const PLACEHOLDER_ROWS = [0, 1, 2, 3, 4];
+
 /**
  * In-shell loading state for the category list.
  *
@@ -19,8 +21,6 @@ import {
  * (header + action button, then a four-column table) so nothing jumps when the
  * rows arrive. Keep the two in step.
  */
-const PLACEHOLDER_ROWS = [0, 1, 2, 3, 4];
-
 export default async function CategoriesLoading() {
   const t = await getTranslations("common");
 

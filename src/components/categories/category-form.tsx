@@ -1,0 +1,139 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
+import type { z } from "zod";
+
+import { CircleAlert } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { IconPicker } from "@/components/categories/icon-picker";
+import { useRouter } from "@/i18n/navigation";
+import { createCategory, updateCategory } from "@/lib/actions/categories";
+import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON, isCategoryIcon } from "@/lib/category-icons";
+import { createCategorySchema, type CategoryValues } from "@/lib/validations/category";
+
+type CategoryFormProps = {
+  mode: "create" | "edit";
+  categoryId?: string;
+  defaultValues: CategoryValues;
+};
+
+export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormProps) {
+  const t = useTranslations("categories.form");
+  const tValidation = useTranslations("validation.categories");
+  const router = useRouter();
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Rebuilt when the translator changes — which is when the locale changes.
+  const schema = useMemo(() => createCategorySchema(tValidation), [tValidation]);
+
+  // `icon`'s output type is narrowed to a `keyof typeof CATEGORY_ICONS` union
+  // by the schema's `.refine(isCategoryIcon, …)` — that is `CategoryValues`,
+  // the type `onSubmit` receives. But the *raw* field the form holds before
+  // validation is a plain string (from `IconPicker`'s `onChange`, or an
+  // invalid persisted value), so the form itself is typed on the schema's
+  // wider input shape, with `CategoryValues` supplied only as the
+  // post-validation transformed type.
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<z.input<typeof schema>, unknown, CategoryValues>({
+    resolver: zodResolver(schema),
+    defaultValues,
+  });
+
+  // `useWatch`, not the `watch` function `useForm()` returns — the latter is
+  // not memoizable and the React Compiler flags it (react-hooks/incompatible-library).
+  const icon = useWatch({ control, name: "icon" });
+  const SelectedIcon = CATEGORY_ICONS[isCategoryIcon(icon) ? icon : DEFAULT_CATEGORY_ICON];
+
+  async function onSubmit(values: CategoryValues) {
+    setFormError(null);
+
+    const result =
+      mode === "create" ? await createCategory(values) : await updateCategory(categoryId!, values);
+
+    if (!result.success) {
+      // The server already returns a translated, renderable string here —
+      // unlike authErrorMessage's error codes, there is no second lookup
+      // step. See .claude/rules/validation.md.
+      setFormError(result.error);
+      return;
+    }
+
+    // `replace`, not `push`: the form must not stay in the history stack, or
+    // Back returns the user to a form they have finished with.
+    router.replace("/dashboard/categories");
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      {formError && (
+        <Alert variant="destructive">
+          <CircleAlert aria-hidden="true" />
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="name">{t("nameLabel")}</Label>
+        <Input
+          id="name"
+          type="text"
+          placeholder={t("namePlaceholder")}
+          aria-invalid={Boolean(errors.name)}
+          aria-describedby={errors.name ? "name-error" : undefined}
+          {...register("name")}
+        />
+        {errors.name && <p id="name-error" className="text-sm text-destructive">{errors.name.message}</p>}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="description">{t("descriptionLabel")}</Label>
+        <Input
+          id="description"
+          type="text"
+          placeholder={t("descriptionPlaceholder")}
+          aria-invalid={Boolean(errors.description)}
+          aria-describedby={errors.description ? "description-error" : undefined}
+          {...register("description")}
+        />
+        {errors.description && (
+          <p id="description-error" className="text-sm text-destructive">{errors.description.message}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>{t("iconLabel")}</Label>
+        <div className="flex items-center gap-3">
+          <SelectedIcon aria-hidden="true" className="size-8 text-muted-foreground" />
+          <div className="flex flex-col gap-1">
+            <IconPicker value={icon} onChange={(next) => setValue("icon", next, { shouldValidate: true })} />
+            <span className="text-xs text-muted-foreground">{t("chooseIcon")}</span>
+          </div>
+        </div>
+        {errors.icon && <p className="text-sm text-destructive">{errors.icon.message}</p>}
+      </div>
+
+      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        {mode === "create"
+          ? isSubmitting
+            ? t("submitCreating")
+            : t("submitCreate")
+          : isSubmitting
+            ? t("submitSaving")
+            : t("submitEdit")}
+      </Button>
+    </form>
+  );
+}

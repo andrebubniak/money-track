@@ -15,6 +15,19 @@ export const MAX_CATEGORY_NAME_LENGTH = 50;
 export const MAX_CATEGORY_DESCRIPTION_LENGTH = 255;
 
 /**
+ * Hard cap on how many *active* categories one user may hold — a soft-deleted
+ * row frees a slot. `createCategory` in `src/lib/actions/categories.ts` is
+ * where this is enforced; the list page reads it only to disable the "New
+ * category" action, which is a convenience, not the enforcement.
+ *
+ * It lives here, beside the other category bounds, rather than in the actions
+ * module: that file carries the `"use server"` directive, and such a module may
+ * export nothing but async functions, so a plain `const` export from it would
+ * not be importable by the page.
+ */
+export const MAX_ACTIVE_CATEGORIES = 50;
+
+/**
  * Every message key this schema can emit, relative to the `validation.categories`
  * namespace.
  *

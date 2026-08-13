@@ -1,4 +1,4 @@
-import { CATEGORY_PRESETS } from "./category-presets";
+import { CATEGORY_PRESETS, type CategoryPresetKey } from "./category-presets";
 
 export type CategoryDisplay = {
   name: string;
@@ -11,7 +11,30 @@ export type CategoryInput = {
   systemLocaleKey: string | null;
 };
 
-type Translator = (key: string) => string;
+/**
+ * Every message key this function can emit, relative to the
+ * `categories.presets` namespace — the same shape as
+ * `CategoryValidationTranslator` in `src/lib/validations/category.ts`, and for
+ * the same reason: declaring the union explicitly is what lets a real
+ * `getTranslations("categories.presets")` be passed in at all. A translator
+ * typed `(key: string) => string` is *wider* than next-intl's, and under
+ * `strictFunctionTypes` the real one is therefore not assignable to it.
+ *
+ * A plain `(key: string) => string` stub still satisfies this — a wider
+ * parameter is fine — so the key-echoing test stubs are unaffected.
+ */
+type PresetMessageKey = `${CategoryPresetKey}.name` | `${CategoryPresetKey}.description`;
+
+export type CategoryPresetTranslator = (key: PresetMessageKey) => string;
+
+/**
+ * Narrows a raw `systemLocaleKey` column to a known preset key. A row could
+ * hold anything — a preset renamed or dropped in a later release, say — so
+ * this is a runtime check, not a cast.
+ */
+function isPresetKey(value: string): value is CategoryPresetKey {
+  return CATEGORY_PRESETS.some((preset) => preset.key === value);
+}
 
 /**
  * Resolves the display text for a category.
@@ -26,23 +49,12 @@ type Translator = (key: string) => string;
  */
 export function resolveCategoryDisplay(
   category: CategoryInput,
-  t: Translator
+  t: CategoryPresetTranslator
 ): CategoryDisplay {
-  // If no systemLocaleKey, it's a custom category - return raw columns
-  if (category.systemLocaleKey === null) {
-    return {
-      name: category.name,
-      description: category.description,
-    };
-  }
-
-  // Check if systemLocaleKey matches a known preset key
-  const isValidPresetKey = CATEGORY_PRESETS.some(
-    (p) => p.key === category.systemLocaleKey
-  );
-
-  // If it's not a valid preset key, fall back to raw columns
-  if (!isValidPresetKey) {
+  // No systemLocaleKey means a custom category — and an unrecognized one means
+  // a key this build no longer knows about. Both fall back to the raw columns
+  // rather than handing next-intl a key it would throw on.
+  if (category.systemLocaleKey === null || !isPresetKey(category.systemLocaleKey)) {
     return {
       name: category.name,
       description: category.description,

@@ -326,6 +326,15 @@ Playwright-managed test database — add it there, not here.
 
 ### Task 7: Category Server Actions
 
+**Same "no real database in unit tests" constraint as Task 5.** These
+actions call `prisma.category.*`, `auth.api.getSession`, `headers()`,
+`getTranslations`, and `revalidatePath` — all of it must be mocked with
+`vi.mock`, not exercised against Postgres. This is the first Server Action
+in the repo, so there's no existing mock-setup precedent to copy; use the
+shape below. The database-integration angle (does a 50th category actually
+get refused end-to-end, does an update actually persist) is Task 12's job
+via e2e.
+
 **Files:**
 - Create: `src/lib/actions/categories.ts`
 - Create: `src/lib/actions/categories.spec.ts`
@@ -339,6 +348,22 @@ Playwright-managed test database — add it there, not here.
   form a rendered string rather than a code — there's no client-side error
   code table for this feature, so translate server-side using
   `getTranslations`).
+
+**Mocking shape for `categories.spec.ts`:**
+```ts
+vi.mock("@/lib/prisma", () => ({
+  prisma: { category: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(), update: vi.fn() } },
+}));
+vi.mock("@/lib/auth", () => ({ auth: { api: { getSession: vi.fn() } } }));
+vi.mock("next/headers", () => ({ headers: vi.fn().mockResolvedValue(new Headers()) }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next-intl/server", () => ({ getTranslations: vi.fn() }));
+```
+Import the mocked modules, cast with `vi.mocked(...)`, and configure return
+values per test (e.g. `vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: "user-1" }, session: {} } as never)`).
+For `getTranslations`, resolve to a simple key-echoing function (same
+pattern as the schema specs) so assertions can check which message key an
+error used without needing real catalog text.
 
 - [ ] **Step 1: Write failing tests** for:
   - `createCategory` refuses at 50 active categories, succeeds at 49 → 50,

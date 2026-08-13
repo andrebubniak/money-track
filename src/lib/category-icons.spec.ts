@@ -20,6 +20,15 @@ describe("category-icons", () => {
     expect(isCategoryIcon("unknown-icon")).toBe(false);
   });
 
+  it("should reject prototype pollution attacks (constructor, toString, etc)", () => {
+    // These are inherited from Object.prototype and should NOT be considered valid icon names
+    expect(isCategoryIcon("toString")).toBe(false);
+    expect(isCategoryIcon("constructor")).toBe(false);
+    expect(isCategoryIcon("hasOwnProperty")).toBe(false);
+    expect(isCategoryIcon("valueOf")).toBe(false);
+    expect(isCategoryIcon("__proto__")).toBe(false);
+  });
+
   it("should have all expected icon keys from the spec", () => {
     const expectedIcons = [
       // Housing

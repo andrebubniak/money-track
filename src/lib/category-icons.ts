@@ -257,5 +257,5 @@ export const CATEGORY_ICONS = {
 export const DEFAULT_CATEGORY_ICON = "layout-grid" satisfies keyof typeof CATEGORY_ICONS;
 
 export function isCategoryIcon(value: string): value is keyof typeof CATEGORY_ICONS {
-  return value in CATEGORY_ICONS;
+  return Object.hasOwn(CATEGORY_ICONS, value);
 }

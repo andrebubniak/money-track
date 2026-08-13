@@ -19,3 +19,4 @@ The project conventions are defined by subject on `.claude/rules`. **Before chan
 | [validation.md](.claude/rules/validation.md)                   | You are validating any input — forms, Server Actions, Route Handlers, schemas        |
 | [navigation-loading.md](.claude/rules/navigation-loading.md)   | You are adding a link, a route, or any in-app navigation                             |
 | [i18n.md](.claude/rules/i18n.md)                               | You are adding or changing any user-visible copy, or a locale                        |
+| [database.md](.claude/rules/database.md)                       | You are adding, changing, or reviewing a database model, field, or migration         |

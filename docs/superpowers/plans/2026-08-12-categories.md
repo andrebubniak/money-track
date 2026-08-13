@@ -102,7 +102,7 @@ Vitest 4 + Testing Library, Playwright.
 
 - [ ] **Step 1: Write the failing test** (`category-icons.spec.ts`) —
   asserts `CATEGORY_ICONS[DEFAULT_CATEGORY_ICON]` exists, the map has 113
-  entries, and every icon key from `CATEGORY_PRESETS` (Task 3) resolves.
+  entries, and every icon key from `CATEGORY_PRESETS` (Task 5) resolves.
 - [ ] **Step 2: Implement.** Statically import each of the 113 icons listed
   in the spec's allow-list section, grouped by the same theme comments, and
   build the `Record`. Static imports, not `dynamicIconImports` — the spec
@@ -127,14 +127,62 @@ Vitest 4 + Testing Library, Playwright.
 
 ---
 
-### Task 3: Category validation schema
+### Task 3: Message catalog additions
+
+Moved ahead of the tasks that consume these keys (validation schema, preset
+seeding, actions, sidebar, forms) — every one of them needs at least a
+subset of this catalog to exist, and `src/i18n/messages.spec.ts` (which
+runs as part of `npm test`) fails the moment any one of the three catalogs
+is missing a key the others have. Doing this once, up front, for all three
+locales, keeps `npm test` green at every later task's commit instead of
+only at the end.
+
+**Files:**
+- Modify: `messages/en-US.json`, `messages/pt-BR.json`, `messages/de-DE.json`
+
+**Keys to add** (English text below; pt-BR/de-DE need real translations,
+not copies of English — write all three in this task's commit, per
+`.claude/rules/i18n.md`):
+
+- `dashboard.categoriesNavLabel` — "Categories" (this is the fixed key
+  name Task 8's sidebar item consumes; don't rename it there)
+- `categories.title`, `.description` (list page header)
+- `categories.table.name`, `.icon`, `.description`, `.actions` (column
+  headers)
+- `categories.table.empty` (empty-state message), `.emptyCta`
+- `categories.actions.edit`, `.delete`, `.new`
+- `categories.deleteDialog.title`, `.description`, `.confirm`, `.cancel`
+- `categories.form.nameLabel`, `.namePlaceholder`, `.descriptionLabel`,
+  `.descriptionPlaceholder`, `.iconLabel`, `.chooseIcon`, `.submitCreate`,
+  `.submitCreating`, `.submitEdit`, `.submitSaving`
+- `categories.iconPicker.title`, `.searchPlaceholder`, `.noResults`
+- `categories.limitReached` (the 50-cap refusal message)
+- `categories.notFound` (edit page, id not owned/doesn't exist)
+- `categories.presets.housing.name` / `.description`, and the same pair for
+  `utilities`, `food`, `transportation`, `healthAndPersonalCare`,
+  `shopping`, `entertainment`, `travel`, `education`, `giftsAndDonations`,
+  `savingsAndInvestments` — English text is in the spec's preset table.
+- `validation.categories.name.tooShort` / `.tooLong`,
+  `validation.categories.description.tooLong`,
+  `validation.categories.icon.invalid`
+
+- [ ] Add all keys to `en-US.json`, then translate into `pt-BR.json` and
+  `de-DE.json` in the same commit. Endonym rule from `.claude/rules/i18n.md`
+  doesn't apply here (that's locale *names* only) — translate normally.
+- [ ] `npx vitest run src/i18n/messages.spec.ts` green (asserts identical
+  key sets and no empty strings across all three).
+
+---
+
+### Task 4: Category validation schema
 
 **Files:**
 - Create: `src/lib/validations/category.ts`
 - Create: `src/lib/validations/category.spec.ts`
 
 **Interfaces:**
-- Consumes: `isCategoryIcon` from Task 2.
+- Consumes: `isCategoryIcon` from Task 2; `validation.categories.*` keys
+  from Task 3.
 - Produces: `createCategorySchema(t)`, `MIN_CATEGORY_NAME_LENGTH = 3`,
   `MAX_CATEGORY_NAME_LENGTH = 50`, `MAX_CATEGORY_DESCRIPTION_LENGTH = 255`,
   `export type CategoryValues = z.infer<ReturnType<typeof createCategorySchema>>`.
@@ -161,15 +209,11 @@ Vitest 4 + Testing Library, Playwright.
     });
   }
   ```
-- [ ] Add the `categories.presets` and `validation.categories` namespaces to
-  `messages/en-US.json`, `pt-BR.json`, `de-DE.json` (see Task 8 for the full
-  key list — do both together, or `messages.spec.ts` fails on the partial
-  add).
 - [ ] `npm test -- category` green.
 
 ---
 
-### Task 4: Preset data and seeding
+### Task 5: Preset data and seeding
 
 **Files:**
 - Create: `src/lib/category-presets.ts`
@@ -227,7 +271,7 @@ Vitest 4 + Testing Library, Playwright.
   Import `enUS` from `../../messages/en-US.json` the same way
   `auth.server.ts` already does, and note why in a short comment: the
   literal columns are an English fallback, not what most users will ever
-  see — display resolves through `systemLocaleKey` (Task 5).
+  see — display resolves through `systemLocaleKey` (Task 6).
 - [ ] Confirm the test passes for an email/password sign-up. Note in the
   task report whether a Google-flow test is feasible with the existing test
   harness (mocked OAuth) or whether it's covered only by reasoning about
@@ -236,7 +280,7 @@ Vitest 4 + Testing Library, Playwright.
 
 ---
 
-### Task 5: Resolving preset display text
+### Task 6: Resolving preset display text
 
 **Files:**
 - Create: `src/lib/category-display.ts`
@@ -259,7 +303,7 @@ Vitest 4 + Testing Library, Playwright.
 
 ---
 
-### Task 6: Category Server Actions
+### Task 7: Category Server Actions
 
 **Files:**
 - Create: `src/lib/actions/categories.ts`
@@ -296,7 +340,7 @@ Vitest 4 + Testing Library, Playwright.
 
 ---
 
-### Task 7: Sidebar nav item
+### Task 8: Sidebar nav item
 
 **Files:**
 - Modify: `src/app/[locale]/dashboard/layout.tsx`
@@ -306,54 +350,13 @@ Vitest 4 + Testing Library, Playwright.
   using the `Tags` icon from `lucide-react`, `render={<Link
   href="/dashboard/categories" />}` (plain `Link`, matching the existing
   item — sidebar navigation is covered by each segment's own
-  `loading.tsx`), label from a new `dashboard.categoriesNavLabel` (or a
-  `nav.categories` key — pick whichever existing namespace convention fits
-  better once messages.json is open; keep it next to `navLabel`).
+  `loading.tsx`), label from `dashboard.categoriesNavLabel` (added in
+  Task 3).
 - [ ] `isActive` should reflect the actual current segment now that there
   are two items — check how `next-intl`'s `usePathname` or the existing
   `isActive` static `true` needs to become segment-aware. (Today both items
   can't be `isActive` unconditionally; use `usePathname()` from
   `@/i18n/navigation` and compare.)
-
----
-
-### Task 8: Message catalog additions
-
-**Files:**
-- Modify: `messages/en-US.json`, `messages/pt-BR.json`, `messages/de-DE.json`
-
-**Keys to add** (English text; pt-BR/de-DE need real translations, not
-copies of English — write them in the same commit, per
-`.claude/rules/i18n.md`):
-
-- `dashboard.categoriesNavLabel` (or `nav.categories`, see Task 7)
-- `categories.title`, `.description` (list page header)
-- `categories.table.name`, `.icon`, `.description`, `.actions` (column
-  headers)
-- `categories.table.empty` (empty-state message), `.emptyCta`
-- `categories.actions.edit`, `.delete`, `.new`
-- `categories.deleteDialog.title`, `.description`, `.confirm`, `.cancel`
-- `categories.form.nameLabel`, `.namePlaceholder`, `.descriptionLabel`,
-  `.descriptionPlaceholder`, `.iconLabel`, `.chooseIcon`, `.submitCreate`,
-  `.submitCreating`, `.submitEdit`, `.submitSaving`
-- `categories.iconPicker.title`, `.searchPlaceholder`, `.noResults`
-- `categories.limitReached` (the 50-cap refusal message)
-- `categories.notFound` (edit page, id not owned/doesn't exist)
-- `categories.presets.housing.name` / `.description`, and the same pair for
-  `utilities`, `food`, `transportation`, `healthAndPersonalCare`,
-  `shopping`, `entertainment`, `travel`, `education`, `giftsAndDonations`,
-  `savingsAndInvestments` — English text is in the spec's preset table.
-- `validation.categories.name.tooShort` / `.tooLong`,
-  `validation.categories.description.tooLong`,
-  `validation.categories.icon.invalid`
-
-- [ ] Add all keys to `en-US.json` first, get the schema/action tests
-  (Tasks 3, 6) passing against it.
-- [ ] Translate into `pt-BR.json` and `de-DE.json`. Endonym rule from
-  `.claude/rules/i18n.md` doesn't apply here (that's locale *names* only) —
-  translate normally.
-- [ ] `npx vitest run src/i18n/messages.spec.ts` green (asserts identical
-  key sets and no empty strings across all three).
 
 ---
 

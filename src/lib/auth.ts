@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { prisma } from "@/lib/prisma";
+import { buildPresetCategoriesData } from "@/lib/category-presets";
 import { signUpPayloadSchema } from "@/lib/validations/auth.server";
 
 /**
@@ -72,6 +73,22 @@ export const auth = betterAuth({
       currency: { type: "string", required: false, input: false },
       numberFormat: { type: "string", required: false, input: false },
       dateFormat: { type: "string", required: false, input: false },
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Each new user gets 11 preset categories. The name and description
+          // columns hold English text as a fallback — the app resolves display
+          // text through systemLocaleKey (Task 6), so these exact values are
+          // rarely shown to users, and only if locale resolution fails.
+          await prisma.category.createMany({
+            data: buildPresetCategoriesData(user.id),
+          });
+        },
+      },
     },
   },
 

@@ -65,7 +65,8 @@
     "navLabel": "Dashboard",
     "signedInAs": "Signed in ({name})",
     "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD.",
-    "categoriesNavLabel": "Categories"
+    "categoriesNavLabel": "Categories",
+    "cardsNavLabel": "Cards"
   },
   "categories": {
     "title": "Categories",
@@ -154,6 +155,43 @@
       }
     }
   },
+  "cards": {
+    "title": "Cards",
+    "description": "Manage the cards your transactions reference.",
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "actions": "Actions",
+      "empty": "You don't have any cards yet.",
+      "emptyCta": "New card"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "new": "New card"
+    },
+    "deleteDialog": {
+      "title": "Delete this card?",
+      "description": "This will remove the card from your list. This can't be undone.",
+      "confirm": "Delete",
+      "confirming": "Deleting…",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Personal Visa",
+      "typeLabel": "Type",
+      "typeDebit": "Debit",
+      "typeCredit": "Credit",
+      "submitCreate": "Create card",
+      "submitCreating": "Creating…",
+      "submitEdit": "Save changes",
+      "submitSaving": "Saving…"
+    },
+    "limitReached": "You've reached the limit of {max} cards.",
+    "notFound": "This card doesn't exist or you don't have access to it.",
+    "invalidInput": "There was a problem with the information you submitted. Please check the fields and try again."
+  },
   "nav": {
     "localeSwitcher": {
       "label": "Language",
@@ -199,6 +237,15 @@
       },
       "icon": {
         "invalid": "Choose an icon from the list."
+      }
+    },
+    "cards": {
+      "name": {
+        "tooShort": "Name must be at least {min} characters.",
+        "tooLong": "Name must be at most {max} characters."
+      },
+      "type": {
+        "invalid": "Choose a card type."
       }
     }
   },

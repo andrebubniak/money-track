@@ -65,7 +65,8 @@
     "navLabel": "Painel",
     "signedInAs": "Conectado ({name})",
     "placeholder": "Página provisória. Esta rota vai se tornar o painel de gastos descrito no PRD.",
-    "categoriesNavLabel": "Categorias"
+    "categoriesNavLabel": "Categorias",
+    "cardsNavLabel": "Cartões"
   },
   "categories": {
     "title": "Categorias",
@@ -154,6 +155,43 @@
       }
     }
   },
+  "cards": {
+    "title": "Cartões",
+    "description": "Gerencie os cartões que suas transações referenciam.",
+    "table": {
+      "name": "Nome",
+      "type": "Tipo",
+      "actions": "Ações",
+      "empty": "Você ainda não tem nenhum cartão.",
+      "emptyCta": "Novo cartão"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Excluir",
+      "new": "Novo cartão"
+    },
+    "deleteDialog": {
+      "title": "Excluir este cartão?",
+      "description": "Isso removerá o cartão da sua lista. Essa ação não pode ser desfeita.",
+      "confirm": "Excluir",
+      "confirming": "Excluindo…",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "nameLabel": "Nome",
+      "namePlaceholder": "ex.: Visa Pessoal",
+      "typeLabel": "Tipo",
+      "typeDebit": "Débito",
+      "typeCredit": "Crédito",
+      "submitCreate": "Criar cartão",
+      "submitCreating": "Criando…",
+      "submitEdit": "Salvar alterações",
+      "submitSaving": "Salvando…"
+    },
+    "limitReached": "Você atingiu o limite de {max} cartões.",
+    "notFound": "Este cartão não existe ou você não tem acesso a ele.",
+    "invalidInput": "Houve um problema com as informações enviadas. Verifique os campos e tente novamente."
+  },
   "nav": {
     "localeSwitcher": {
       "label": "Idioma",
@@ -199,6 +237,15 @@
       },
       "icon": {
         "invalid": "Escolha um ícone da lista."
+      }
+    },
+    "cards": {
+      "name": {
+        "tooShort": "O nome deve ter pelo menos {min} caracteres.",
+        "tooLong": "O nome deve ter no máximo {max} caracteres."
+      },
+      "type": {
+        "invalid": "Escolha um tipo de cartão."
       }
     }
   },

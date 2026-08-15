@@ -65,7 +65,8 @@
     "navLabel": "Dashboard",
     "signedInAs": "Angemeldet ({name})",
     "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard.",
-    "categoriesNavLabel": "Kategorien"
+    "categoriesNavLabel": "Kategorien",
+    "cardsNavLabel": "Karten"
   },
   "categories": {
     "title": "Kategorien",
@@ -154,6 +155,43 @@
       }
     }
   },
+  "cards": {
+    "title": "Karten",
+    "description": "Verwalte die Karten, auf die deine Transaktionen verweisen.",
+    "table": {
+      "name": "Name",
+      "type": "Typ",
+      "actions": "Aktionen",
+      "empty": "Du hast noch keine Karten.",
+      "emptyCta": "Neue Karte"
+    },
+    "actions": {
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "new": "Neue Karte"
+    },
+    "deleteDialog": {
+      "title": "Diese Karte löschen?",
+      "description": "Dadurch wird die Karte aus deiner Liste entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen",
+      "confirming": "Wird gelöscht…",
+      "cancel": "Abbrechen"
+    },
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "z. B. Privat-Visa",
+      "typeLabel": "Typ",
+      "typeDebit": "Debitkarte",
+      "typeCredit": "Kreditkarte",
+      "submitCreate": "Karte erstellen",
+      "submitCreating": "Wird erstellt…",
+      "submitEdit": "Änderungen speichern",
+      "submitSaving": "Wird gespeichert…"
+    },
+    "limitReached": "Du hast das Limit von {max} Karten erreicht.",
+    "notFound": "Diese Karte existiert nicht oder du hast keinen Zugriff darauf.",
+    "invalidInput": "Bei deinen Angaben ist ein Problem aufgetreten. Bitte überprüfe die Felder und versuche es erneut."
+  },
   "nav": {
     "localeSwitcher": {
       "label": "Sprache",
@@ -199,6 +237,15 @@
       },
       "icon": {
         "invalid": "Wähle ein Symbol aus der Liste."
+      }
+    },
+    "cards": {
+      "name": {
+        "tooShort": "Der Name muss mindestens {min} Zeichen lang sein.",
+        "tooLong": "Der Name darf höchstens {max} Zeichen lang sein."
+      },
+      "type": {
+        "invalid": "Wähle einen Kartentyp."
       }
     }
   },

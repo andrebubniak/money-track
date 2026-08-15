@@ -1,20 +1,17 @@
 import type { ReactNode } from "react";
-import { LayoutDashboard } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { LocaleSwitcher } from "@/components/nav/locale-switcher";
-import { Link } from "@/i18n/navigation";
+import { DashboardNavMenu } from "@/components/nav/dashboard-nav-menu";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
@@ -49,23 +46,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      tooltip={t("navLabel")}
-                      isActive
-                      // Plain Link, not AppLink: navigation *inside* the shell is covered
-                      // by the segment's loading.tsx skeleton. See
-                      // .claude/rules/navigation-loading.md.
-                      render={<Link href="/dashboard" />}
-                    >
-                      <LayoutDashboard aria-hidden="true" />
-                      <span>{t("navLabel")}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
+              <DashboardNavMenu
+                dashboardLabel={t("navLabel")}
+                categoriesLabel={t("categoriesNavLabel")}
+              />
             </SidebarGroup>
           </SidebarContent>
 

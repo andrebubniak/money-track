@@ -64,7 +64,95 @@
   "dashboard": {
     "navLabel": "Dashboard",
     "signedInAs": "Angemeldet ({name})",
-    "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard."
+    "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard.",
+    "categoriesNavLabel": "Kategorien"
+  },
+  "categories": {
+    "title": "Kategorien",
+    "description": "Organisiere deine Transaktionen in Kategorien.",
+    "table": {
+      "name": "Name",
+      "icon": "Symbol",
+      "description": "Beschreibung",
+      "actions": "Aktionen",
+      "empty": "Du hast noch keine Kategorien.",
+      "emptyCta": "Neue Kategorie"
+    },
+    "actions": {
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "new": "Neue Kategorie"
+    },
+    "deleteDialog": {
+      "title": "Diese Kategorie löschen?",
+      "description": "Dadurch wird die Kategorie aus deiner Liste entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen",
+      "confirming": "Wird gelöscht…",
+      "cancel": "Abbrechen"
+    },
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "z. B. Lebensmittel",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Optionale Details zu dieser Kategorie",
+      "iconLabel": "Symbol",
+      "submitCreate": "Kategorie erstellen",
+      "submitCreating": "Wird erstellt…",
+      "submitEdit": "Änderungen speichern",
+      "submitSaving": "Wird gespeichert…"
+    },
+    "iconPicker": {
+      "title": "Wähle ein Symbol"
+    },
+    "limitReached": "Du hast das Limit von {max} Kategorien erreicht.",
+    "notFound": "Diese Kategorie existiert nicht oder du hast keinen Zugriff darauf.",
+    "invalidInput": "Bei deinen Angaben ist ein Problem aufgetreten. Bitte überprüfe die Felder und versuche es erneut.",
+    "presets": {
+      "housing": {
+        "name": "Wohnen",
+        "description": "Miete oder Hypothek, Grundsteuer, Instandhaltung und Hausgeld."
+      },
+      "utilities": {
+        "name": "Nebenkosten",
+        "description": "Strom, Wasser, Gas, Internet und Telefon."
+      },
+      "food": {
+        "name": "Essen",
+        "description": "Lebensmittel, Restaurants, Lieferdienste und Kaffee."
+      },
+      "transportation": {
+        "name": "Transport",
+        "description": "Kraftstoff, öffentliche Verkehrsmittel, Autofinanzierung, Versicherung, Wartung und Parken."
+      },
+      "healthAndPersonalCare": {
+        "name": "Gesundheit und Körperpflege",
+        "description": "Versicherung, Ärzte, Medikamente, Zahnarzt, Augenarzt, Fitnessstudio und Wellness."
+      },
+      "shopping": {
+        "name": "Einkaufen",
+        "description": "Kleidung, Elektronik, Haushaltswaren und persönliche Artikel."
+      },
+      "entertainment": {
+        "name": "Unterhaltung",
+        "description": "Streaming, Spiele, Filme, Hobbys und Veranstaltungen."
+      },
+      "travel": {
+        "name": "Reisen",
+        "description": "Flüge, Hotels, Transport und Verpflegung."
+      },
+      "education": {
+        "name": "Bildung",
+        "description": "Studiengebühren, Kurse, Bücher und Materialien."
+      },
+      "giftsAndDonations": {
+        "name": "Geschenke und Spenden",
+        "description": "Geschenke und wohltätige Spenden."
+      },
+      "savingsAndInvestments": {
+        "name": "Sparen und Investitionen",
+        "description": "Sparüberweisungen, Altersvorsorgebeiträge, Investitionen und Dividenden."
+      }
+    }
   },
   "nav": {
     "localeSwitcher": {
@@ -100,6 +188,18 @@
         "required": "Bitte bestätige dein Passwort.",
         "mismatch": "Die Passwörter stimmen nicht überein."
       }
+    },
+    "categories": {
+      "name": {
+        "tooShort": "Der Name muss mindestens {min} Zeichen lang sein.",
+        "tooLong": "Der Name darf höchstens {max} Zeichen lang sein."
+      },
+      "description": {
+        "tooLong": "Die Beschreibung darf höchstens {max} Zeichen lang sein."
+      },
+      "icon": {
+        "invalid": "Wähle ein Symbol aus der Liste."
+      }
     }
   },
   "errors": {
@@ -126,6 +226,9 @@
       "description": "Zeigt die mobile Seitenleiste an."
     },
     "sheet": {
+      "close": "Schließen"
+    },
+    "dialog": {
       "close": "Schließen"
     }
   }

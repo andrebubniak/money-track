@@ -36,7 +36,7 @@ export function SignOutButton() {
       disabled={pending}
       onClick={handleClick}
     >
-      <LogOut aria-hidden="true" />
+      <LogOut aria-hidden="true" className="size-6" />
       {/* sr-only, not hidden: `display:none` removes the text from the
           accessibility tree, leaving the button with no accessible name at
           all once the rail collapses to icons. */}

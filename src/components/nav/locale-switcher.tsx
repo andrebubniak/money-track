@@ -66,7 +66,7 @@ export function LocaleSwitcher() {
           <Button variant="ghost" size="sm" className="w-full justify-start" disabled={pending} />
         }
       >
-        <Globe aria-hidden="true" />
+        <Globe aria-hidden="true" className="size-6" />
         {/* Always sr-only: it names the control for screen readers while the
             visible text carries the current value. */}
         <span className="sr-only">{t("label")}</span>

@@ -73,6 +73,13 @@ function DropdownMenuLabel({
   )
 }
 
+// Shared by DropdownMenuItem and DropdownMenuLinkItem: base layout plus the
+// color-coding rule from `.claude/rules/ui.md` — a variant's icon and text
+// stay that color at rest AND on hover, and hover/focus only ever adds a
+// neutral gray background (`bg-accent`), never a tint of the variant color.
+const dropdownMenuItemVariants =
+  "group/dropdown-menu-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:not-data-[variant=info]:focus:**:text-accent-foreground data-inset:pl-8 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-accent data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:text-destructive data-[variant=info]:text-info data-[variant=info]:focus:bg-accent data-[variant=info]:focus:text-info data-[variant=info]:*:[svg]:text-info data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+
 function DropdownMenuItem({
   className,
   inset,
@@ -80,17 +87,41 @@ function DropdownMenuItem({
   ...props
 }: MenuPrimitive.Item.Props & {
   inset?: boolean
-  variant?: "default" | "destructive"
+  variant?: "default" | "destructive" | "info"
 }) {
   return (
     <MenuPrimitive.Item
       data-slot="dropdown-menu-item"
       data-inset={inset}
       data-variant={variant}
-      className={cn(
-        "group/dropdown-menu-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-inset:pl-8 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
-        className
-      )}
+      className={cn(dropdownMenuItemVariants, className)}
+      {...props}
+    />
+  )
+}
+
+// A menu item that navigates rather than acts — renders an `<a>` (via
+// `MenuLinkItem`) instead of `Item`'s `<div>`, so it behaves like a real link
+// (openable in a new tab, indexable) as well as a menu item. Base UI defaults
+// `closeOnClick` to `false` here, unlike `Item`; default it to `true` so
+// picking "Edit" closes the menu the same way every other item does.
+function DropdownMenuLinkItem({
+  className,
+  inset,
+  variant = "default",
+  closeOnClick = true,
+  ...props
+}: MenuPrimitive.LinkItem.Props & {
+  inset?: boolean
+  variant?: "default" | "destructive" | "info"
+}) {
+  return (
+    <MenuPrimitive.LinkItem
+      data-slot="dropdown-menu-link-item"
+      data-inset={inset}
+      data-variant={variant}
+      closeOnClick={closeOnClick}
+      className={cn(dropdownMenuItemVariants, className)}
       {...props}
     />
   )
@@ -257,6 +288,7 @@ export {
   DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuCheckboxItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,

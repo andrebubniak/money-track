@@ -64,7 +64,95 @@
   "dashboard": {
     "navLabel": "Dashboard",
     "signedInAs": "Signed in ({name})",
-    "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD."
+    "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD.",
+    "categoriesNavLabel": "Categories"
+  },
+  "categories": {
+    "title": "Categories",
+    "description": "Organize your transactions into categories.",
+    "table": {
+      "name": "Name",
+      "icon": "Icon",
+      "description": "Description",
+      "actions": "Actions",
+      "empty": "You don't have any categories yet.",
+      "emptyCta": "New category"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "new": "New category"
+    },
+    "deleteDialog": {
+      "title": "Delete this category?",
+      "description": "This will remove the category from your list. This can't be undone.",
+      "confirm": "Delete",
+      "confirming": "Deleting…",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Groceries",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional details about this category",
+      "iconLabel": "Icon",
+      "submitCreate": "Create category",
+      "submitCreating": "Creating…",
+      "submitEdit": "Save changes",
+      "submitSaving": "Saving…"
+    },
+    "iconPicker": {
+      "title": "Choose an icon"
+    },
+    "limitReached": "You've reached the limit of {max} categories.",
+    "notFound": "This category doesn't exist or you don't have access to it.",
+    "invalidInput": "There was a problem with the information you submitted. Please check the fields and try again.",
+    "presets": {
+      "housing": {
+        "name": "Housing",
+        "description": "Rent or mortgage, property taxes, maintenance, and condo fees."
+      },
+      "utilities": {
+        "name": "Utilities",
+        "description": "Electricity, water, gas, internet, and phone."
+      },
+      "food": {
+        "name": "Food",
+        "description": "Groceries, restaurants, takeout, and coffee."
+      },
+      "transportation": {
+        "name": "Transportation",
+        "description": "Fuel, public transit, car payments, insurance, maintenance, and parking."
+      },
+      "healthAndPersonalCare": {
+        "name": "Health and personal care",
+        "description": "Insurance, doctors, prescriptions, dental, vision, gym, and wellness."
+      },
+      "shopping": {
+        "name": "Shopping",
+        "description": "Clothing, electronics, household goods, and personal items."
+      },
+      "entertainment": {
+        "name": "Entertainment",
+        "description": "Streaming, games, movies, hobbies, and events."
+      },
+      "travel": {
+        "name": "Travel",
+        "description": "Flights, hotels, transportation, and meals."
+      },
+      "education": {
+        "name": "Education",
+        "description": "Tuition, courses, books, and supplies."
+      },
+      "giftsAndDonations": {
+        "name": "Gifts and donations",
+        "description": "Gifts and charitable contributions."
+      },
+      "savingsAndInvestments": {
+        "name": "Savings and investments",
+        "description": "Savings transfers, retirement contributions, investments, and dividends."
+      }
+    }
   },
   "nav": {
     "localeSwitcher": {
@@ -100,6 +188,18 @@
         "required": "Please confirm your password.",
         "mismatch": "Passwords don't match."
       }
+    },
+    "categories": {
+      "name": {
+        "tooShort": "Name must be at least {min} characters.",
+        "tooLong": "Name must be at most {max} characters."
+      },
+      "description": {
+        "tooLong": "Description must be at most {max} characters."
+      },
+      "icon": {
+        "invalid": "Choose an icon from the list."
+      }
     }
   },
   "errors": {
@@ -126,6 +226,9 @@
       "description": "Displays the mobile sidebar."
     },
     "sheet": {
+      "close": "Close"
+    },
+    "dialog": {
       "close": "Close"
     }
   }

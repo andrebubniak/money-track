@@ -86,6 +86,9 @@ model Category {
   name String
   icon String
 
+  description     String?
+  systemLocaleKey String? @map("system_locale_key")
+
   deactivatedAt DateTime? @map("deactivated_at")
 
   transactions          Transaction[]

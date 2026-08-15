@@ -64,7 +64,95 @@
   "dashboard": {
     "navLabel": "Painel",
     "signedInAs": "Conectado ({name})",
-    "placeholder": "Página provisória. Esta rota vai se tornar o painel de gastos descrito no PRD."
+    "placeholder": "Página provisória. Esta rota vai se tornar o painel de gastos descrito no PRD.",
+    "categoriesNavLabel": "Categorias"
+  },
+  "categories": {
+    "title": "Categorias",
+    "description": "Organize suas transações em categorias.",
+    "table": {
+      "name": "Nome",
+      "icon": "Ícone",
+      "description": "Descrição",
+      "actions": "Ações",
+      "empty": "Você ainda não tem nenhuma categoria.",
+      "emptyCta": "Nova categoria"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Excluir",
+      "new": "Nova categoria"
+    },
+    "deleteDialog": {
+      "title": "Excluir esta categoria?",
+      "description": "Isso removerá a categoria da sua lista. Essa ação não pode ser desfeita.",
+      "confirm": "Excluir",
+      "confirming": "Excluindo…",
+      "cancel": "Cancelar"
+    },
+    "form": {
+      "nameLabel": "Nome",
+      "namePlaceholder": "ex.: Supermercado",
+      "descriptionLabel": "Descrição",
+      "descriptionPlaceholder": "Detalhes opcionais sobre esta categoria",
+      "iconLabel": "Ícone",
+      "submitCreate": "Criar categoria",
+      "submitCreating": "Criando…",
+      "submitEdit": "Salvar alterações",
+      "submitSaving": "Salvando…"
+    },
+    "iconPicker": {
+      "title": "Escolha um ícone"
+    },
+    "limitReached": "Você atingiu o limite de {max} categorias.",
+    "notFound": "Esta categoria não existe ou você não tem acesso a ela.",
+    "invalidInput": "Houve um problema com as informações enviadas. Verifique os campos e tente novamente.",
+    "presets": {
+      "housing": {
+        "name": "Moradia",
+        "description": "Aluguel ou financiamento, IPTU, manutenção e taxas de condomínio."
+      },
+      "utilities": {
+        "name": "Contas de consumo",
+        "description": "Energia elétrica, água, gás, internet e telefone."
+      },
+      "food": {
+        "name": "Alimentação",
+        "description": "Supermercado, restaurantes, delivery e café."
+      },
+      "transportation": {
+        "name": "Transporte",
+        "description": "Combustível, transporte público, financiamento do carro, seguro, manutenção e estacionamento."
+      },
+      "healthAndPersonalCare": {
+        "name": "Saúde e cuidados pessoais",
+        "description": "Seguro-saúde, médicos, medicamentos, dentista, oftalmologista, academia e bem-estar."
+      },
+      "shopping": {
+        "name": "Compras",
+        "description": "Roupas, eletrônicos, itens para casa e artigos pessoais."
+      },
+      "entertainment": {
+        "name": "Entretenimento",
+        "description": "Streaming, jogos, filmes, hobbies e eventos."
+      },
+      "travel": {
+        "name": "Viagens",
+        "description": "Passagens aéreas, hotéis, transporte e refeições."
+      },
+      "education": {
+        "name": "Educação",
+        "description": "Mensalidades, cursos, livros e materiais."
+      },
+      "giftsAndDonations": {
+        "name": "Presentes e doações",
+        "description": "Presentes e contribuições beneficentes."
+      },
+      "savingsAndInvestments": {
+        "name": "Poupança e investimentos",
+        "description": "Transferências para poupança, contribuições de aposentadoria, investimentos e dividendos."
+      }
+    }
   },
   "nav": {
     "localeSwitcher": {
@@ -100,6 +188,18 @@
         "required": "Confirme sua senha.",
         "mismatch": "As senhas não coincidem."
       }
+    },
+    "categories": {
+      "name": {
+        "tooShort": "O nome deve ter pelo menos {min} caracteres.",
+        "tooLong": "O nome deve ter no máximo {max} caracteres."
+      },
+      "description": {
+        "tooLong": "A descrição deve ter no máximo {max} caracteres."
+      },
+      "icon": {
+        "invalid": "Escolha um ícone da lista."
+      }
     }
   },
   "errors": {
@@ -126,6 +226,9 @@
       "description": "Exibe a barra lateral no celular."
     },
     "sheet": {
+      "close": "Fechar"
+    },
+    "dialog": {
       "close": "Fechar"
     }
   }

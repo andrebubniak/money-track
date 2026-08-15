@@ -152,14 +152,18 @@ applies everywhere `Label` is used without further action.
 
 A field that is required *and has no value already filled in before the
 user touches it* gets a trailing asterisk: `<Label htmlFor="name"
-required>`. `Label`'s `required` prop appends a plain `" *"` to the label's
-own text — no wrapping `<span>`, no separate color/size/weight. It's just
-more text inside the same `<label>`, so it automatically renders in
+required>`. `Label`'s `required` prop appends `" *"` wrapped in an
+`aria-hidden` `<span>` with no `className` of its own, so it renders in
 whatever color/font/size the label itself has (`font-bold`, per above) —
-one attribute to keep in sync (the label's), not two. It is decorative
-only — the field's own `aria-invalid`/validation message is what actually
-conveys required-ness to assistive tech, the same as before this prop
-existed.
+one attribute to keep in sync (the label's), not two. The `aria-hidden`
+wrapper is required, not optional styling: without it, the asterisk becomes
+part of the field's computed accessible name ("Name *" instead of "Name"),
+which breaks exact-match label queries (Playwright's `getByLabel(...,
+{ exact: true })`, used throughout `e2e/`) and makes screen readers announce
+the asterisk as part of the name. It is meant to be decorative only — the
+field's own `aria-invalid`/validation message is what actually conveys
+required-ness to assistive tech — and the `aria-hidden` wrapper is what
+actually delivers that, not a stated intention alone.
 
 "Already filled in" is what excludes a field like `CategoryForm`'s icon:
 it is required by the schema, but `DEFAULT_CATEGORY_ICON` means it is

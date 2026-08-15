@@ -10,12 +10,16 @@ function Label({
   children,
   ...props
 }: React.ComponentProps<"label"> & {
-  // Appends a plain " *" to the label text — no wrapping element, so it's
-  // just more text in the same `<label>` and inherits its color, font, and
-  // size automatically. This is decorative — the actual required-ness is
-  // (and must still be) conveyed by the field itself, e.g. `aria-required`
-  // or a validation message, not by this marker alone. See
-  // `.claude/rules/ui.md`.
+  // Appends " *" wrapped in an unstyled, aria-hidden span — no className of
+  // its own, so it inherits the label's color/font/size exactly like plain
+  // text would. The wrapper exists solely for `aria-hidden`: without it, the
+  // asterisk becomes part of the field's computed accessible name ("Name *"
+  // instead of "Name"), which breaks exact-match label queries (Playwright's
+  // `getByLabel(..., { exact: true })`) and makes screen readers announce
+  // the asterisk as part of the name rather than treating it as decorative.
+  // The actual required-ness is (and must still be) conveyed by the field
+  // itself, e.g. `aria-required` or a validation message, not by this marker
+  // alone. See `.claude/rules/ui.md`.
   required?: boolean
 }) {
   return (
@@ -28,7 +32,7 @@ function Label({
       {...props}
     >
       {children}
-      {required && " *"}
+      {required && <span aria-hidden="true"> *</span>}
     </label>
   )
 }

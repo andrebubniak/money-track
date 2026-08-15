@@ -135,7 +135,9 @@ test.describe("categories", () => {
     await page.goto(path("/dashboard/categories"));
     await categoryNameColumn(page, 11);
 
-    await categoryRow(page, "Housing").getByRole("link", { name: "Edit" }).click();
+    // Actions live behind the row's ellipsis-vertical menu, not a direct link.
+    await categoryRow(page, "Housing").getByRole("button", { name: "Actions" }).click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
     await expect(page).toHaveURL(/\/dashboard\/categories\/.+\/edit$/);
 
     const nameField = page.getByLabel("Name", { exact: true });
@@ -168,7 +170,9 @@ test.describe("categories", () => {
 
     const before = await categoryNameColumn(page, 11);
 
-    await categoryRow(page, "Utilities").getByRole("button", { name: "Delete" }).click();
+    // Actions live behind the row's ellipsis-vertical menu, not a direct button.
+    await categoryRow(page, "Utilities").getByRole("button", { name: "Actions" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
 
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toBeVisible();

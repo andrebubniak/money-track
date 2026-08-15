@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON, isCategoryIcon } from "@/lib/category-icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CATEGORY_ICONS } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
 
 type IconPickerProps = {
@@ -21,77 +22,73 @@ type IconPickerProps = {
 };
 
 /**
- * A controlled search+grid modal for choosing one of `CATEGORY_ICONS`'s keys.
+ * A small round edit-pen trigger that opens a grid of `CATEGORY_ICONS`'s
+ * 113 keys to choose from.
  *
  * Deliberately knows nothing about categories, forms, or servers: it takes
- * the current key and reports the next one. The caller (the category form,
- * built in a later task) owns everything else — labeling the field, wiring
- * it into form state, and validating the result against `isCategoryIcon`.
+ * the current key and reports the next one. The caller (`CategoryForm`) owns
+ * everything else — positioning this over the icon preview per the
+ * avatar-with-edit-button pattern in `.claude/rules/ui.md`, wiring it into
+ * form state, and validating the result against `isCategoryIcon`.
+ *
+ * No search: the allow-list is fixed and small enough (113 icons) to scan by
+ * eye once the grid is large, and a search box was one more control between
+ * the user and a 2-second choice. See `.claude/rules/ui.md`.
  */
 export function IconPicker({ value, onChange }: IconPickerProps) {
   const t = useTranslations("categories.iconPicker");
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const SelectedIcon = CATEGORY_ICONS[isCategoryIcon(value) ? value : DEFAULT_CATEGORY_ICON];
-
-  const entries = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return Object.entries(CATEGORY_ICONS).filter(([key]) => key.includes(needle));
-  }, [search]);
 
   function handleSelect(key: string) {
     onChange(key);
     setOpen(false);
   }
 
-  // Reset the filter each time the dialog opens or closes, so it never
-  // reopens on a stale search from the previous session.
-  function handleOpenChange(next: boolean) {
-    setOpen(next);
-    setSearch("");
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={<Button type="button" variant="outline" size="icon" aria-label={t("title")} />}
-      >
-        <SelectedIcon aria-hidden="true" />
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger
+              render={
+                <Button type="button" variant="secondary" size="icon-sm" className="rounded-full" />
+              }
+            />
+          }
+        >
+          <Pencil aria-hidden="true" className="size-3.5" />
+          <span className="sr-only">{t("title")}</span>
+        </TooltipTrigger>
+        <TooltipContent>{t("title")}</TooltipContent>
+      </Tooltip>
+
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
-        <Input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchPlaceholder")}
-        />
-
-        {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("noResults")}</p>
-        ) : (
-          <div className="grid max-h-72 grid-cols-6 gap-1.5 overflow-y-auto">
-            {entries.map(([key, Icon]) => (
-              <Button
-                key={key}
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={key}
-                aria-pressed={key === value}
-                className={cn(key === value && "bg-muted text-foreground")}
-                onClick={() => handleSelect(key)}
+        <div className="grid max-h-[28rem] grid-cols-6 gap-2 overflow-y-auto sm:grid-cols-8">
+          {Object.entries(CATEGORY_ICONS).map(([key, Icon]) => (
+            <Tooltip key={key}>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-lg"
+                    aria-pressed={key === value}
+                    className={cn(key === value && "bg-muted text-foreground")}
+                    onClick={() => handleSelect(key)}
+                  />
+                }
               >
-                <Icon aria-hidden="true" />
-              </Button>
-            ))}
-          </div>
-        )}
+                <Icon aria-hidden="true" className="size-6" />
+                <span className="sr-only">{key}</span>
+              </TooltipTrigger>
+              <TooltipContent>{key}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
       </DialogContent>
     </Dialog>
   );

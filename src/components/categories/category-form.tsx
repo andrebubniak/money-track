@@ -98,6 +98,7 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
           placeholder={t("namePlaceholder")}
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? "name-error" : undefined}
+          className="lg:h-11 lg:text-base"
           {...register("name")}
         />
         {errors.name && <p id="name-error" className="text-sm text-destructive">{errors.name.message}</p>}
@@ -111,6 +112,7 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
           placeholder={t("descriptionPlaceholder")}
           aria-invalid={Boolean(errors.description)}
           aria-describedby={errors.description ? "description-error" : undefined}
+          className="lg:h-11 lg:text-base"
           {...register("description")}
         />
         {errors.description && (
@@ -120,17 +122,24 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
 
       <div className="flex flex-col gap-2">
         <Label>{t("iconLabel")}</Label>
-        <div className="flex items-center gap-3">
-          <SelectedIcon aria-hidden="true" className="size-8 text-muted-foreground" />
-          <div className="flex flex-col gap-1">
+        {/* Avatar-with-edit-button pattern: a round preview of the current
+            icon, with the picker's small round trigger overlaid at the
+            bottom-right corner — see `.claude/rules/ui.md`. */}
+        <div className="relative inline-flex size-16 items-center justify-center rounded-full bg-muted">
+          <SelectedIcon aria-hidden="true" className="size-6 text-muted-foreground" />
+          <div className="absolute -right-1 -bottom-1">
             <IconPicker value={icon} onChange={(next) => setValue("icon", next, { shouldValidate: true })} />
-            <span className="text-xs text-muted-foreground">{t("chooseIcon")}</span>
           </div>
         </div>
         {errors.icon && <p className="text-sm text-destructive">{errors.icon.message}</p>}
       </div>
 
-      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full lg:w-auto lg:self-end"
+        disabled={isSubmitting}
+      >
         {mode === "create"
           ? isSubmitting
             ? t("submitCreating")

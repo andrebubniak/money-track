@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 
-import { DeleteCategoryButton } from "@/components/categories/delete-category-button";
+import { CategoryRowActions } from "@/components/categories/category-row-actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -127,22 +127,14 @@ export default async function CategoriesPage() {
                 return (
                   <TableRow key={row.id}>
                     <TableCell>
-                      <Icon aria-hidden="true" className="size-5 text-muted-foreground" />
+                      <Icon aria-hidden="true" className="size-6 text-muted-foreground" />
                     </TableCell>
                     <TableCell className="font-medium">{row.display.name}</TableCell>
-                    <TableCell className="max-w-[40ch] truncate text-muted-foreground">
-                      {row.display.description}
+                    <TableCell className="max-w-[40ch] text-muted-foreground">
+                      <span className="block truncate">{row.display.description}</span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="flex items-center justify-end gap-1">
-                        <Link
-                          href={`/dashboard/categories/${row.id}/edit`}
-                          className={buttonVariants({ variant: "ghost", size: "sm" })}
-                        >
-                          {t("actions.edit")}
-                        </Link>
-                        <DeleteCategoryButton categoryId={row.id} />
-                      </span>
+                      <CategoryRowActions categoryId={row.id} />
                     </TableCell>
                   </TableRow>
                 );

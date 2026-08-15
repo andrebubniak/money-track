@@ -13,12 +13,8 @@ function trigger() {
   return screen.getByRole("button", { name: "Choose an icon" });
 }
 
-function searchInput() {
-  return screen.getByPlaceholderText("Search icons…");
-}
-
 describe("IconPicker", () => {
-  it("shows every icon when the search is empty", async () => {
+  it("shows every icon in the allow-list", async () => {
     const user = userEvent.setup();
     renderWithIntl(<IconPicker value="house" onChange={vi.fn()} />);
 
@@ -30,40 +26,6 @@ describe("IconPicker", () => {
     }
   });
 
-  it("filters icons by a case-insensitive substring match on the key", async () => {
-    const user = userEvent.setup();
-    renderWithIntl(<IconPicker value="house" onChange={vi.fn()} />);
-
-    await user.click(trigger());
-    const dialog = await screen.findByRole("dialog");
-
-    // Uppercase input exercises the case-insensitivity; the assertions below
-    // are derived from the real icon list rather than a hardcoded count, so
-    // this does not silently drift if CATEGORY_ICONS changes.
-    await user.type(searchInput(), "CAR");
-
-    const matching = Object.keys(CATEGORY_ICONS).filter((key) => key.includes("car"));
-    const nonMatching = Object.keys(CATEGORY_ICONS).filter((key) => !key.includes("car"));
-
-    expect(matching.length).toBeGreaterThan(0);
-    for (const key of matching) {
-      expect(within(dialog).getByRole("button", { name: key })).toBeInTheDocument();
-    }
-    for (const key of nonMatching) {
-      expect(within(dialog).queryByRole("button", { name: key })).not.toBeInTheDocument();
-    }
-  });
-
-  it("shows a no-results message when nothing matches", async () => {
-    const user = userEvent.setup();
-    renderWithIntl(<IconPicker value="house" onChange={vi.fn()} />);
-
-    await user.click(trigger());
-    await user.type(searchInput(), "zzzzzzzzzz");
-
-    expect(await screen.findByText("No icons found.")).toBeInTheDocument();
-  });
-
   it("selects an icon: calls onChange with its key and closes the dialog", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -71,12 +33,28 @@ describe("IconPicker", () => {
 
     await user.click(trigger());
     const dialog = await screen.findByRole("dialog");
-    await user.type(searchInput(), "pizza");
 
     await user.click(within(dialog).getByRole("button", { name: "pizza" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("pizza");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("marks the currently selected icon as pressed", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<IconPicker value="pizza" onChange={vi.fn()} />);
+
+    await user.click(trigger());
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByRole("button", { name: "pizza" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(within(dialog).getByRole("button", { name: "house" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 });

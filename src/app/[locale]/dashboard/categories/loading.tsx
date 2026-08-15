@@ -57,7 +57,7 @@ export default async function CategoriesLoading() {
             {PLACEHOLDER_ROWS.map((row) => (
               <TableRow key={row}>
                 <TableCell>
-                  <Skeleton className="size-5 rounded-full" />
+                  <Skeleton className="size-6 rounded-full" />
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-4 w-32" />
@@ -66,9 +66,8 @@ export default async function CategoriesLoading() {
                   <Skeleton className="h-4 w-64" />
                 </TableCell>
                 <TableCell>
-                  <span className="flex items-center justify-end gap-1">
-                    <Skeleton className="h-8 w-16" />
-                    <Skeleton className="h-8 w-20" />
+                  <span className="flex items-center justify-end">
+                    <Skeleton className="size-9" />
                   </span>
                 </TableCell>
               </TableRow>

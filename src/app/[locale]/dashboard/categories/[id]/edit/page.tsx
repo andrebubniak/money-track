@@ -54,7 +54,10 @@ export default async function EditCategoryPage({
         <h1 className="text-2xl font-semibold tracking-tight">{t("actions.edit")}</h1>
       </div>
 
-      <div className="w-full max-w-xl">
+      {/* Full width up to a comfortable reading measure on mobile/tablet;
+          opens up further on large screens so each field fills a whole row
+          instead of reading cramped — see `.claude/rules/ui.md`. */}
+      <div className="w-full max-w-xl lg:max-w-3xl">
         <CategoryForm
           mode="edit"
           categoryId={category.id}

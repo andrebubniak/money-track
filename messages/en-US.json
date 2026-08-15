@@ -96,16 +96,13 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Optional details about this category",
       "iconLabel": "Icon",
-      "chooseIcon": "Choose icon",
       "submitCreate": "Create category",
       "submitCreating": "Creating…",
       "submitEdit": "Save changes",
       "submitSaving": "Saving…"
     },
     "iconPicker": {
-      "title": "Choose an icon",
-      "searchPlaceholder": "Search icons…",
-      "noResults": "No icons found."
+      "title": "Choose an icon"
     },
     "limitReached": "You've reached the limit of {max} categories.",
     "notFound": "This category doesn't exist or you don't have access to it.",

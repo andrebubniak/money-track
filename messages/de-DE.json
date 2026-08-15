@@ -96,16 +96,13 @@
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Optionale Details zu dieser Kategorie",
       "iconLabel": "Symbol",
-      "chooseIcon": "Symbol auswählen",
       "submitCreate": "Kategorie erstellen",
       "submitCreating": "Wird erstellt…",
       "submitEdit": "Änderungen speichern",
       "submitSaving": "Wird gespeichert…"
     },
     "iconPicker": {
-      "title": "Wähle ein Symbol",
-      "searchPlaceholder": "Symbole suchen…",
-      "noResults": "Keine Symbole gefunden."
+      "title": "Wähle ein Symbol"
     },
     "limitReached": "Du hast das Limit von {max} Kategorien erreicht.",
     "notFound": "Diese Kategorie existiert nicht oder du hast keinen Zugriff darauf.",

@@ -96,16 +96,13 @@
       "descriptionLabel": "Descrição",
       "descriptionPlaceholder": "Detalhes opcionais sobre esta categoria",
       "iconLabel": "Ícone",
-      "chooseIcon": "Escolher ícone",
       "submitCreate": "Criar categoria",
       "submitCreating": "Criando…",
       "submitEdit": "Salvar alterações",
       "submitSaving": "Salvando…"
     },
     "iconPicker": {
-      "title": "Escolha um ícone",
-      "searchPlaceholder": "Buscar ícones…",
-      "noResults": "Nenhum ícone encontrado."
+      "title": "Escolha um ícone"
     },
     "limitReached": "Você atingiu o limite de {max} categorias.",
     "notFound": "Esta categoria não existe ou você não tem acesso a ela.",

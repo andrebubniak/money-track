@@ -23,29 +23,23 @@ export default async function EditCategoryLoading() {
         <Skeleton className="h-8 w-24" />
       </div>
 
-      <div className="flex w-full max-w-xl flex-col gap-4">
+      <div className="flex w-full max-w-xl flex-col gap-4 lg:max-w-3xl">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full lg:h-11" />
         </div>
 
         <div className="flex flex-col gap-2">
           <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full lg:h-11" />
         </div>
 
         <div className="flex flex-col gap-2">
           <Skeleton className="h-4 w-12" />
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-8" />
-            <div className="flex flex-col gap-1">
-              <Skeleton className="h-9 w-9" />
-              <Skeleton className="h-3 w-20" />
-            </div>
-          </div>
+          <Skeleton className="size-16 rounded-full" />
         </div>
 
-        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full lg:ml-auto lg:w-32" />
       </div>
 
       <span className="sr-only">{t("loading")}</span>

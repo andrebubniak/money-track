@@ -37,7 +37,7 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel }: DashboardN
             isActive={isDashboardActive}
             render={<Link href="/dashboard" />}
           >
-            <LayoutDashboard aria-hidden="true" />
+            <LayoutDashboard aria-hidden="true" className="size-6" />
             <span>{dashboardLabel}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -47,7 +47,7 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel }: DashboardN
             isActive={isCategoriesActive}
             render={<Link href="/dashboard/categories" />}
           >
-            <Tags aria-hidden="true" />
+            <Tags aria-hidden="true" className="size-6" />
             <span>{categoriesLabel}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>

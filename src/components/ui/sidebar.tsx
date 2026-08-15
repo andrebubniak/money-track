@@ -265,21 +265,28 @@ function SidebarTrigger({
   const t = useTranslations("ui.sidebar")
 
   return (
-    <Button
-      data-sidebar="trigger"
-      data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon-sm"
-      className={cn(className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      <PanelLeftIcon />
-      <span className="sr-only">{t("toggle")}</span>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            data-sidebar="trigger"
+            data-slot="sidebar-trigger"
+            variant="ghost"
+            size="icon-sm"
+            className={cn(className)}
+            onClick={(event) => {
+              onClick?.(event)
+              toggleSidebar()
+            }}
+            {...props}
+          />
+        }
+      >
+        <PanelLeftIcon className="size-6" />
+        <span className="sr-only">{t("toggle")}</span>
+      </TooltipTrigger>
+      <TooltipContent>{t("toggle")}</TooltipContent>
+    </Tooltip>
   )
 }
 

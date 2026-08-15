@@ -10,9 +10,12 @@ function Label({
   children,
   ...props
 }: React.ComponentProps<"label"> & {
-  // Appends a visual asterisk. This is decorative — the actual required-ness
-  // is (and must still be) conveyed by the field itself, e.g. `aria-required`
-  // or a validation message, not by this marker alone. See `.claude/rules/ui.md`.
+  // Appends a plain " *" to the label text — no wrapping element, so it's
+  // just more text in the same `<label>` and inherits its color, font, and
+  // size automatically. This is decorative — the actual required-ness is
+  // (and must still be) conveyed by the field itself, e.g. `aria-required`
+  // or a validation message, not by this marker alone. See
+  // `.claude/rules/ui.md`.
   required?: boolean
 }) {
   return (
@@ -25,11 +28,7 @@ function Label({
       {...props}
     >
       {children}
-      {required && (
-        <span aria-hidden="true" className="text-destructive">
-          *
-        </span>
-      )}
+      {required && " *"}
     </label>
   )
 }

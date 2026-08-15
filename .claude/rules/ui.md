@@ -17,6 +17,16 @@ chevrons, checkmarks, a dialog's close `X`, and other small chrome. Don't
 add `size-6` there; a 24px close button reads oversized next to 14px body
 text.
 
+**Any new "every descendant svg" rule must use the same `:not([class*='size-'])`
+guard.** `sidebarMenuButtonVariants` in `sidebar.tsx` used to skip it
+(`[&_svg]:size-4`, no guard) and it silently won over a `size-6` on the
+icon itself — a bare `parent svg` descendant selector has *higher* CSS
+specificity than the single utility class it was supposed to lose to, so
+the icon stayed 16px no matter what class was added to it. Fixed by giving
+it the same guarded selector `buttonVariants` already uses. If you add
+another component-level "size every icon inside me" rule, copy the guard,
+not the unguarded version.
+
 ## Hover and focus use `bg-accent`/`bg-muted`, and both are darker than the
 ## shadcn default
 
@@ -142,10 +152,14 @@ applies everywhere `Label` is used without further action.
 
 A field that is required *and has no value already filled in before the
 user touches it* gets a trailing asterisk: `<Label htmlFor="name"
-required>`. `Label`'s `required` prop appends a `text-destructive`
-asterisk after the label text. It is decorative only — the field's own
-`aria-invalid`/validation message is what actually conveys required-ness
-to assistive tech, the same as before this prop existed.
+required>`. `Label`'s `required` prop appends a plain `" *"` to the label's
+own text — no wrapping `<span>`, no separate color/size/weight. It's just
+more text inside the same `<label>`, so it automatically renders in
+whatever color/font/size the label itself has (`font-bold`, per above) —
+one attribute to keep in sync (the label's), not two. It is decorative
+only — the field's own `aria-invalid`/validation message is what actually
+conveys required-ness to assistive tech, the same as before this prop
+existed.
 
 "Already filled in" is what excludes a field like `CategoryForm`'s icon:
 it is required by the schema, but `DEFAULT_CATEGORY_ICON` means it is
@@ -192,6 +206,32 @@ themed enough to scan by eye once the grid renders large. The dialog is
 search box. If a future icon set grows past a few hundred entries, search
 earns its place back — until then, one fewer control between the user and
 a two-second choice is the better trade.
+
+## A `register()`-ed input needs an explicit `defaultValue`
+
+`react-hook-form`'s `register(name)` return value
+(`UseFormRegisterReturn`) has no `value`/`defaultValue` field — it hands
+back `onChange`/`onBlur`/`ref`/`name` only, and sets the field's initial
+value *imperatively*, through that `ref` callback, once the component has
+mounted client-side. Spreading `{...register("name")}` onto an `<Input>`
+with nothing else means the value that reaches the browser's initial HTML
+is genuinely empty; the real value only appears once React hydrates and
+the ref callback runs.
+
+On a fast connection hydration is near-instant, so this is invisible. On a
+slow one — the exact case that matters for the edit page, where the field
+already has a real value to show — the user sees an empty input for
+however long hydration takes, then watches it fill in. Give every
+registered input its own `defaultValue` explicitly, sourced from the same
+`defaultValues` object passed to `useForm`:
+
+```tsx
+<Input defaultValue={defaultValues.name} {...register("name")} />
+```
+
+This makes the value part of the server-rendered HTML, so it's correct
+from the very first paint — hydration's `ref`-based set becomes a no-op
+rather than the only source of the value. `CategoryForm` is the reference.
 
 ## Every route inside the dashboard shell ships a `loading.tsx`
 

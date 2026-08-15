@@ -107,6 +107,13 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? "name-error" : undefined}
           className="lg:h-11 lg:text-base"
+          // `register()` never puts a value/defaultValue in its returned
+          // props — it sets the DOM value imperatively via its `ref`
+          // callback after mount. Without this, SSR renders a genuinely
+          // empty input, and on a slow connection the user sees that empty
+          // input for as long as hydration takes before it fills in. See
+          // `.claude/rules/ui.md`.
+          defaultValue={defaultValues.name}
           {...register("name")}
         />
         {errors.name && <p id="name-error" className="text-sm text-destructive">{errors.name.message}</p>}
@@ -121,6 +128,8 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
           aria-invalid={Boolean(errors.description)}
           aria-describedby={errors.description ? "description-error" : undefined}
           className="lg:h-11 lg:text-base"
+          // See the `name` field's comment above.
+          defaultValue={defaultValues.description}
           {...register("description")}
         />
         {errors.description && (

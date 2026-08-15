@@ -14,12 +14,16 @@ function Label({
   // its own, so it inherits the label's color/font/size exactly like plain
   // text would. The wrapper exists solely for `aria-hidden`: without it, the
   // asterisk becomes part of the field's computed accessible name ("Name *"
-  // instead of "Name"), which breaks exact-match label queries (Playwright's
-  // `getByLabel(..., { exact: true })`) and makes screen readers announce
-  // the asterisk as part of the name rather than treating it as decorative.
-  // The actual required-ness is (and must still be) conveyed by the field
-  // itself, e.g. `aria-required` or a validation message, not by this marker
-  // alone. See `.claude/rules/ui.md`.
+  // instead of "Name"), which makes screen readers announce the asterisk as
+  // part of the name rather than treating it as decorative. It keeps the
+  // asterisk out of that computed accessible name, which is what
+  // `getByRole(..., { name })` queries match against — it does NOT help
+  // Playwright's `getByLabel(..., { exact: true })`, which matches a
+  // label's raw text content regardless of `aria-hidden`; a required field
+  // needs `getByRole("textbox", { name, exact: true })` instead. The actual
+  // required-ness is (and must still be) conveyed by the field itself, e.g.
+  // `aria-required` or a validation message, not by this marker alone. See
+  // `.claude/rules/ui.md`.
   required?: boolean
 }) {
   return (
@@ -32,7 +36,7 @@ function Label({
       {...props}
     >
       {children}
-      {required && <span aria-hidden="true"> *</span>}
+      {required && <span aria-hidden="true">*</span>}
     </label>
   )
 }

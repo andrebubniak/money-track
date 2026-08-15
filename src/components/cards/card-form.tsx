@@ -121,19 +121,22 @@ export function CardForm({ mode, cardId, defaultValues }: CardFormProps) {
       </div>
 
       <div className="col-span-12 flex flex-col gap-2 lg:col-span-4">
-        <Label required>{t("typeLabel")}</Label>
+        <Label id="type-label" required>
+          {t("typeLabel")}
+        </Label>
         <RadioGroup
+          aria-labelledby="type-label"
           value={type}
           onValueChange={(next) => setValue("type", next as CardType, { shouldValidate: true })}
           aria-invalid={Boolean(errors.type)}
           className="flex flex-1 flex-row items-center gap-4 lg:h-11"
         >
           <label className="flex items-center gap-2 text-sm">
-            <RadioGroupItem value="DEBIT" />
+            <RadioGroupItem value="DEBIT" aria-invalid={Boolean(errors.type)} />
             {t("typeDebit")}
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <RadioGroupItem value="CREDIT" />
+            <RadioGroupItem value="CREDIT" aria-invalid={Boolean(errors.type)} />
             {t("typeCredit")}
           </label>
         </RadioGroup>

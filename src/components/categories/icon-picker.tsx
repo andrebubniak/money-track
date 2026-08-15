@@ -69,24 +69,18 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
         <div className="grid max-h-[28rem] grid-cols-6 gap-2 overflow-y-auto sm:grid-cols-8">
           {Object.entries(CATEGORY_ICONS).map(([key, Icon]) => (
-            <Tooltip key={key}>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-lg"
-                    aria-pressed={key === value}
-                    className={cn(key === value && "bg-muted text-foreground")}
-                    onClick={() => handleSelect(key)}
-                  />
-                }
-              >
-                <Icon aria-hidden="true" className="size-6" />
-                <span className="sr-only">{key}</span>
-              </TooltipTrigger>
-              <TooltipContent>{key}</TooltipContent>
-            </Tooltip>
+            <Button
+              key={key}
+              type="button"
+              variant="ghost"
+              size="icon-lg"
+              aria-label={key}
+              aria-pressed={key === value}
+              className={cn(key === value && "bg-muted text-foreground")}
+              onClick={() => handleSelect(key)}
+            >
+              <Icon aria-hidden="true" className="size-6" />
+            </Button>
           ))}
         </div>
       </DialogContent>

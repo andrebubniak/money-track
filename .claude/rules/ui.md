@@ -48,6 +48,15 @@ items, and only shows it once the sidebar is collapsed to icons — a button
 that already has a visible label next to it doesn't also need a tooltip
 repeating that label.
 
+The one deliberate exception is the icon picker's 113-icon grid
+(`IconPicker`, `src/components/categories/icon-picker.tsx`): each button
+is icon-only, but does not get a `Tooltip`. A tooltip per icon in a dense
+grid is a hover tax on the exact screen where the user is scanning many
+icons quickly, not reading one control closely — `aria-label={key}` alone
+carries the accessible name. The grid's *trigger* (the small pen button
+that opens it) is a single control and keeps its tooltip, per the rule
+above.
+
 ## Row actions are an ellipsis-vertical menu, not inline buttons
 
 A table row with more than one action (edit, delete, …) gets a single

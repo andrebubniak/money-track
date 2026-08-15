@@ -44,11 +44,17 @@ export function CardForm({ mode, cardId, defaultValues }: CardFormProps) {
   } = useForm<z.input<typeof schema>, unknown, CardValues>({
     resolver: zodResolver(schema),
     // `type` may start unselected — there is no sensible default between
-    // Debit and Credit, unlike the category icon's `layout-grid`. This cast
-    // only widens the *initial* value TypeScript sees; the schema still
-    // requires a real selection at submit time, the same way an empty
-    // `name` is allowed here but rejected by `handleSubmit`.
-    defaultValues: defaultValues as z.input<typeof schema>,
+    // Debit and Credit, unlike the category icon's `layout-grid`. It starts
+    // as `""`, not `undefined`: `RadioGroup` is a controlled component, and
+    // handing it `value={undefined}` on first render then a real string
+    // later makes Base UI warn about switching from uncontrolled to
+    // controlled. `""` keeps it controlled from the first render while
+    // still failing the schema's `z.enum(["DEBIT", "CREDIT"])` at submit
+    // time exactly like `undefined` did — verified directly against zod.
+    // This cast only widens the *initial* value TypeScript sees; the
+    // schema still requires a real selection at submit time, the same way
+    // an empty `name` is allowed here but rejected by `handleSubmit`.
+    defaultValues: { ...defaultValues, type: defaultValues.type ?? "" } as z.input<typeof schema>,
   });
 
   // `useWatch`, not the `watch` function `useForm()` returns — the latter is

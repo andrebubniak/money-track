@@ -38,7 +38,7 @@ import { CategoryForm } from "@/components/categories/category-form";
 const defaultValues: CategoryValues = { name: "", icon: "house", description: "" };
 
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText(/^name$/i), "Groceries");
+  await user.type(screen.getByLabelText(/^name\*?$/i), "Groceries");
 }
 
 describe("CategoryForm", () => {
@@ -55,7 +55,7 @@ describe("CategoryForm", () => {
     const user = userEvent.setup();
     renderWithIntl(<CategoryForm mode="create" defaultValues={defaultValues} />);
 
-    await user.type(screen.getByLabelText(/^name$/i), "ab");
+    await user.type(screen.getByLabelText(/^name\*?$/i), "ab");
     await user.click(screen.getByRole("button", { name: /create category/i }));
 
     expect(await screen.findByText("Name must be at least 3 characters.")).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("CategoryForm", () => {
     // value here means a Brazilian user reads English error messages.
     renderWithIntl(<CategoryForm mode="create" defaultValues={defaultValues} />, "pt-BR");
 
-    await user.type(screen.getByLabelText("Nome"), "Groceries");
+    await user.type(screen.getByLabelText(/^nome\*?$/i), "Groceries");
     await user.click(screen.getByRole("button", { name: /criar categoria/i }));
 
     await waitFor(() => {

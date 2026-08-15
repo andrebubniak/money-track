@@ -82,16 +82,24 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+    // A 12-column grid, not flex-col: every field spans the full row
+    // (`col-span-12`) until `lg:`, where each gets only the columns its
+    // content needs — name and description split the row evenly, icon gets
+    // a small fixed portion at the end. A field that doesn't fit the
+    // remaining columns of a row wraps to the next one automatically. See
+    // `.claude/rules/ui.md`.
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid grid-cols-12 gap-4">
       {formError && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="col-span-12">
           <CircleAlert aria-hidden="true" />
           <AlertDescription>{formError}</AlertDescription>
         </Alert>
       )}
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">{t("nameLabel")}</Label>
+      <div className="col-span-12 flex flex-col gap-2 lg:col-span-5">
+        <Label htmlFor="name" required>
+          {t("nameLabel")}
+        </Label>
         <Input
           id="name"
           type="text"
@@ -104,7 +112,7 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
         {errors.name && <p id="name-error" className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="col-span-12 flex flex-col gap-2 lg:col-span-5">
         <Label htmlFor="description">{t("descriptionLabel")}</Label>
         <Input
           id="description"
@@ -120,7 +128,10 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      {/* A preset value (`DEFAULT_CATEGORY_ICON`) from the moment the form
+          mounts, so it never needs the required-field asterisk — see
+          `.claude/rules/ui.md`. */}
+      <div className="col-span-12 flex flex-col gap-2 lg:col-span-2">
         <Label>{t("iconLabel")}</Label>
         {/* Avatar-with-edit-button pattern: a round preview of the current
             icon, with the picker's small round trigger overlaid at the
@@ -134,20 +145,17 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
         {errors.icon && <p className="text-sm text-destructive">{errors.icon.message}</p>}
       </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full lg:w-auto lg:self-end"
-        disabled={isSubmitting}
-      >
-        {mode === "create"
-          ? isSubmitting
-            ? t("submitCreating")
-            : t("submitCreate")
-          : isSubmitting
-            ? t("submitSaving")
-            : t("submitEdit")}
-      </Button>
+      <div className="col-span-12 lg:justify-self-end">
+        <Button type="submit" size="lg" className="w-full lg:w-auto" disabled={isSubmitting}>
+          {mode === "create"
+            ? isSubmitting
+              ? t("submitCreating")
+              : t("submitCreate")
+            : isSubmitting
+              ? t("submitSaving")
+              : t("submitEdit")}
+        </Button>
+      </div>
     </form>
   );
 }

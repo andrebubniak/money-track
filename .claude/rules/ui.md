@@ -89,23 +89,62 @@ unmounts the trigger, before the dialog would open. Control the dialog's
 `open` state from the parent instead, and open it from the item's
 `onClick`. See `category-row-actions.tsx` for the full pattern.
 
-## A form's fields each fill their own row; the container widens on large
-## screens
+## A form is a 12-column grid, not `flex-col`, and every row fills 100%
 
-A create/edit form (`CategoryForm` is the reference) stays one field per
-row at every width — this project has never needed a multi-column form
-layout, and a field narrower than its row is the thing to avoid, not
-multiple fields sharing one. What changes on `lg:` screens is the
-*container*: the page wrapping the form widens from `max-w-xl` to
-`lg:max-w-3xl`, and text inputs grow from the shadcn default (`h-9`) to
-`lg:h-11 lg:text-base` — a form that stays pinned to a narrow phone-width
-column on a large monitor reads cramped.
+`className="grid grid-cols-12 gap-4"` on the `<form>` itself
+(`CategoryForm` is the reference) — never `flex flex-col`, and never a
+`max-w-*` on the page wrapping it. Each field is a grid item with its own
+`col-span-12` (full row) at the base breakpoint, narrowing at `lg:` so
+that whatever fields belong on the same row together add up to `12`:
 
-The submit button stays full-width on small screens (a full-width tap
-target is correct on mobile) and becomes right-aligned, content-sized on
-large screens: `className="w-full lg:w-auto lg:self-end"` on a `flex
-flex-col` form — `self-end` aligns it to the end of the column's cross
-axis, which is the right edge.
+- **One field on a row** → `lg:col-span-12` (100% width). A field
+  narrower than its row is the thing to avoid, not multiple fields
+  sharing one.
+- **Two evenly-weighted fields** → `lg:col-span-6` each (50/50). This is
+  the default split; only give a field more than its even share when it
+  explicitly needs the room (a paragraph-length field next to a 3-letter
+  code, for instance).
+- **A field that only needs a small, fixed amount of room** (an icon
+  picker, a short code) — give it a small explicit span and let the
+  bigger fields take the rest. `CategoryForm` is `lg:col-span-5`
+  (name) + `lg:col-span-5` (description) + `lg:col-span-2` (icon) = 12,
+  one row on large screens.
+- **More fields than fit 12 columns** wrap on their own — CSS grid moves
+  an item to the next row automatically when it doesn't fit what's left
+  of the current one, with no media query of your own required beyond
+  the per-field `col-span-*`/`lg:col-span-*` pair.
+
+Text inputs also grow from the shadcn default (`h-9`) to `lg:h-11
+lg:text-base` — a form pinned to its mobile sizing on a large monitor
+reads cramped even once it's using the full row.
+
+The submit button is its own `col-span-12` grid item, `w-full` on small
+screens (a full-width tap target is correct on mobile) and
+`lg:w-auto` with the *item* right-aligned via `lg:justify-self-end` on
+large screens — `justify-self`, not `self-end`, because alignment along a
+grid row's inline axis is the item's own `justify-self`, not the
+container's cross-axis property `flex-col` used.
+
+## Labels are bold, and a required field gets an asterisk
+
+`Label` (`src/components/ui/label.tsx`) is `font-bold` for every label in
+the app — this is a token-level change, not a per-field className, so it
+applies everywhere `Label` is used without further action.
+
+A field that is required *and has no value already filled in before the
+user touches it* gets a trailing asterisk: `<Label htmlFor="name"
+required>`. `Label`'s `required` prop appends a `text-destructive`
+asterisk after the label text. It is decorative only — the field's own
+`aria-invalid`/validation message is what actually conveys required-ness
+to assistive tech, the same as before this prop existed.
+
+"Already filled in" is what excludes a field like `CategoryForm`'s icon:
+it is required by the schema, but `DEFAULT_CATEGORY_ICON` means it is
+never actually empty from the moment the form mounts, so marking it
+required would be misleading — there is nothing for the user to still
+provide. A field like `description` has no asterisk for the opposite
+reason: it truly is optional. `name` is the one field in `CategoryForm`
+that is both required and starts empty, so it is the only one marked.
 
 ## Choosing an icon: an avatar, not a button showing the icon
 

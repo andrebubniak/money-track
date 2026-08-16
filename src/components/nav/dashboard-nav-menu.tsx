@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Tags } from "lucide-react";
+import { CreditCard, LayoutDashboard, Tags } from "lucide-react";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import {
@@ -13,20 +13,22 @@ import {
 interface DashboardNavMenuProps {
   dashboardLabel: string;
   categoriesLabel: string;
+  cardsLabel: string;
 }
 
 /**
- * Sidebar navigation menu for the dashboard, rendering both Dashboard and
- * Categories items with active-state awareness via usePathname().
+ * Sidebar navigation menu for the dashboard, rendering the Dashboard,
+ * Categories, and Cards items with active-state awareness via usePathname().
  *
- * Dashboard is active only on exactly `/dashboard`; Categories is active on
- * `/dashboard/categories` and anything under it.
+ * Dashboard is active only on exactly `/dashboard`; Categories and Cards are
+ * each active on their own path prefix and anything under it.
  */
-export function DashboardNavMenu({ dashboardLabel, categoriesLabel }: DashboardNavMenuProps) {
+export function DashboardNavMenu({ dashboardLabel, categoriesLabel, cardsLabel }: DashboardNavMenuProps) {
   const pathname = usePathname();
 
   const isDashboardActive = pathname === "/dashboard";
   const isCategoriesActive = pathname.startsWith("/dashboard/categories");
+  const isCardsActive = pathname.startsWith("/dashboard/cards");
 
   return (
     <SidebarGroupContent>
@@ -49,6 +51,16 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel }: DashboardN
           >
             <Tags aria-hidden="true" className="size-6" />
             <span>{categoriesLabel}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip={cardsLabel}
+            isActive={isCardsActive}
+            render={<Link href="/dashboard/cards" />}
+          >
+            <CreditCard aria-hidden="true" className="size-6" />
+            <span>{cardsLabel}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

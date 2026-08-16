@@ -152,14 +152,28 @@ applies everywhere `Label` is used without further action.
 
 A field that is required *and has no value already filled in before the
 user touches it* gets a trailing asterisk: `<Label htmlFor="name"
-required>`. `Label`'s `required` prop appends a plain `" *"` to the label's
-own text — no wrapping `<span>`, no separate color/size/weight. It's just
-more text inside the same `<label>`, so it automatically renders in
+required>`. `Label`'s `required` prop appends `"*"` wrapped in an
+`aria-hidden` `<span>` with no `className` of its own, so it renders in
 whatever color/font/size the label itself has (`font-bold`, per above) —
-one attribute to keep in sync (the label's), not two. It is decorative
-only — the field's own `aria-invalid`/validation message is what actually
-conveys required-ness to assistive tech, the same as before this prop
-existed.
+one attribute to keep in sync (the label's), not two. The `aria-hidden`
+wrapper is required, not optional styling: without it, the asterisk becomes
+part of the field's computed accessible name ("Name *" instead of "Name"),
+which makes screen readers announce the asterisk as part of the name
+instead of treating it as decorative.
+
+That wrapper keeps the asterisk out of the field's *computed accessible
+name* — the thing real screen readers announce, and what
+`getByRole(..., { name })` queries match against. It does **not** help
+Playwright's `getByLabel(..., { exact: true })`: that locator matches a
+`<label>`'s raw text content, which `aria-hidden` has no effect on, so
+`getByLabel("Name", { exact: true })` still sees `"Name *"` and still
+fails whether or not the asterisk is wrapped. A required field needs
+`getByRole("textbox", { name, exact: true })` instead — that's the query
+that actually respects `aria-hidden`, and what `e2e/cards.spec.ts` and
+`e2e/categories.spec.ts` use. It is meant to be decorative only — the
+field's own `aria-invalid`/validation message is what actually conveys
+required-ness to assistive tech — and the `aria-hidden` wrapper is what
+actually delivers that, not a stated intention alone.
 
 "Already filled in" is what excludes a field like `CategoryForm`'s icon:
 it is required by the schema, but `DEFAULT_CATEGORY_ICON` means it is

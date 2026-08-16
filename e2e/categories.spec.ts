@@ -115,7 +115,7 @@ test.describe("categories", () => {
 
     await page.goto(path("/dashboard/categories/new"));
     const newName = "Gadgets and Gizmos";
-    await page.getByLabel("Name", { exact: true }).fill(newName);
+    await page.getByRole("textbox", { name: "Name", exact: true }).fill(newName);
     await page.getByRole("button", { name: "Create category" }).click();
 
     await expect(page).toHaveURL(path("/dashboard/categories"));
@@ -140,7 +140,7 @@ test.describe("categories", () => {
     await page.getByRole("menuitem", { name: "Edit" }).click();
     await expect(page).toHaveURL(/\/dashboard\/categories\/.+\/edit$/);
 
-    const nameField = page.getByLabel("Name", { exact: true });
+    const nameField = page.getByRole("textbox", { name: "Name", exact: true });
     await expect(nameField).toHaveValue("Housing");
 
     const newName = "Household Costs";
@@ -197,7 +197,7 @@ test.describe("categories", () => {
     // 11 presets already exist; create 39 more to land exactly on the cap.
     for (let i = 1; i <= 39; i++) {
       await page.goto(path("/dashboard/categories/new"));
-      await page.getByLabel("Name", { exact: true }).fill(`Cap category ${i}`);
+      await page.getByRole("textbox", { name: "Name", exact: true }).fill(`Cap category ${i}`);
       await page.getByRole("button", { name: "Create category" }).click();
       await expect(page).toHaveURL(path("/dashboard/categories"));
     }
@@ -213,7 +213,7 @@ test.describe("categories", () => {
     // The list page's gate is only a convenience; `createCategory` re-checks
     // the cap server-side regardless of how the form was reached.
     await page.goto(path("/dashboard/categories/new"));
-    await page.getByLabel("Name", { exact: true }).fill("Category number 51");
+    await page.getByRole("textbox", { name: "Name", exact: true }).fill("Category number 51");
     await page.getByRole("button", { name: "Create category" }).click();
 
     await expect(page.locator("form").getByRole("alert")).toHaveText(

@@ -30,6 +30,8 @@ Every task's requirements implicitly include this section.
 - **Commit format:** `<type>(<subject>): <short description>`, imperative, no trailing period, kebab-case subject. (`.claude/rules/commit-guideline.md`)
 - **Verify before claiming done.** `npm run lint`, `npx tsc --noEmit`, and `npm test` must pass before every commit; `npm run test:e2e` before the final one.
 
+**Execution order:** tasks run in numeric order with one exception — **Task 20 runs before Task 18**, because the table imports the row-actions component and nothing in row actions depends on the table.
+
 ---
 
 ## File Structure
@@ -3904,6 +3906,7 @@ git commit -m "feat(ui): add a date picker driven by the user's date format"
 
 **Files:**
 - Create: `src/lib/actions/references.ts`
+- Create: `src/lib/actions/action-helpers.ts`
 - Create: `src/lib/actions/transactions.ts`
 - Test: `src/lib/actions/transactions.spec.ts`
 
@@ -3911,7 +3914,7 @@ git commit -m "feat(ui): add a date picker driven by the user's date format"
 - Consumes: `createTransactionSchema`, `TransactionValues`, `TRANSACTION_ID_MAX_LENGTH`; `toUtcMidnight`.
 - Produces:
   - `ownsReferences(userId: string, categoryId: string, cardId: string | null): Promise<boolean>` (from `references.ts`)
-  - `type ActionResult = { success: true } | { success: false; error: string }`
+  - From `action-helpers.ts`: `type ActionResult = { success: true } | { success: false; error: string }`, `transactionIdSchema`, `getSessionUserId()`, `resolveLocale(locale)`, `notFoundError(locale)`, `invalidInputError(locale)` — shared by all three action files in Tasks 14–16
   - `createTransaction(values: TransactionValues, locale: string): Promise<ActionResult>`
   - `updateTransaction(id: string, values: TransactionValues, locale: string): Promise<ActionResult>` — also what the installment occurrences table calls
   - `deleteTransaction(id: string, locale: string): Promise<ActionResult>`
@@ -4186,49 +4189,53 @@ export async function ownsReferences(
 }
 ```
 
-- [ ] **Step 5: Implement the actions**
+- [ ] **Step 5: Implement the shared action helpers**
 
-Create `src/lib/actions/transactions.ts`:
+Create `src/lib/actions/action-helpers.ts` — **without** a `"use server"`
+directive. All three action files in Tasks 14–16 import from it:
 
 ```ts
-"use server";
-
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
 import { hasLocale, type Locale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { routing } from "@/i18n/routing";
-import { ownsReferences } from "@/lib/actions/references";
 import { auth } from "@/lib/auth";
-import { toUtcMidnight } from "@/lib/dates";
-import { prisma } from "@/lib/prisma";
-import {
-  createTransactionSchema,
-  TRANSACTION_ID_MAX_LENGTH,
-  type TransactionValues,
-} from "@/lib/validations/transaction";
+import { TRANSACTION_ID_MAX_LENGTH } from "@/lib/validations/transaction";
 
+/**
+ * Deliberately not a `"use server"` module. Every export of one becomes a
+ * callable Server Action endpoint, so these helpers could not live beside
+ * the actions without being exposed over the network — and each action file
+ * would have to re-declare all five. `cards.ts` and `categories.ts` predate
+ * this file and still carry their own copies; leave them be.
+ */
 export type ActionResult = { success: true } | { success: false; error: string };
 
-const transactionIdSchema = z.string().trim().min(1).max(TRANSACTION_ID_MAX_LENGTH);
+/** An id arrives deserialized straight from an attacker-controlled POST body. */
+export const transactionIdSchema = z.string().trim().min(1).max(TRANSACTION_ID_MAX_LENGTH);
 
-async function getSessionUserId(): Promise<string | null> {
+/**
+ * Re-derives identity from the session on every call — never trust a
+ * client-supplied id's ownership.
+ */
+export async function getSessionUserId(): Promise<string | null> {
   const session = await auth.api.getSession({ headers: await headers() });
   return session?.user.id ?? null;
 }
 
 /**
- * Every action here takes the active `locale` as its last argument — see the
+ * Every action takes the active `locale` as its last argument — see the
  * header comment in `src/lib/actions/cards.ts` for why `getLocale()` throws
  * inside a Server Action and why the `NEXT_LOCALE` cookie cannot stand in.
  */
-function resolveLocale(locale: string): Locale {
+export function resolveLocale(locale: string): Locale {
   return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
-async function notFoundError(locale: string): Promise<ActionResult> {
+/** One message for "no session", "not yours", and "doesn't exist" alike. */
+export async function notFoundError(locale: string): Promise<ActionResult> {
   const t = await getTranslations({ locale: resolveLocale(locale), namespace: "transactions" });
   return { success: false, error: t("notFound") };
 }
@@ -4238,10 +4245,37 @@ async function notFoundError(locale: string): Promise<ActionResult> {
  * wrong *type* fails zod's own check first and would reach the UI as
  * hardcoded English.
  */
-async function invalidInputError(locale: string): Promise<ActionResult> {
+export async function invalidInputError(locale: string): Promise<ActionResult> {
   const t = await getTranslations({ locale: resolveLocale(locale), namespace: "transactions" });
   return { success: false, error: t("invalidInput") };
 }
+```
+
+- [ ] **Step 6: Implement the actions**
+
+Create `src/lib/actions/transactions.ts`:
+
+```ts
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
+
+import {
+  getSessionUserId,
+  invalidInputError,
+  notFoundError,
+  resolveLocale,
+  transactionIdSchema,
+  type ActionResult,
+} from "@/lib/actions/action-helpers";
+import { ownsReferences } from "@/lib/actions/references";
+import { toUtcMidnight } from "@/lib/dates";
+import { prisma } from "@/lib/prisma";
+import {
+  createTransactionSchema,
+  type TransactionValues,
+} from "@/lib/validations/transaction";
 
 async function parseValues(values: TransactionValues, locale: string) {
   const t = await getTranslations({
@@ -4341,15 +4375,15 @@ export async function deleteTransaction(id: string, locale: string): Promise<Act
 }
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [ ] **Step 7: Run the tests to verify they pass**
 
 Run: `npx vitest run src/lib/actions/transactions.spec.ts`
 Expected: PASS, 19 tests.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/lib/actions/references.ts src/lib/actions/transactions.ts src/lib/actions/transactions.spec.ts
+git add src/lib/actions/references.ts src/lib/actions/action-helpers.ts src/lib/actions/transactions.ts src/lib/actions/transactions.spec.ts
 git commit -m "feat(transactions): add one-off transaction actions"
 ```
 
@@ -4551,7 +4585,7 @@ Expected: FAIL — cannot resolve the module.
 
 - [ ] **Step 3: Implement**
 
-Create `src/lib/actions/recurring-transactions.ts`. It re-declares the same five module-locals as `transactions.ts` — `transactionIdSchema`, `getSessionUserId`, `resolveLocale`, `notFoundError`, `invalidInputError` — copied verbatim, the way `cards.ts` and `categories.ts` already copy each other's. (Do not export them from `transactions.ts` to share: that file is `"use server"`, and every export from a `"use server"` module becomes a callable Server Action endpoint. `resolveLocale` reachable over the network is not what anyone wants.) Then:
+Create `src/lib/actions/recurring-transactions.ts`. It imports the five shared helpers from `@/lib/actions/action-helpers` (Task 14) rather than re-declaring them — `transactionIdSchema`, `getSessionUserId`, `resolveLocale`, `notFoundError`, `invalidInputError`, plus the `ActionResult` type — and `ownsReferences` from `@/lib/actions/references`. Then:
 
 ```ts
 async function parseValues(values: RecurringTransactionValues, locale: string) {
@@ -4947,7 +4981,7 @@ Expected: FAIL — cannot resolve `@/lib/actions/installments`.
 
 - [ ] **Step 3: Implement**
 
-Create `src/lib/actions/installments.ts`, again re-declaring the same five module-locals for the same reason, and:
+Create `src/lib/actions/installments.ts`, importing the same shared helpers from `@/lib/actions/action-helpers`, and:
 
 ```ts
 async function parseValues(values: InstallmentValues, locale: string) {
@@ -5686,7 +5720,7 @@ export function TransactionTable({
 }
 ```
 
-`TransactionRowActions` arrives in Task 20. Until then, stub it as a component returning `null` in the same file path so this task's tests can run, and delete the stub when Task 20 lands.
+`TransactionRowActions` already exists — Task 20 runs before this task (see the execution-order note under Global Constraints), so import the finished component.
 
 - [ ] **Step 4: Implement pagination**
 
@@ -6007,8 +6041,12 @@ git commit -m "feat(transactions): add the collapsible filter panel"
 ## Task 20: Row actions
 
 **Files:**
-- Create: `src/components/transactions/transaction-row-actions.tsx` (replacing the Task 18 stub)
+- Create: `src/components/transactions/transaction-row-actions.tsx`
 - Test: `src/components/transactions/transaction-row-actions.spec.tsx`
+
+**Execution order:** this task runs **before Task 18**, which imports the
+component it produces. It depends only on `TransactionListRow` (Task 8) and
+the delete actions (Tasks 14–15), not on the table.
 
 **Interfaces:**
 - Consumes: `deleteTransaction`, `deleteRecurringTransaction`; `TransactionListRow`.

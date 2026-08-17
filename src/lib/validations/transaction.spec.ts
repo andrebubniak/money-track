@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createTransactionSchema,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
+  TRANSACTION_ID_MAX_LENGTH,
   type TransactionValidationKey,
 } from "@/lib/validations/transaction";
 
@@ -97,11 +98,30 @@ describe("createTransactionSchema", () => {
       expect(schema.safeParse({ ...valid, type: "INCOME", cardId: "" }).success).toBe(true);
     });
 
-    // Guarded, so a payload failing the base shape produces one issue, not two.
-    it("does not add the cross-field issue when the type itself is invalid", () => {
+    // Not actually exercising the guard: zod short-circuits the object-level
+    // superRefine entirely once `type` itself fails the enum check, so this
+    // passes even without a `type` guard in `incomeHasNoCard`. Kept because
+    // it still documents that behaviour; the guard's real coverage is the
+    // over-length-cardId case below.
+    it("does not add a second issue when the type itself is invalid", () => {
       const result = schema.safeParse({ ...valid, type: "TRANSFER" });
       expect(result.success).toBe(false);
       expect(result.success === false && result.error.issues).toHaveLength(1);
+    });
+
+    // This one genuinely exercises the guard: `type` is valid, so
+    // `superRefine` does run, and the raw over-length cardId reaches it
+    // truthy — without the length guard this would add `card.notForIncome`
+    // on top of the field's own `too_big` issue, both on `["cardId"]`.
+    it("does not add a second issue when cardId is independently invalid", () => {
+      const result = schema.safeParse({
+        ...valid,
+        type: "INCOME",
+        cardId: "c".repeat(TRANSACTION_ID_MAX_LENGTH + 1),
+      });
+      expect(result.success).toBe(false);
+      expect(result.success === false && result.error.issues).toHaveLength(1);
+      expect(result.success === false && result.error.issues[0].path).toEqual(["cardId"]);
     });
   });
 

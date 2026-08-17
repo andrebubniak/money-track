@@ -38,6 +38,7 @@ export type TransactionValidationKey =
   | "amount.tooSmall"
   | "amount.tooLarge"
   | "category.required"
+  | "card.invalid"
   | "card.notForIncome"
   | "description.tooLong"
   | "type.invalid"
@@ -105,7 +106,7 @@ export function sharedTransactionFields(t: TransactionValidationTranslator) {
     // `string | null` — so a cleared select and an untouched one are the
     // same value by the time anything downstream sees it.
     cardId: z
-      .union([z.string().trim().max(TRANSACTION_ID_MAX_LENGTH), z.null()])
+      .union([z.string().trim().max(TRANSACTION_ID_MAX_LENGTH, t("card.invalid")), z.null()])
       .optional()
       .transform((value) => (value ? value : null)),
 
@@ -125,10 +126,28 @@ export function sharedTransactionFields(t: TransactionValidationTranslator) {
  * `Transaction.cardId` is null exactly when the type is `INCOME`. Guarded, so
  * a payload that already failed the base shape does not also collect this
  * issue — `.claude/rules/validation.md`.
+ *
+ * Two guards, for two different ways the base shape can already have failed:
+ *
+ * - When `type` itself is outside the enum, zod never runs this refinement
+ *   at all — the object-level `superRefine` short-circuits once a field it
+ *   reads has failed its own check — so no explicit `type` guard is needed
+ *   here for that case.
+ * - When `cardId` is independently invalid (over `TRANSACTION_ID_MAX_LENGTH`),
+ *   zod *does* still run this refinement, and the raw, untransformed, still
+ *   over-length string reaches `values.cardId` — truthy, so the naive
+ *   `values.cardId` check alone would add `card.notForIncome` on top of the
+ *   field's own `too_big` issue, both on `path: ["cardId"]`. The explicit
+ *   length check below is what skips that case, so an over-length `cardId`
+ *   on an income transaction still yields exactly one issue.
  */
 export function incomeHasNoCard(t: TransactionValidationTranslator) {
   return (values: { type: TransactionType; cardId: string | null }, ctx: z.RefinementCtx) => {
-    if (values.type === "INCOME" && values.cardId) {
+    if (
+      values.type === "INCOME" &&
+      values.cardId &&
+      values.cardId.length <= TRANSACTION_ID_MAX_LENGTH
+    ) {
       ctx.addIssue({ code: "custom", message: t("card.notForIncome"), path: ["cardId"] });
     }
   };

@@ -56,7 +56,7 @@ export function createInstallmentSeriesSchema(t: TransactionValidationTranslator
         .min(1, t("category.required"))
         .max(TRANSACTION_ID_MAX_LENGTH, t("category.required")),
       cardId: z
-        .union([z.string().trim().max(TRANSACTION_ID_MAX_LENGTH), z.null()])
+        .union([z.string().trim().max(TRANSACTION_ID_MAX_LENGTH, t("card.invalid")), z.null()])
         .optional()
         .transform((value) => (value ? value : null)),
     })

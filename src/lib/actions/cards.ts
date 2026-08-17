@@ -88,7 +88,7 @@ export async function createCard(values: CardValues, locale: string): Promise<Ac
     data: { userId, name: parsed.data.name, type: parsed.data.type },
   });
 
-  revalidatePath("/[locale]/dashboard/cards", "page");
+  revalidatePath("/[locale]/cards", "page");
   return { success: true };
 }
 
@@ -116,7 +116,7 @@ export async function updateCard(
     data: { name: parsed.data.name, type: parsed.data.type },
   });
 
-  revalidatePath("/[locale]/dashboard/cards", "page");
+  revalidatePath("/[locale]/cards", "page");
   return { success: true };
 }
 
@@ -135,6 +135,6 @@ export async function deleteCard(id: string, locale: string): Promise<ActionResu
   // references the card; deactivating keeps every reference valid.
   await prisma.card.update({ where: { id }, data: { deactivatedAt: new Date() } });
 
-  revalidatePath("/[locale]/dashboard/cards", "page");
+  revalidatePath("/[locale]/cards", "page");
   return { success: true };
 }

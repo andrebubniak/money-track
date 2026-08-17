@@ -10,7 +10,7 @@ import { path, registerUser } from "./helpers";
  * `src/lib/category-presets.ts` and `messages/en-US.json`'s
  * `categories.presets`), already in the order the list page is expected to
  * render them: alphabetically, by the *translated* name — see the sorting
- * comment in `src/app/[locale]/dashboard/categories/page.tsx`.
+ * comment in `src/app/[locale]/categories/page.tsx`.
  */
 const PRESET_NAMES_SORTED = [
   "Education",
@@ -54,7 +54,7 @@ const GERMAN_PRESET_NAMES_SORTED = GERMAN_PRESET_KEY_ORDER.map((key) => deDE.cat
 /**
  * The table's "Name" column, top to bottom.
  *
- * `dashboard/categories/loading.tsx` renders its own 5-row skeleton table
+ * `categories/loading.tsx` renders its own 5-row skeleton table
  * (see that file) while the real rows are being fetched, and a client-side
  * transition (create/edit/delete all end with a `revalidatePath`) can
  * briefly show it again too. Asserting the row count first — always a
@@ -81,7 +81,7 @@ test.describe("categories", () => {
     // race ahead of the session cookie existing and bounce to /login.
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/categories"));
+    await page.goto(path("/categories"));
 
     const names = await categoryNameColumn(page, 11);
     expect(names).toEqual(PRESET_NAMES_SORTED);
@@ -97,7 +97,7 @@ test.describe("categories", () => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/categories", "de-DE"));
+    await page.goto(path("/categories", "de-DE"));
 
     const names = await categoryNameColumn(page, 11);
     expect(names).toEqual(GERMAN_PRESET_NAMES_SORTED);
@@ -113,12 +113,12 @@ test.describe("categories", () => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/categories/new"));
+    await page.goto(path("/categories/new"));
     const newName = "Gadgets and Gizmos";
     await page.getByRole("textbox", { name: "Name", exact: true }).fill(newName);
     await page.getByRole("button", { name: "Create category" }).click();
 
-    await expect(page).toHaveURL(path("/dashboard/categories"));
+    await expect(page).toHaveURL(path("/categories"));
 
     const names = await categoryNameColumn(page, 12);
     expect(names).toEqual(sorted([...PRESET_NAMES_SORTED, newName]));
@@ -132,13 +132,13 @@ test.describe("categories", () => {
   }) => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
-    await page.goto(path("/dashboard/categories"));
+    await page.goto(path("/categories"));
     await categoryNameColumn(page, 11);
 
     // Actions live behind the row's ellipsis-vertical menu, not a direct link.
     await categoryRow(page, "Housing").getByRole("button", { name: "Actions" }).click();
     await page.getByRole("menuitem", { name: "Edit" }).click();
-    await expect(page).toHaveURL(/\/dashboard\/categories\/.+\/edit$/);
+    await expect(page).toHaveURL(/\/categories\/.+\/edit$/);
 
     const nameField = page.getByRole("textbox", { name: "Name", exact: true });
     await expect(nameField).toHaveValue("Housing");
@@ -147,7 +147,7 @@ test.describe("categories", () => {
     await nameField.fill(newName);
     await page.getByRole("button", { name: "Save changes" }).click();
 
-    await expect(page).toHaveURL(path("/dashboard/categories"));
+    await expect(page).toHaveURL(path("/categories"));
 
     const expected = sorted([
       ...PRESET_NAMES_SORTED.filter((name) => name !== "Housing"),
@@ -166,7 +166,7 @@ test.describe("categories", () => {
   }) => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
-    await page.goto(path("/dashboard/categories"));
+    await page.goto(path("/categories"));
 
     const before = await categoryNameColumn(page, 11);
 
@@ -196,32 +196,32 @@ test.describe("categories", () => {
 
     // 11 presets already exist; create 39 more to land exactly on the cap.
     for (let i = 1; i <= 39; i++) {
-      await page.goto(path("/dashboard/categories/new"));
+      await page.goto(path("/categories/new"));
       await page.getByRole("textbox", { name: "Name", exact: true }).fill(`Cap category ${i}`);
       await page.getByRole("button", { name: "Create category" }).click();
-      await expect(page).toHaveURL(path("/dashboard/categories"));
+      await expect(page).toHaveURL(path("/categories"));
     }
 
     await categoryNameColumn(page, 50);
 
     // The list page's own gate: disabled, not hidden, with the limit copy —
-    // see the `atLimit` branch in dashboard/categories/page.tsx.
+    // see the `atLimit` branch in categories/page.tsx.
     await expect(page.getByRole("button", { name: "New category" })).toBeDisabled();
     await expect(page.getByRole("link", { name: "New category" })).toHaveCount(0);
     await expect(page.getByText("You've reached the limit of 50 categories.")).toBeVisible();
 
     // The list page's gate is only a convenience; `createCategory` re-checks
     // the cap server-side regardless of how the form was reached.
-    await page.goto(path("/dashboard/categories/new"));
+    await page.goto(path("/categories/new"));
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Category number 51");
     await page.getByRole("button", { name: "Create category" }).click();
 
     await expect(page.locator("form").getByRole("alert")).toHaveText(
       "You've reached the limit of 50 categories.",
     );
-    await expect(page).toHaveURL(path("/dashboard/categories/new"));
+    await expect(page).toHaveURL(path("/categories/new"));
 
-    await page.goto(path("/dashboard/categories"));
+    await page.goto(path("/categories"));
     await categoryNameColumn(page, 50);
   });
 });

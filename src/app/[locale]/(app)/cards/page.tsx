@@ -61,7 +61,7 @@ export default async function CardsPage() {
         ) : (
           // A plain `Link`, not `AppLink`: this segment's own `loading.tsx`
           // covers the transition — see `.claude/rules/navigation-loading.md`.
-          <Link href="/dashboard/cards/new" className={buttonVariants()}>
+          <Link href="/cards/new" className={buttonVariants()}>
             <Plus data-icon="inline-start" aria-hidden="true" />
             {t("actions.new")}
           </Link>
@@ -85,7 +85,7 @@ export default async function CardsPage() {
                   <span className="flex flex-col items-center gap-2">
                     <span className="text-sm text-muted-foreground">{t("table.empty")}</span>
                     <Link
-                      href="/dashboard/cards/new"
+                      href="/cards/new"
                       className="text-sm font-medium underline underline-offset-4"
                     >
                       {t("table.emptyCta")}

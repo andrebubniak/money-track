@@ -9,6 +9,11 @@ test.describe("route protection", () => {
     await expect(page).toHaveURL(path("/login"));
   });
 
+  test("redirects a signed-out visitor from /categories to login", async ({ page }) => {
+    await page.goto(path("/categories"));
+    await expect(page).toHaveURL(new RegExp(`${path("/login")}$`));
+  });
+
   test("redirects a signed-in user away from login", async ({ page }) => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));

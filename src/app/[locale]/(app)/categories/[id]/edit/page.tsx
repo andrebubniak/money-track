@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 
 export default async function EditCategoryPage({
   params,
-}: PageProps<"/[locale]/dashboard/categories/[id]/edit">) {
+}: PageProps<"/[locale]/categories/[id]/edit">) {
   const locale = await getLocale();
   // Authoritative check. This queries Postgres; src/proxy.ts does not.
   const session = await auth.api.getSession({ headers: await headers() });
@@ -45,7 +45,7 @@ export default async function EditCategoryPage({
         {/* Plain `Link`, not `AppLink`: the list segment's own `loading.tsx`
             covers this transition — see `.claude/rules/navigation-loading.md`. */}
         <Link
-          href="/dashboard/categories"
+          href="/categories"
           className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />

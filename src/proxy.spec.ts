@@ -185,8 +185,8 @@ describe("proxy", () => {
 
     it("is optimistic — it accepts any cookie value without validating it", () => {
       // Documents the security boundary: this check is bypassable by design,
-      // which is why app/[locale]/dashboard/page.tsx re-checks against the
-      // database.
+      // which is why app/[locale]/(app)/dashboard/page.tsx re-checks against
+      // the database.
       getSessionCookie.mockReturnValue("obviously-forged");
 
       const response = proxy(request("/en-US/dashboard"));

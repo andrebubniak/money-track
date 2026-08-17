@@ -114,7 +114,7 @@ describe("createCategory", () => {
         description: "Food and household items",
       },
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/dashboard/categories", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/categories", "page");
   });
 
   it("only counts active categories against the cap — the count query excludes soft-deleted rows", async () => {
@@ -233,7 +233,7 @@ describe("updateCategory", () => {
         systemLocaleKey: null,
       },
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/dashboard/categories", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/categories", "page");
   });
 
   it("leaves systemLocaleKey null and just updates the fields for an already-unlinked category", async () => {
@@ -328,7 +328,7 @@ describe("deleteCategory", () => {
       where: { id: "cat-1" },
       data: { deactivatedAt: expect.any(Date) },
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/dashboard/categories", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/categories", "page");
   });
 
   it("no-ops with a not-found-shaped error for a non-owned id", async () => {

@@ -17,7 +17,7 @@ export default async function NewCardPage() {
     <main className="flex flex-1 flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-col gap-2">
         <Link
-          href="/dashboard/cards"
+          href="/cards"
           className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />

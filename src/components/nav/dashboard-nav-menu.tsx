@@ -27,8 +27,8 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel, cardsLabel }
   const pathname = usePathname();
 
   const isDashboardActive = pathname === "/dashboard";
-  const isCategoriesActive = pathname.startsWith("/dashboard/categories");
-  const isCardsActive = pathname.startsWith("/dashboard/cards");
+  const isCategoriesActive = pathname.startsWith("/categories");
+  const isCardsActive = pathname.startsWith("/cards");
 
   return (
     <SidebarGroupContent>
@@ -47,7 +47,7 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel, cardsLabel }
           <SidebarMenuButton
             tooltip={categoriesLabel}
             isActive={isCategoriesActive}
-            render={<Link href="/dashboard/categories" />}
+            render={<Link href="/categories" />}
           >
             <Tags aria-hidden="true" className="size-6" />
             <span>{categoriesLabel}</span>
@@ -57,7 +57,7 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel, cardsLabel }
           <SidebarMenuButton
             tooltip={cardsLabel}
             isActive={isCardsActive}
-            render={<Link href="/dashboard/cards" />}
+            render={<Link href="/cards" />}
           >
             <CreditCard aria-hidden="true" className="size-6" />
             <span>{cardsLabel}</span>

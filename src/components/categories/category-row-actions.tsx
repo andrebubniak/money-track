@@ -100,7 +100,7 @@ export function CategoryRowActions({ categoryId }: CategoryRowActionsProps) {
         <DropdownMenuContent align="end">
           <DropdownMenuLinkItem
             variant="info"
-            render={<Link href={`/dashboard/categories/${categoryId}/edit`} />}
+            render={<Link href={`/categories/${categoryId}/edit`} />}
           >
             <SquarePen aria-hidden="true" className="size-6" />
             {t("actions.edit")}

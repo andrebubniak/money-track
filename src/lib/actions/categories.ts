@@ -142,7 +142,7 @@ export async function createCategory(
     },
   });
 
-  revalidatePath("/[locale]/dashboard/categories", "page");
+  revalidatePath("/[locale]/categories", "page");
   return { success: true };
 }
 
@@ -182,7 +182,7 @@ export async function updateCategory(
     },
   });
 
-  revalidatePath("/[locale]/dashboard/categories", "page");
+  revalidatePath("/[locale]/categories", "page");
   return { success: true };
 }
 
@@ -202,6 +202,6 @@ export async function deleteCategory(id: string, locale: string): Promise<Action
     data: { deactivatedAt: new Date() },
   });
 
-  revalidatePath("/[locale]/dashboard/categories", "page");
+  revalidatePath("/[locale]/categories", "page");
   return { success: true };
 }

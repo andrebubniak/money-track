@@ -9,10 +9,15 @@ import { routing } from "@/i18n/routing";
 const handleLocaleRouting = createIntlMiddleware(routing);
 
 /**
- * Paths that require a session, written without their locale prefix. Add to
- * this list as protected segments are introduced.
+ * Path prefixes that require a session, written without their locale prefix.
+ * A prefix check, not equality: `/cards/new` and `/cards/abc/edit` must be
+ * guarded by the same entry that guards `/cards`.
  */
-const PROTECTED_PATHS = ["/dashboard"];
+const PROTECTED_PATHS = ["/dashboard", "/categories", "/cards", "/transactions"];
+
+function isProtected(path: string) {
+  return PROTECTED_PATHS.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
 
 /**
  * Splits `/de-DE/dashboard` into its locale and the rest. Falls back to the
@@ -69,7 +74,7 @@ function coerceUnknownLocale(request: NextRequest) {
 // The auth check here is NOT a security boundary. It only checks that a
 // session cookie exists — a hand-forged cookie passes it. Its only job is
 // skipping a wasted render for signed-out visitors. The real check is
-// auth.api.getSession() inside app/[locale]/dashboard/page.tsx.
+// auth.api.getSession() inside app/[locale]/(app)/dashboard/page.tsx.
 export function proxy(request: NextRequest) {
   const coerced = coerceUnknownLocale(request);
   if (coerced) return coerced;
@@ -82,7 +87,7 @@ export function proxy(request: NextRequest) {
 
   const { locale, path } = splitLocale(request.nextUrl.pathname);
 
-  if (!PROTECTED_PATHS.includes(path)) return response;
+  if (!isProtected(path)) return response;
   if (getSessionCookie(request)) return response;
 
   const url = request.nextUrl.clone();

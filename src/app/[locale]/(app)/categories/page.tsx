@@ -83,7 +83,7 @@ export default async function CategoriesPage() {
           // base-ui's Button assumes a native `<button>` and warns that
           // rendering an `<a>` instead strips button semantics. This is a
           // navigation, so `<a>` is the semantics we actually want.
-          <Link href="/dashboard/categories/new" className={buttonVariants()}>
+          <Link href="/categories/new" className={buttonVariants()}>
             <Plus data-icon="inline-start" aria-hidden="true" />
             {t("actions.new")}
           </Link>
@@ -110,7 +110,7 @@ export default async function CategoriesPage() {
                   <span className="flex flex-col items-center gap-2">
                     <span className="text-sm text-muted-foreground">{t("table.empty")}</span>
                     <Link
-                      href="/dashboard/categories/new"
+                      href="/categories/new"
                       className="text-sm font-medium underline underline-offset-4"
                     >
                       {t("table.emptyCta")}

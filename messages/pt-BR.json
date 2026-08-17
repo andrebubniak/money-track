@@ -66,7 +66,8 @@
     "signedInAs": "Conectado ({name})",
     "placeholder": "Página provisória. Esta rota vai se tornar o painel de gastos descrito no PRD.",
     "categoriesNavLabel": "Categorias",
-    "cardsNavLabel": "Cartões"
+    "cardsNavLabel": "Cartões",
+    "transactionsNavLabel": "Transações"
   },
   "categories": {
     "title": "Categorias",
@@ -247,6 +248,29 @@
       "type": {
         "invalid": "Escolha um tipo de cartão."
       }
+    },
+    "transactions": {
+      "amount": {
+        "invalid": "Digite um valor com algarismos e no máximo duas casas decimais.",
+        "tooSmall": "O valor deve ser maior que zero.",
+        "tooLarge": "O valor deve ser no máximo {max}."
+      },
+      "category": { "required": "Escolha uma categoria." },
+      "card": {
+        "notForIncome": "Receitas não podem ser atribuídas a um cartão.",
+        "invalid": "Escolha um cartão da sua lista."
+      },
+      "description": { "tooLong": "A descrição deve ter no máximo {max} caracteres." },
+      "type": { "invalid": "Escolha receita ou despesa." },
+      "date": {
+        "invalid": "Digite uma data válida.",
+        "outOfRange": "A data deve estar entre {min} e {max}."
+      },
+      "frequency": { "invalid": "Escolha com que frequência isso se repete." },
+      "occurrences": {
+        "invalid": "Digite um número inteiro de parcelas, a partir de um.",
+        "tooMany": "Você pode criar no máximo {max} parcelas de uma vez."
+      }
     }
   },
   "errors": {
@@ -260,6 +284,127 @@
       "PASSWORD_TOO_LONG": "A senha é muito longa.",
       "INVALID_EMAIL": "Digite um e-mail válido.",
       "fallback": "Algo deu errado. Tente novamente."
+    }
+  },
+  "transactions": {
+    "title": "Transações",
+    "description": "Tudo o que você recebeu e gastou.",
+    "notFound": "Esta transação não existe ou você não tem acesso a ela.",
+    "invalidInput": "Houve um problema com as informações enviadas. Verifique os campos e tente novamente.",
+    "actions": {
+      "new": "Nova transação",
+      "newSingle": "Transação única",
+      "newSingleHint": "Um único pagamento ou recebimento.",
+      "newRecurring": "Transação recorrente",
+      "newRecurringHint": "Repete indefinidamente até você excluir.",
+      "newInstallments": "Parcelamento",
+      "newInstallmentsHint": "Um número fixo de parcelas, criadas de uma vez.",
+      "edit": "Editar",
+      "delete": "Excluir"
+    },
+    "table": {
+      "date": "Data",
+      "description": "Descrição",
+      "category": "Categoria",
+      "card": "Cartão",
+      "type": "Tipo",
+      "paid": "Pago",
+      "amount": "Valor",
+      "actions": "Ações",
+      "none": "—",
+      "paidYes": "Sim",
+      "paidNo": "Não",
+      "typeIncome": "Receita",
+      "typeExpense": "Despesa",
+      "started": "Início em {date}",
+      "series": "{index} de {total}",
+      "sortBy": "Ordenar por {column}",
+      "empty": "Você ainda não tem transações.",
+      "emptyCta": "Nova transação",
+      "emptyFiltered": "Nenhuma transação corresponde a estes filtros.",
+      "emptyFilteredCta": "Limpar filtros"
+    },
+    "filters": {
+      "title": "Filtros",
+      "active": "{count} ativos",
+      "category": "Categoria",
+      "card": "Cartão",
+      "type": "Tipo",
+      "show": "Exibir",
+      "from": "De",
+      "to": "Até",
+      "any": "Todos",
+      "showAll": "Todas",
+      "showSingle": "Somente únicas",
+      "showRecurring": "Somente recorrentes",
+      "showInstallments": "Somente parcelamentos",
+      "apply": "Aplicar",
+      "clear": "Limpar"
+    },
+    "frequency": {
+      "DAILY": "Diária",
+      "WEEKLY": "Semanal",
+      "BIWEEKLY": "Quinzenal",
+      "MONTHLY": "Mensal",
+      "QUARTERLY": "Trimestral",
+      "SEMIANNUAL": "Semestral",
+      "YEARLY": "Anual"
+    },
+    "form": {
+      "typeLabel": "Tipo",
+      "typeIncome": "Receita",
+      "typeExpense": "Despesa",
+      "amountLabel": "Valor",
+      "amountPlaceholder": "0,00",
+      "categoryLabel": "Categoria",
+      "categoryPlaceholder": "Buscar categorias",
+      "cardLabel": "Cartão",
+      "cardPlaceholder": "Buscar cartões",
+      "dateLabel": "Data",
+      "startDateLabel": "Data de início",
+      "descriptionLabel": "Descrição",
+      "descriptionPlaceholder": "ex.: Compras da semana",
+      "paidLabel": "Já pago",
+      "frequencyLabel": "Repete",
+      "occurrencesLabel": "Número de parcelas",
+      "submitCreate": "Criar transação",
+      "submitCreating": "Criando…",
+      "submitEdit": "Salvar alterações",
+      "submitSaving": "Salvando…"
+    },
+    "single": {
+      "newTitle": "Nova transação",
+      "editTitle": "Editar transação",
+      "back": "Voltar para transações"
+    },
+    "recurring": {
+      "newTitle": "Nova transação recorrente",
+      "editTitle": "Editar transação recorrente",
+      "note": "Isto define a recorrência. As transações dela ainda não são criadas — isso chega com a geração automática."
+    },
+    "installments": {
+      "newTitle": "Novo parcelamento",
+      "editTitle": "Editar parcelamento",
+      "preview": "{count} transações, de {first} até {last}",
+      "seriesTitle": "Todas as parcelas",
+      "seriesNote": "Alterar a categoria, o cartão ou o tipo atualiza todas as parcelas abaixo.",
+      "frozenNote": "A frequência, a data de início e o número de parcelas não podem ser alterados. Crie um novo parcelamento.",
+      "occurrencesTitle": "Parcelas",
+      "occurrenceSave": "Salvar",
+      "occurrenceSaving": "Salvando…",
+      "occurrenceSaved": "Salvo",
+      "occurrenceDelete": "Excluir parcela"
+    },
+    "deleteDialog": {
+      "title": "Excluir esta transação?",
+      "description": "Isto removerá a transação da sua lista. Não é possível desfazer.",
+      "recurringTitle": "Excluir esta transação recorrente?",
+      "recurringDescription": "Isto encerrará a recorrência. Não é possível desfazer.",
+      "installmentsTitle": "Excluir este parcelamento?",
+      "installmentsDescription": "Isto removerá o parcelamento e todas as suas {count} parcelas. Não é possível desfazer.",
+      "confirm": "Excluir",
+      "confirming": "Excluindo…",
+      "cancel": "Cancelar"
     }
   },
   "ui": {
@@ -277,6 +422,25 @@
     },
     "dialog": {
       "close": "Fechar"
+    },
+    "asyncCombobox": {
+      "search": "Buscar",
+      "loading": "Carregando…",
+      "loadingMore": "Carregando mais…",
+      "empty": "Nenhum resultado.",
+      "error": "Não foi possível carregar as opções. Tente novamente.",
+      "clear": "Limpar seleção"
+    },
+    "pagination": {
+      "label": "Paginação",
+      "previous": "Anterior",
+      "next": "Próxima",
+      "page": "Página {page}",
+      "status": "Página {page} de {total}"
+    },
+    "datePicker": {
+      "open": "Escolher uma data",
+      "placeholder": "Selecione uma data"
     }
   }
 }

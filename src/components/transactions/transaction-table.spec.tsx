@@ -95,6 +95,12 @@ describe("TransactionTable", () => {
     ]);
 
     expect(screen.getByText("3 of 12")).toBeInTheDocument();
+    // This row has a `startDate` too (every installment occurrence does),
+    // but "Started …" is only ever meaningful for a collapsed recurring row
+    // standing in for a whole series — an installment occurrence is a real
+    // dated charge, not a fallback. A guard that keyed off `startDate` alone
+    // instead of `kind === "recurring"` would show it here too.
+    expect(screen.queryByText(/Started/)).toBeNull();
   });
 
   it("links each sortable header, and marks the active column", () => {
@@ -111,6 +117,26 @@ describe("TransactionTable", () => {
     expect(screen.getByRole("columnheader", { name: /Amount/ })).toHaveAttribute(
       "aria-sort",
       "none",
+    );
+  });
+
+  // Each sortable column must link to its own href — a mutation that pointed
+  // every header at `sortHrefs.date` still passed every other test here,
+  // since only Date's href was ever asserted.
+  it("links every sortable header to its own href, not just Date's", () => {
+    render([row()]);
+
+    expect(screen.getByRole("link", { name: /Amount/ })).toHaveAttribute(
+      "href",
+      "/en-US/transactions?sort=amount",
+    );
+    expect(screen.getByRole("link", { name: /Category/ })).toHaveAttribute(
+      "href",
+      "/en-US/transactions?sort=category",
+    );
+    expect(screen.getByRole("link", { name: /Description/ })).toHaveAttribute(
+      "href",
+      "/en-US/transactions?sort=description",
     );
   });
 

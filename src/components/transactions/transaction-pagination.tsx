@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -19,11 +19,22 @@ export type TransactionPaginationProps = {
 };
 
 /**
- * Which numbered links to render, collapsing any run of more than one
- * skipped page into a single ellipsis. Page 1 and the last page always show;
- * up to two pages on either side of the current one fill the middle, so the
- * widest case — the current page deep in a long list — shows at most seven
- * numbered links: 1, …, current-2 … current+2, …, last.
+ * Which numbered links to render, collapsing every run of one or more
+ * skipped pages into a single ellipsis. Page 1 and the last page always
+ * show; up to two pages on either side of the current one fill the middle
+ * (at most 5 numbers), so the numbered-link count is `withEnds.length`,
+ * which is never more than 1 + 5 + 1 = 7 — the widest case is the current
+ * page deep in a long list: `1, …, current-2 … current+2, …, last`.
+ *
+ * A gap of exactly one skipped page is *also* rendered as an ellipsis here,
+ * rather than filled in with that page's own number. An earlier version
+ * filled single-page gaps, but that fill re-added a page the clipping above
+ * had just trimmed *in addition to* the full window rather than instead of
+ * it, which broke the seven-link cap (e.g. `totalPages=9, page=5` rendered
+ * nine numbers, no ellipsis at all). Any gap ≥ 2, filled or not, is capped
+ * by construction because it never grows `withEnds` — only collapsing to a
+ * single ellipsis touches count, so always collapsing is what keeps the cap
+ * correct in every case, not just the ones exercised by hand.
  */
 function pageWindow(page: number, totalPages: number): (number | "ellipsis")[] {
   const delta = 2;
@@ -32,14 +43,16 @@ function pageWindow(page: number, totalPages: number): (number | "ellipsis")[] {
     middle.push(i);
   }
 
-  const withEnds = [1, ...middle, totalPages];
+  // `Set` also protects the degenerate `totalPages <= 1` case, where `1` and
+  // `totalPages` would otherwise be the same value twice — unreachable
+  // through the component today (it returns null before `totalPages` is
+  // even computed when there's only one page), but `pageWindow` shouldn't
+  // rely on that guarantee to produce a sane, duplicate-free result.
+  const withEnds = [...new Set([1, ...middle, totalPages])];
   const result: (number | "ellipsis")[] = [];
   let previous = 0;
   for (const value of withEnds) {
-    if (previous) {
-      if (value - previous === 2) result.push(previous + 1);
-      else if (value - previous > 2) result.push("ellipsis");
-    }
+    if (previous && value - previous >= 2) result.push("ellipsis");
     result.push(value);
     previous = value;
   }
@@ -89,11 +102,21 @@ function PrevNext({
  * caller's `hrefForPage` so this component never assembles a query string of
  * its own — see `TransactionResults`. Renders nothing once everything fits
  * on a single page.
+ *
+ * Not async: `useTranslations` (unlike `getTranslations`) works in a
+ * synchronous Server Component just as well as in a Client one — see
+ * `.claude/rules/i18n.md` — and staying synchronous lets this render like
+ * any other component in `transaction-pagination.spec.tsx`, the same way
+ * `TransactionTable` already does, instead of needing the caller to somehow
+ * await a component function by hand.
  */
-export async function TransactionPagination({ page, total, hrefForPage }: TransactionPaginationProps) {
+export function TransactionPagination({ page, total, hrefForPage }: TransactionPaginationProps) {
+  // Called unconditionally, before the early return below — React requires
+  // every hook to run in the same order on every render.
+  const t = useTranslations("ui.pagination");
+
   if (total <= PAGE_SIZE) return null;
 
-  const t = await getTranslations("ui.pagination");
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const pages = pageWindow(page, totalPages);
 

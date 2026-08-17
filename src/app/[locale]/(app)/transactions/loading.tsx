@@ -1,8 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { Skeleton } from "@/components/ui/skeleton";
-
-const PLACEHOLDER_ROWS = [0, 1, 2, 3, 4, 5, 6, 7];
+import { TransactionTableSkeleton } from "@/components/transactions/transaction-table-skeleton";
 
 /**
  * In-shell loading state for the transaction list. Mirrors `page.tsx`'s real
@@ -24,12 +23,7 @@ export default async function TransactionsLoading() {
 
       <Skeleton className="h-11 w-full" />
 
-      <div className="rounded-md border">
-        <Skeleton className="h-10 w-full rounded-b-none" />
-        {PLACEHOLDER_ROWS.map((row) => (
-          <Skeleton key={row} className="h-12 w-full rounded-none border-t" />
-        ))}
-      </div>
+      <TransactionTableSkeleton />
 
       <span className="sr-only">{t("loading")}</span>
     </main>

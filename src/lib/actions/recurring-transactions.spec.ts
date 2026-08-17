@@ -119,16 +119,21 @@ describe("updateRecurringTransaction", () => {
 
   // An installment plan is edited through its own action, which also rewrites
   // its occurrences. Letting this one touch a plan would change the
-  // definition and leave every generated row behind.
+  // definition and leave every generated row behind — a real, filtered query
+  // excludes a plan id the same way it excludes someone else's id, so the
+  // mock reproduces that by resolving `null`. The `where` assertion is what
+  // actually pins the exclusion: it fails the moment the discriminator is
+  // dropped from the query, which the returned-`null` shape alone would not
+  // catch.
   it("refuses to edit an installment plan", async () => {
-    vi.mocked(prisma.recurringTransaction.findFirst).mockResolvedValue({
-      id: "rec-1",
-      fixedOccurrencesCount: true,
-    } as never);
+    vi.mocked(prisma.recurringTransaction.findFirst).mockResolvedValue(null as never);
 
     expect(await updateRecurringTransaction("rec-1", validValues, LOCALE)).toEqual({
       success: false,
       error: "notFound",
+    });
+    expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
+      where: { id: "rec-1", userId: "user-1", fixedOccurrencesCount: false },
     });
     expect(prisma.recurringTransaction.update).not.toHaveBeenCalled();
   });
@@ -158,12 +163,20 @@ describe("deleteRecurringTransaction", () => {
     expect(call.data.deactivatedAt).toBeInstanceOf(Date);
   });
 
-  it("refuses an id that is not the caller's", async () => {
+  // Same query-level exclusion as `updateRecurringTransaction`: an
+  // installment plan id gets filtered out by `where`, landing here alongside
+  // "not the caller's" and "doesn't exist" as the same generic miss. The
+  // `where` assertion is what pins the discriminator in the query — it fails
+  // the moment `fixedOccurrencesCount: false` is dropped from it.
+  it("refuses an id that is not the caller's (or is an installment plan)", async () => {
     vi.mocked(prisma.recurringTransaction.findFirst).mockResolvedValue(null as never);
 
     expect(await deleteRecurringTransaction("rec-1", LOCALE)).toEqual({
       success: false,
       error: "notFound",
+    });
+    expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
+      where: { id: "rec-1", userId: "user-1", fixedOccurrencesCount: false },
     });
   });
 });

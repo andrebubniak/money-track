@@ -84,12 +84,13 @@ export async function updateRecurringTransaction(
 
   // An installment plan is edited through its own action, which also
   // rewrites its generated rows. Editing one here would change the
-  // definition and silently leave every occurrence behind — checked twice,
-  // once in the query and once on the row, so a plan can never slip through.
+  // definition and silently leave every occurrence behind, so the query
+  // itself excludes plans — a plan id gets the same generic not-found as
+  // any other miss.
   const recurring = await prisma.recurringTransaction.findFirst({
     where: { id, userId, fixedOccurrencesCount: false },
   });
-  if (!recurring || recurring.fixedOccurrencesCount) return notFoundError(locale);
+  if (!recurring) return notFoundError(locale);
 
   const startDate = toUtcMidnight(parsed.data.startDate);
 
@@ -119,10 +120,12 @@ export async function deleteRecurringTransaction(
   if (!userId) return notFoundError(locale);
   if (!transactionIdSchema.safeParse(id).success) return notFoundError(locale);
 
+  // Excludes installment plans the same way `updateRecurringTransaction`
+  // does — a plan id is filtered out by the query, not spotted afterward.
   const recurring = await prisma.recurringTransaction.findFirst({
     where: { id, userId, fixedOccurrencesCount: false },
   });
-  if (!recurring || recurring.fixedOccurrencesCount) return notFoundError(locale);
+  if (!recurring) return notFoundError(locale);
 
   // Only the definition. Any rows it generated stay as history — that is
   // what `onDelete: SetNull` on `Transaction.recurringTransactionId` is for,

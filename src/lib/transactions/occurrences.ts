@@ -21,18 +21,19 @@ export const RECURRING_FREQUENCIES = [
 
 export type RecurringFrequency = (typeof RECURRING_FREQUENCIES)[number];
 
-/** Days for the fixed-length steps; months for the calendar-aware ones. */
-const DAY_STEP: Partial<Record<RecurringFrequency, number>> = {
-  DAILY: 1,
-  WEEKLY: 7,
-  BIWEEKLY: 14,
-};
-
-const MONTH_STEP: Partial<Record<RecurringFrequency, number>> = {
-  MONTHLY: 1,
-  QUARTERLY: 3,
-  SEMIANNUAL: 6,
-  YEARLY: 12,
+/**
+ * Maps each frequency to its step unit and count. Exhaustive over RECURRING_FREQUENCIES
+ * so the compiler catches omissions — missing a frequency here is a compile error,
+ * not a runtime Invalid Date written to the database.
+ */
+const FREQUENCY_STEP: Record<RecurringFrequency, { unit: "day" | "month"; step: number }> = {
+  DAILY: { unit: "day", step: 1 },
+  WEEKLY: { unit: "day", step: 7 },
+  BIWEEKLY: { unit: "day", step: 14 },
+  MONTHLY: { unit: "month", step: 1 },
+  QUARTERLY: { unit: "month", step: 3 },
+  SEMIANNUAL: { unit: "month", step: 6 },
+  YEARLY: { unit: "month", step: 12 },
 };
 
 /**
@@ -49,10 +50,12 @@ export function occurrenceDates(
   }
 
   const first = toUtcMidnight(start);
-  const days = DAY_STEP[frequency];
-  const months = MONTH_STEP[frequency];
+  const { unit, step } = FREQUENCY_STEP[frequency];
 
+  // Math.max(count, 0) defends against negative counts passed by the caller.
   return Array.from({ length: Math.max(count, 0) }, (_unused, index) =>
-    days === undefined ? addMonthsUtc(first, months! * index) : addDaysUtc(first, days * index),
+    unit === "day"
+      ? addDaysUtc(first, step * index)
+      : addMonthsUtc(first, step * index),
   );
 }

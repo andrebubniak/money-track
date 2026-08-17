@@ -166,6 +166,18 @@ describe("updateInstallmentSeries", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  // Confirms the ownership lookup carries the `fixedOccurrencesCount: true`
+  // discriminator: an ongoing recurrence's id must be filtered out by the
+  // query itself, not by a runtime re-check of the returned row (which the
+  // mock would happily let slide either way).
+  it("scopes the ownership lookup to the caller's fixed-count plans", async () => {
+    await updateInstallmentSeries("plan-1", seriesValues, LOCALE);
+
+    expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
+      where: { id: "plan-1", userId: "user-1", fixedOccurrencesCount: true },
+    });
+  });
+
   // These three fields classify the whole series; letting them drift row by
   // row would make the category column meaningless.
   it("writes the series fields to the definition and every live occurrence", async () => {
@@ -206,6 +218,16 @@ describe("deleteInstallmentPlan", () => {
       id: "plan-1",
       fixedOccurrencesCount: true,
     } as never);
+  });
+
+  // Same discriminator check as `updateInstallmentSeries` above: the query
+  // itself must exclude ongoing recurrences, not a re-check afterward.
+  it("scopes the ownership lookup to the caller's fixed-count plans", async () => {
+    await deleteInstallmentPlan("plan-1", LOCALE);
+
+    expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
+      where: { id: "plan-1", userId: "user-1", fixedOccurrencesCount: true },
+    });
   });
 
   // The occurrences *are* the plan's representation in the list, so deleting

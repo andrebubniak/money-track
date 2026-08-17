@@ -6998,6 +6998,7 @@ Create `e2e/transactions.spec.ts`. Every test registers its own user (`registerU
 7. **Filters round-trip through the URL** — apply category + type + period, assert the URL, open that URL in a fresh page and assert the same rows; press Clear and assert the URL is back to `/en-US/transactions`.
 8. **`show` distinguishes all four cases** — with a one-off, a recurrence, and a plan present, assert the row count for each of `all`, `single`, `recurring`, `installments`.
 9. **Pagination** — create 51 transactions (via `prisma` directly, for speed), assert 50 rows on page 1, 1 on page 2, and that no id appears on both pages.
+9b. **Pagination over an installment plan** — create a 60-occurrence plan and assert 50 rows on page 1, 10 on page 2, and that the pager reports two pages. The count query deliberately drops the `series` CTE join that the page query keeps (`withSeries` in `list-query.ts`), so this is the one user-visible path where `rows` and `total` could disagree; no other scenario exercises it end to end.
 10. **Sorting** — click each sortable header and assert the first row changes as expected, and that the direction flips on a second click.
 11. **A garbage query string renders page 1** — `?sort=drop%20table&page=-4&from=nonsense` returns 200 with the default view.
 12. **Server-side enforcement** — sign in as one user, then submit a transaction referencing a *second* user's category id, and assert it is refused. Drive this through the form with the id swapped in, mirroring how `e2e/registration.spec.ts` tests the bypass rather than the form.

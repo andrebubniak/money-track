@@ -2774,7 +2774,10 @@ Add to the existing `validation` object:
     "tooLarge": "Amount must be at most {max}."
   },
   "category": { "required": "Choose a category." },
-  "card": { "notForIncome": "Income can't be assigned to a card." },
+  "card": {
+    "notForIncome": "Income can't be assigned to a card.",
+    "invalid": "Choose a card from your list."
+  },
   "description": { "tooLong": "Description must be at most {max} characters." },
   "type": { "invalid": "Choose income or expense." },
   "date": {
@@ -2946,7 +2949,10 @@ Add a new top-level `transactions` object:
     "tooLarge": "O valor deve ser no máximo {max}."
   },
   "category": { "required": "Escolha uma categoria." },
-  "card": { "notForIncome": "Receitas não podem ser atribuídas a um cartão." },
+  "card": {
+    "notForIncome": "Receitas não podem ser atribuídas a um cartão.",
+    "invalid": "Escolha um cartão da sua lista."
+  },
   "description": { "tooLong": "A descrição deve ter no máximo {max} caracteres." },
   "type": { "invalid": "Escolha receita ou despesa." },
   "date": {
@@ -3116,7 +3122,10 @@ Add a new top-level `transactions` object:
     "tooLarge": "Der Betrag darf höchstens {max} sein."
   },
   "category": { "required": "Bitte eine Kategorie wählen." },
-  "card": { "notForIncome": "Einnahmen können keiner Karte zugeordnet werden." },
+  "card": {
+    "notForIncome": "Einnahmen können keiner Karte zugeordnet werden.",
+    "invalid": "Bitte eine Karte aus deiner Liste wählen."
+  },
   "description": { "tooLong": "Die Beschreibung darf höchstens {max} Zeichen lang sein." },
   "type": { "invalid": "Bitte Einnahme oder Ausgabe wählen." },
   "date": {

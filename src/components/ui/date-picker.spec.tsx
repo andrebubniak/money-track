@@ -29,7 +29,12 @@ describe("DatePicker", () => {
     render({ onValueChange });
 
     await user.click(screen.getByRole("button"));
-    await user.click(await screen.findByRole("button", { name: /^20$/ }));
+    // react-day-picker's default day-button accessible name is the full
+    // formatted date ("Thursday, August 20th, 2026"), not the bare day
+    // number — matching only the bare number would also require discarding
+    // the "today"/"selected" context screen reader users rely on, which
+    // isn't this test's business to trade away.
+    await user.click(await screen.findByRole("button", { name: /August 20th, 2026/ }));
 
     expect(onValueChange).toHaveBeenCalledWith("2026-08-20");
   });
@@ -42,7 +47,7 @@ describe("DatePicker", () => {
     render({ value: "2026-03-01", onValueChange });
 
     await user.click(screen.getByRole("button"));
-    await user.click(await screen.findByRole("button", { name: /^1$/ }));
+    await user.click(await screen.findByRole("button", { name: /March 1st, 2026/ }));
 
     expect(onValueChange).toHaveBeenCalledWith("2026-03-01");
   });

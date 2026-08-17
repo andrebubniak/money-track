@@ -88,19 +88,6 @@ export function DatePicker({
           required
           selected={selectedForCalendar}
           defaultMonth={selectedForCalendar}
-          // Outside days (the trailing/leading days of adjacent months that
-          // fill out the grid) would otherwise collide, on a plain day
-          // number, with a same-numbered day inside the displayed month —
-          // e.g. both March 1 and the outside April 1 rendering as "1".
-          showOutsideDays={false}
-          labels={{
-            // react-day-picker's default aria-label is a full sentence
-            // ("Thursday, August 20th, 2026"); the day's own text content
-            // (its number) is enough here, since the trigger and the
-            // calendar's month caption already give the surrounding month
-            // and year.
-            labelDayButton: (date) => String(date.getDate()),
-          }}
           onSelect={(next) => {
             if (!next) return;
             // `Calendar` hands back a local-midnight Date; rebuilding it from

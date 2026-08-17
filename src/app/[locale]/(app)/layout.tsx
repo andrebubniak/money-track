@@ -48,6 +48,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <SidebarGroup>
               <DashboardNavMenu
                 dashboardLabel={t("navLabel")}
+                transactionsLabel={t("transactionsNavLabel")}
                 categoriesLabel={t("categoriesNavLabel")}
                 cardsLabel={t("cardsNavLabel")}
               />

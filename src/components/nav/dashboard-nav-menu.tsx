@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, LayoutDashboard, Tags } from "lucide-react";
+import { ArrowRightLeft, CreditCard, LayoutDashboard, Tags } from "lucide-react";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import {
@@ -12,21 +12,29 @@ import {
 
 interface DashboardNavMenuProps {
   dashboardLabel: string;
+  transactionsLabel: string;
   categoriesLabel: string;
   cardsLabel: string;
 }
 
 /**
  * Sidebar navigation menu for the dashboard, rendering the Dashboard,
- * Categories, and Cards items with active-state awareness via usePathname().
+ * Transactions, Categories, and Cards items with active-state awareness via
+ * usePathname().
  *
- * Dashboard is active only on exactly `/dashboard`; Categories and Cards are
- * each active on their own path prefix and anything under it.
+ * Dashboard is active only on exactly `/dashboard`; Transactions, Categories,
+ * and Cards are each active on their own path prefix and anything under it.
  */
-export function DashboardNavMenu({ dashboardLabel, categoriesLabel, cardsLabel }: DashboardNavMenuProps) {
+export function DashboardNavMenu({
+  dashboardLabel,
+  transactionsLabel,
+  categoriesLabel,
+  cardsLabel,
+}: DashboardNavMenuProps) {
   const pathname = usePathname();
 
   const isDashboardActive = pathname === "/dashboard";
+  const isTransactionsActive = pathname.startsWith("/transactions");
   const isCategoriesActive = pathname.startsWith("/categories");
   const isCardsActive = pathname.startsWith("/cards");
 
@@ -41,6 +49,16 @@ export function DashboardNavMenu({ dashboardLabel, categoriesLabel, cardsLabel }
           >
             <LayoutDashboard aria-hidden="true" className="size-6" />
             <span>{dashboardLabel}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            tooltip={transactionsLabel}
+            isActive={isTransactionsActive}
+            render={<Link href="/transactions" />}
+          >
+            <ArrowRightLeft aria-hidden="true" className="size-6" />
+            <span>{transactionsLabel}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>

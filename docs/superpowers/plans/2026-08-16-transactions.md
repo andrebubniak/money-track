@@ -1486,6 +1486,17 @@ describe("parseTransactionFilters", () => {
       });
     });
 
+    // A nonexistent day is well-shaped, so the regex passes it. `new Date`
+    // does not reject it either — it rolls 2026-02-31 over to March 2nd —
+    // so without the round-trip check this silently filters on a date the
+    // user never asked for.
+    it("reverts a well-shaped but nonexistent day", () => {
+      expect(parse({ from: "2026-02-31", to: "2026-03-31" })).toMatchObject({
+        from: "2026-08-01",
+        to: "2026-08-16",
+      });
+    });
+
     it("reverts both dates when from is after to", () => {
       expect(parse({ from: "2026-05-01", to: "2026-04-01" })).toMatchObject({
         from: "2026-08-01",
@@ -1627,11 +1638,18 @@ export type TransactionFilters = {
 
 const idSchema = z.string().trim().min(1).max(TRANSACTION_ID_MAX_LENGTH);
 
+/**
+ * `new Date("2026-02-31T00:00:00.000Z")` does NOT return an Invalid Date —
+ * V8 silently rolls the day over to March 2nd. (An out-of-range *month* like
+ * `2026-13-01` does fail, which is what makes the trap easy to miss.) So a
+ * NaN check cannot reject a nonexistent day; round-tripping through
+ * `toIsoDate` and comparing to the input is what actually does.
+ */
 const dateSchema = z
   .string()
   .trim()
   .regex(ISO_DATE_PATTERN)
-  .refine((value) => !Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime()));
+  .refine((value) => toIsoDate(new Date(`${value}T00:00:00.000Z`)) === value);
 
 const pageSchema = z.coerce.number().int().min(1);
 

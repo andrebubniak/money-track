@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter } from "@/i18n/navigation";
 import { toUtcMidnight } from "@/lib/dates";
 import type { ComboboxOption } from "@/lib/options";
@@ -50,9 +57,6 @@ const TYPE_LABEL_KEYS = {
   INCOME: "form.typeIncome",
   EXPENSE: "form.typeExpense",
 } as const satisfies Record<TransactionType, string>;
-
-const selectClassName =
-  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:cursor-not-allowed disabled:opacity-50 lg:h-11 lg:text-base";
 
 /**
  * `today` arrives as a string from the server so both sides agree on what the
@@ -144,39 +148,48 @@ export function TransactionFiltersPanel({
 
           <div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
             <Label htmlFor="filter-type">{t("filters.type")}</Label>
-            <select
-              id="filter-type"
-              className={selectClassName}
-              value={draft.type ?? ""}
-              onChange={(event) =>
-                patchDraft({
-                  type: event.target.value === "" ? null : (event.target.value as TransactionType),
-                })
-              }
+            <Select
+              value={draft.type}
+              onValueChange={(type) => patchDraft({ type })}
             >
-              <option value="">{t("filters.any")}</option>
-              {TRANSACTION_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {t(TYPE_LABEL_KEYS[type])}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="filter-type" className="w-full lg:h-11 lg:text-base">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>{t("filters.any")}</SelectItem>
+                {TRANSACTION_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {t(TYPE_LABEL_KEYS[type])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
             <Label htmlFor="filter-show">{t("filters.show")}</Label>
-            <select
-              id="filter-show"
-              className={selectClassName}
+            <Select
               value={draft.show}
-              onChange={(event) => patchDraft({ show: event.target.value as TransactionShow })}
+              onValueChange={(show) => {
+                // `Select`'s reported value is always nullable, even though
+                // every registered "show" item carries a real value — `show`
+                // has no "nothing selected" state (its default is `"all"`,
+                // not `null`) — so a `null` report here can't correspond to a
+                // real selection and is ignored rather than typed away.
+                if (show !== null) patchDraft({ show });
+              }}
             >
-              {TRANSACTION_SHOW_VALUES.map((show) => (
-                <option key={show} value={show}>
-                  {t(SHOW_LABEL_KEYS[show])}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="filter-show" className="w-full lg:h-11 lg:text-base">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TRANSACTION_SHOW_VALUES.map((show) => (
+                  <SelectItem key={show} value={show}>
+                    {t(SHOW_LABEL_KEYS[show])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
@@ -186,6 +199,7 @@ export function TransactionFiltersPanel({
               value={draft.from}
               onValueChange={(from) => patchDraft({ from })}
               dateFormat={dateFormat}
+              triggerLabel={t("filters.from")}
             />
           </div>
 
@@ -196,6 +210,7 @@ export function TransactionFiltersPanel({
               value={draft.to}
               onValueChange={(to) => patchDraft({ to })}
               dateFormat={dateFormat}
+              triggerLabel={t("filters.to")}
             />
           </div>
 

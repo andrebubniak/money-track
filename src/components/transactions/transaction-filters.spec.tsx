@@ -58,7 +58,8 @@ describe("TransactionFiltersPanel", () => {
     render();
 
     await user.click(screen.getByRole("button", { name: /Filters/ }));
-    await user.selectOptions(screen.getByLabelText("Show"), "single");
+    await user.click(screen.getByLabelText("Show"));
+    await user.click(await screen.findByRole("option", { name: "One-off only" }));
 
     expect(push).not.toHaveBeenCalled();
   });
@@ -68,7 +69,8 @@ describe("TransactionFiltersPanel", () => {
     render({ page: "5" });
 
     await user.click(screen.getByRole("button", { name: /Filters/ }));
-    await user.selectOptions(screen.getByLabelText("Show"), "recurring");
+    await user.click(screen.getByLabelText("Show"));
+    await user.click(await screen.findByRole("option", { name: "Recurring only" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(push).toHaveBeenCalledWith("/transactions?show=recurring");
@@ -82,5 +84,18 @@ describe("TransactionFiltersPanel", () => {
     await user.click(screen.getByRole("button", { name: "Clear" }));
 
     expect(push).toHaveBeenCalledWith("/transactions");
+  });
+
+  // `DatePicker`'s trigger sets its own `aria-label`, which wins over an
+  // external `<Label htmlFor>` in accessible-name computation — without a
+  // distinguishing name, a screen reader announces both triggers identically.
+  it("gives the From and To date triggers distinct accessible names", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: /Filters/ }));
+
+    expect(screen.getByRole("button", { name: "From" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "To" })).toBeInTheDocument();
   });
 });

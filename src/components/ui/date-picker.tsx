@@ -21,6 +21,15 @@ export type DatePickerProps = {
   id?: string;
   invalid?: boolean;
   disabled?: boolean;
+  /**
+   * The trigger's accessible name. Defaults to the generic `t("open")`
+   * ("Choose a date") for the common single-picker case. Pass a
+   * distinguishing name — e.g. "From"/"To" — whenever two pickers appear
+   * together: the trigger's own `aria-label` always wins over an external
+   * `<Label htmlFor>` in accessible-name computation, so without this a
+   * screen reader announces every picker on the page identically.
+   */
+  triggerLabel?: string;
 };
 
 /**
@@ -51,6 +60,7 @@ export function DatePicker({
   id,
   invalid,
   disabled,
+  triggerLabel,
 }: DatePickerProps) {
   const t = useTranslations("ui.datePicker");
   const [open, setOpen] = useState(false);
@@ -70,7 +80,7 @@ export function DatePicker({
             variant="outline"
             disabled={disabled}
             aria-invalid={invalid ? true : undefined}
-            aria-label={t("open")}
+            aria-label={triggerLabel ?? t("open")}
             className={cn(
               "w-full justify-start font-normal lg:h-11 lg:text-base",
               !value && "text-muted-foreground",

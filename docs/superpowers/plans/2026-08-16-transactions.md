@@ -6089,7 +6089,11 @@ Edit and delete both depend on the row's kind:
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `src/components/transactions/transaction-row-actions.spec.tsx`:
+Create `src/components/transactions/transaction-row-actions.spec.tsx`. Note the
+edit-link locators use `getByRole("menuitem")`, **not** `"link"`:
+`DropdownMenuLinkItem` wraps Base UI's `MenuPrimitive.LinkItem`, which renders a
+real `<a>` (so it is openable in a new tab) but exposes it under the ARIA menu
+pattern as `role="menuitem"`. The `href` assertions still prove the routing.
 
 ```tsx
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6140,7 +6144,7 @@ describe("TransactionRowActions", () => {
   it("edits a one-off on its own page", async () => {
     await openMenu(row());
 
-    expect(await screen.findByRole("link", { name: /Edit/ })).toHaveAttribute(
+    expect(await screen.findByRole("menuitem", { name: /Edit/ })).toHaveAttribute(
       "href",
       "/en-US/transactions/tx-1/edit",
     );
@@ -6149,7 +6153,7 @@ describe("TransactionRowActions", () => {
   it("edits an ongoing recurrence on the recurring page", async () => {
     await openMenu(row({ kind: "recurring", id: "rec-1" }));
 
-    expect(await screen.findByRole("link", { name: /Edit/ })).toHaveAttribute(
+    expect(await screen.findByRole("menuitem", { name: /Edit/ })).toHaveAttribute(
       "href",
       "/en-US/transactions/recurring/rec-1/edit",
     );
@@ -6160,7 +6164,7 @@ describe("TransactionRowActions", () => {
   it("edits an installment occurrence on its plan's page", async () => {
     await openMenu(row({ kind: "installment", id: "tx-9", planId: "plan-1" }));
 
-    expect(await screen.findByRole("link", { name: /Edit/ })).toHaveAttribute(
+    expect(await screen.findByRole("menuitem", { name: /Edit/ })).toHaveAttribute(
       "href",
       "/en-US/transactions/installments/plan-1/edit?occurrence=tx-9",
     );

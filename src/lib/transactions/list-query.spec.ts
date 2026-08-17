@@ -87,6 +87,30 @@ describe("buildListQueries", () => {
         rows.text.indexOf('\'installment\' AS "kind"'),
       );
     });
+
+    // The property the comment above actually depends on: the CTE's own
+    // WHERE clause carries no `deactivated_at` and no date-range predicate,
+    // so a row keeps the index it was numbered with even after a sibling is
+    // later deleted or a window is applied that excludes it. Isolating the
+    // CTE's own text (rather than checking rows.text as a whole, which
+    // legitimately contains both elsewhere, from the arm predicates) is
+    // what actually pins this — a whole-text check would pass even if the
+    // CTE itself grew those filters.
+    it("numbers over every recurring-linked row, unfiltered by soft-delete or the period", () => {
+      const { rows } = build({ show: "installments" });
+      const cteText = rows.text.slice(
+        rows.text.indexOf("WITH series"),
+        rows.text.indexOf("SELECT entries.*"),
+      );
+      expect(cteText).toContain("t.user_id = ");
+      expect(cteText).toContain("t.recurring_transaction_id IS NOT NULL");
+      expect(cteText).not.toContain("deactivated_at");
+      // `t.date` itself legitimately appears as the window's own tie-break
+      // (`ORDER BY t.date, t.id`) — that orders ties within a partition, it
+      // doesn't exclude rows. A range predicate is what would exclude rows,
+      // and that's what must be absent.
+      expect(cteText).not.toContain(">=");
+    });
   });
 
   describe("ordering", () => {
@@ -134,6 +158,11 @@ describe("buildListQueries", () => {
     it("still orders when the user has no categories", () => {
       const { rows } = build({ sort: "category" }, new Map());
       expect(rows.text).toContain("ORDER BY");
+      // "ORDER BY" alone is unconditionally true here — sort=category always
+      // emits one. What actually needs pinning is that the empty-map branch
+      // fired: a match-nothing fallback join, so `cat.sort_name` stays a
+      // valid reference instead of an error.
+      expect(rows.text).toContain("AS cat ON false");
     });
   });
 
@@ -181,6 +210,54 @@ describe("buildListQueries", () => {
       const { total } = build({ show: "single" });
       expect(total.text).toContain("t.recurring_transaction_id IS NULL");
       expect(total.text).not.toContain("'recurring' AS \"kind\"");
+    });
+  });
+
+  // The installment arm is the only place `rows` and `total` diverge in SQL
+  // shape: `total` skips `JOIN series s ON s.id = t.id` because counting
+  // doesn't read `seriesIndex`, and that join never filters a row (see
+  // `installmentArm`'s doc comment). Every other arm is byte-identical
+  // between the two paths, which is why "counts the same rows the page
+  // query returns" above — exercised only against show=single — would pass
+  // unchanged whether or not that divergence existed. These tests pin the
+  // one path where it actually matters: that `withSeries` drops *only* the
+  // non-filtering lookup, and nothing that decides which rows count.
+  describe("count/page parity for the installment arm", () => {
+    it("keeps every installment-arm filtering predicate in both the page and count query", () => {
+      for (const show of ["installments", "all"] as const) {
+        const { rows, total } = build({ show });
+        for (const predicate of [
+          "r.fixed_occurrences_count = true",
+          "r.deactivated_at IS NULL",
+          "t.deactivated_at IS NULL",
+          "t.user_id = ",
+          "t.date >= ",
+          "t.date < ",
+        ]) {
+          expect(rows.text).toContain(predicate);
+          expect(total.text).toContain(predicate);
+        }
+      }
+    });
+
+    it("drops the series lookup only from the count query, never from the page query", () => {
+      for (const show of ["installments", "all"] as const) {
+        const { rows, total } = build({ show });
+        expect(rows.text).toContain("JOIN series");
+        expect(total.text).not.toContain("JOIN series");
+      }
+    });
+
+    it("carries the same filter parameters in both queries, aside from the CTE's own lookup and pagination", () => {
+      for (const show of ["installments", "all"] as const) {
+        const { rows, total } = build({ show, category: "cat-1", card: "card-1", type: "INCOME" });
+        // `rows` always leads with the `series` CTE's own `userId`
+        // parameter (present regardless of which arms are selected) and
+        // always trails with LIMIT/OFFSET; strip both ends to compare the
+        // filter parameters the two queries otherwise share exactly.
+        const rowsFilterValues = rows.values.slice(1, rows.values.length - 2);
+        expect(rowsFilterValues).toEqual(total.values);
+      }
     });
   });
 });

@@ -26,9 +26,14 @@ export default async function EditTransactionPage({
   // `deactivatedAt: null` excludes a soft-deleted transaction, the same
   // guard `cards/[id]/edit/page.tsx` and `categories/[id]/edit/page.tsx`
   // apply — without it, a deleted row still opens from a bookmark, a stale
-  // tab, or Back, and can be silently re-saved.
+  // tab, or Back, and can be silently re-saved. `recurringTransactionId:
+  // null` excludes an installment plan's generated occurrence: it has no
+  // edit page of its own — series fields (type/category/card) are edited
+  // through the plan, occurrence fields through the plan's occurrences
+  // table — so an occurrence id 404s here rather than opening a one-off
+  // editor that could drift it from its series.
   const transaction = await prisma.transaction.findFirst({
-    where: { id, userId: session.user.id, deactivatedAt: null },
+    where: { id, userId: session.user.id, deactivatedAt: null, recurringTransactionId: null },
     include: { category: true, card: true },
   });
   if (!transaction) notFound();

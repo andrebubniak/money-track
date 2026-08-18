@@ -884,6 +884,48 @@ test.describe("transactions", () => {
     await expect(page.getByRole("spinbutton", { name: "Amount", exact: true })).toHaveCount(0);
   });
 
+  // 10c. An installment occurrence has no edit page of its own — the one-off
+  // editor must not open it.
+  test("navigating straight to an installment occurrence's one-off edit URL 404s", async ({ page }) => {
+    const email = uniqueEmail("installment-occurrence-edit");
+    await registerUser(page, { email });
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Electronics");
+    await createCard(page, "Personal Visa");
+
+    await createInstallmentPlan(page, {
+      amount: "100.00",
+      category: "Electronics",
+      card: "Personal Visa",
+      description: "New laptop",
+      occurrencesCount: 12,
+    });
+
+    const userId = await getUserIdByEmail(email);
+
+    // One of the plan's own generated rows, fetched directly — no UI flow
+    // exposes an occurrence's raw transaction id, only its plan id.
+    const [occurrence] = await dbQuery<{ id: string }>(
+      `SELECT t.id FROM transactions t
+         JOIN recurring_transactions r ON r.id = t.recurring_transaction_id
+        WHERE r.user_id = $1 AND r.fixed_occurrences_count = true
+        LIMIT 1`,
+      [userId],
+    );
+    if (!occurrence) throw new Error("Expected the installment plan to have generated at least one row");
+
+    // Same not-found UI the soft-deleted-edit scenario above asserts, and for
+    // the same documented reason: `notFound()` here still yields a 200 with
+    // the not-found UI, not a literal 404 status, because this route's
+    // `loading.tsx` has already committed the response as streaming before
+    // the page's own `prisma.transaction.findFirst(...)` resolves.
+    const response = await page.goto(path(`/transactions/${occurrence.id}/edit`));
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+    await expect(page.getByText("This page does not exist.")).toBeVisible();
+    await expect(page.getByRole("spinbutton", { name: "Amount", exact: true })).toHaveCount(0);
+  });
+
   // 11. A garbage query string renders page 1.
   test("a garbage query string is ignored in favor of the default view", async ({ page }) => {
     await registerUser(page);

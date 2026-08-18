@@ -65,6 +65,20 @@ type InstallmentOccurrencesTableProps = {
 type RowValues = { date: string; isPaid: boolean };
 type RowStatus = "idle" | "saving" | "saved";
 
+/** Field-by-field equality for one occurrence's server data. */
+function occurrenceDataEqual(a: InstallmentOccurrence, b: InstallmentOccurrence): boolean {
+  return (
+    a.date === b.date &&
+    a.amount === b.amount &&
+    a.description === b.description &&
+    a.isPaid === b.isPaid
+  );
+}
+
+function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, InstallmentOccurrence> {
+  return Object.fromEntries(occurrences.map((occurrence) => [occurrence.id, occurrence]));
+}
+
 /**
  * One row per occurrence, each its own small form. `amount`, `date`,
  * `description`, and `isPaid` are the only fields that vary row to row — the
@@ -115,6 +129,102 @@ export function InstallmentOccurrencesTable({
   const amountRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const descriptionRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
+  // The last server data this component has rendered per occurrence id,
+  // seeded to match the very first `occurrences` prop so there is nothing
+  // to resync on mount.
+  const [lastServerValues, setLastServerValues] = useState(() => toServerSnapshot(occurrences));
+
+  // This table stays mounted across a `router.refresh()` — the series form
+  // triggers one on save without navigating away — so a later `occurrences`
+  // prop can describe a row already on screen differently than what it's
+  // currently showing (another tab saved that same occurrence in the
+  // meantime, for instance). Without this, a row's stale display survives
+  // the refresh, and clicking Save on it silently overwrites the newer
+  // server value with the stale one — real, silent data loss in a finance
+  // app.
+  //
+  // The `date`/`isPaid` half of that fix happens here, *during render*,
+  // rather than in a `useEffect` — this is React's own documented
+  // "adjusting state when a prop changes" pattern
+  // (react.dev/learn/you-might-not-need-an-effect), not the anti-pattern
+  // `react-hooks/set-state-in-effect` exists to catch (which is why the rule
+  // fired here when this lived in an effect: calling a state setter
+  // unconditionally inside an effect body). Calling `setState` here is safe
+  // and does not loop, because `changedIds` is empty — and so this whole
+  // block is skipped — on the very next render, once `lastServerValues`
+  // has caught up. It also means a changed row is corrected *before* a
+  // stale frame is ever committed, rather than flashing stale and then
+  // fixing itself the way an effect-based version would.
+  //
+  // Resyncing only the ids whose server data actually changed (not every
+  // row on every render) is what keeps an in-progress edit on an
+  // *unrelated*, unchanged row from being wiped by this same check. The
+  // trade-off: a row the user is *actively, unsaved-ly* editing right now,
+  // whose server value changes underneath it at that exact moment, loses
+  // that local edit too — there is no way to both show the new server truth
+  // and keep an edit that disagrees with it, and silently keeping the stale
+  // local input instead would be the actual bug this exists to fix.
+  const changedIds = occurrences
+    .filter((occurrence) => {
+      const before = lastServerValues[occurrence.id];
+      return !before || !occurrenceDataEqual(before, occurrence);
+    })
+    .map((occurrence) => occurrence.id);
+
+  if (changedIds.length > 0) {
+    const changed = new Set(changedIds);
+
+    setLastServerValues(toServerSnapshot(occurrences));
+    setValues((current) => {
+      const next = { ...current };
+      for (const occurrence of occurrences) {
+        if (changed.has(occurrence.id)) {
+          next[occurrence.id] = { date: occurrence.date, isPaid: occurrence.isPaid };
+        }
+      }
+      return next;
+    });
+    setStatus((current) => {
+      const next = { ...current };
+      for (const id of changedIds) next[id] = "idle";
+      return next;
+    });
+    setRowError((current) => {
+      const next = { ...current };
+      for (const id of changedIds) next[id] = null;
+      return next;
+    });
+  }
+
+  // The `amount`/`description` half of the same fix: those two fields are
+  // uncontrolled (see the note on `RowValues` above), so a prop change alone
+  // does not update what they display. Mutating a DOM node is a genuine side
+  // effect — unlike the state adjustment above, this one *does* belong in a
+  // `useEffect`, not render, and needs its own ref-based snapshot rather
+  // than sharing `lastServerValues`: by the time this effect runs (after the
+  // render-time adjustment above has already caught `lastServerValues` up to
+  // `occurrences`), diffing against that state would always see "nothing
+  // changed".
+  const syncedAmountsRef = useRef(toServerSnapshot(occurrences));
+
+  useEffect(() => {
+    const previous = syncedAmountsRef.current;
+
+    for (const occurrence of occurrences) {
+      const before = previous[occurrence.id];
+      if (before && before.amount === occurrence.amount && before.description === occurrence.description) {
+        continue;
+      }
+
+      const amountInput = amountRefs.current[occurrence.id];
+      if (amountInput) amountInput.value = occurrence.amount;
+      const descriptionInput = descriptionRefs.current[occurrence.id];
+      if (descriptionInput) descriptionInput.value = occurrence.description ?? "";
+    }
+
+    syncedAmountsRef.current = toServerSnapshot(occurrences);
+  }, [occurrences]);
 
   // Scrolls to and focuses the occurrence named by the query param, once.
   // Guards membership itself rather than trusting the page's own validation
@@ -221,7 +331,11 @@ export function InstallmentOccurrencesTable({
 
         <TableBody>
           {visibleOccurrences.map((occurrence, index) => {
-            const row = values[occurrence.id];
+            // Falls back to the occurrence's own server values for an id
+            // `values` has never seen — defensive only: the render-time
+            // adjustment above already seeds/resyncs `values` for every id
+            // in `occurrences` before this ever runs.
+            const row = values[occurrence.id] ?? { date: occurrence.date, isPaid: occurrence.isPaid };
             const rowStatus = status[occurrence.id] ?? "idle";
             const error = rowError[occurrence.id];
 

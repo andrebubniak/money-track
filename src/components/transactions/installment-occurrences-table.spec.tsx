@@ -1,6 +1,8 @@
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 
 vi.mock("@/lib/actions/transactions", () => ({
   updateTransaction: vi.fn(),
@@ -10,6 +12,7 @@ vi.mock("@/lib/actions/transactions", () => ({
 import { deleteTransaction, updateTransaction } from "@/lib/actions/transactions";
 import { renderWithIntl } from "@/test-utils/intl";
 import { InstallmentOccurrencesTable } from "@/components/transactions/installment-occurrences-table";
+import enUS from "../../../messages/en-US.json";
 
 const occurrences = [
   { id: "tx-1", date: "2026-01-05", amount: "89.00", description: "Gym", isPaid: true },
@@ -29,6 +32,28 @@ const render = (overrides: Record<string, unknown> = {}) =>
       focusOccurrenceId={null}
       {...overrides}
     />,
+  );
+
+// `renderWithIntl`'s own `rerender` (from `@testing-library/react`) expects
+// the full tree it mounted, provider included, or the update would replace
+// the provider itself rather than diff against the existing one — so
+// rerendering with new props re-wraps the same way `render` above does,
+// instead of passing `InstallmentOccurrencesTable` alone.
+const rerenderWithNewProps = (
+  rerender: (ui: ReactElement) => void,
+  overrides: Record<string, unknown>,
+) =>
+  rerender(
+    <NextIntlClientProvider locale="en-US" messages={enUS}>
+      <InstallmentOccurrencesTable
+        planId="plan-1"
+        occurrences={occurrences}
+        seriesValues={seriesValues}
+        dateFormat="MDY"
+        focusOccurrenceId={null}
+        {...overrides}
+      />
+    </NextIntlClientProvider>,
   );
 
 beforeEach(() => {
@@ -129,9 +154,59 @@ describe("InstallmentOccurrencesTable", () => {
     expect(screen.getAllByRole("spinbutton")[2]).toHaveFocus();
   });
 
+  // In this design a ref only ever exists for an id that came from
+  // `occurrences` in the first place, so a genuinely foreign id already
+  // finds no ref to call `.focus()` on regardless of the explicit
+  // membership check — this test cannot distinguish "guard present" from
+  // "guard removed" (see the fix-round note in the task report). Kept as
+  // a regression test for the observable behaviour either way: a query
+  // param naming no row in this plan must never move focus.
   it("ignores an occurrence id that is not in this plan", () => {
     render({ focusOccurrenceId: "not-mine" });
 
     expect(document.body).toHaveFocus();
+  });
+
+  // The page keeps this table mounted across a `router.refresh()` (the
+  // series form triggers one on save without navigating away), so a prop
+  // update for an occurrence already on screen must overwrite whatever
+  // stale value is showing — otherwise a later Save on that row would
+  // silently write the stale value back over a change made elsewhere.
+  it("resyncs a row's displayed values when its server data changes underneath it", () => {
+    const { rerender } = render();
+
+    const secondRow = screen.getAllByRole("row")[2];
+    expect(within(secondRow).getByRole("spinbutton")).toHaveValue(89);
+    expect(within(secondRow).getByRole("checkbox")).not.toBeChecked();
+
+    const updatedOccurrences = occurrences.map((occurrence) =>
+      occurrence.id === "tx-2" ? { ...occurrence, amount: "150.00", isPaid: true } : occurrence,
+    );
+    rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
+
+    const secondRowAfter = screen.getAllByRole("row")[2];
+    expect(within(secondRowAfter).getByRole("spinbutton")).toHaveValue(150);
+    expect(within(secondRowAfter).getByRole("checkbox")).toBeChecked();
+  });
+
+  // The resync above must not clobber a row nobody else touched: only the
+  // row whose server data actually changed should reset.
+  it("leaves an untouched row alone when a different row's server data changes", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render();
+
+    const firstRow = screen.getAllByRole("row")[1];
+    fireEvent.change(within(firstRow).getByRole("spinbutton"), { target: { value: "999.00" } });
+
+    const updatedOccurrences = occurrences.map((occurrence) =>
+      occurrence.id === "tx-2" ? { ...occurrence, amount: "150.00" } : occurrence,
+    );
+    rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
+
+    const firstRowAfter = screen.getAllByRole("row")[1];
+    expect(within(firstRowAfter).getByRole("spinbutton")).toHaveValue(999);
+
+    await user.click(within(firstRowAfter).getByRole("button", { name: "Save" }));
+    expect(vi.mocked(updateTransaction).mock.calls[0][1].amount).toBe("999.00");
   });
 });

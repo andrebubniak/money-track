@@ -110,6 +110,15 @@ export function sharedTransactionFields(t: TransactionValidationTranslator) {
       .optional()
       .transform((value) => (value ? value : null)),
 
+    // `.nullish()`, not `.optional()`: every create page's `defaultValues`
+    // sets this to `null` (matching `TransactionValues.description`'s own
+    // `string | null` type), and react-hook-form submits that raw `null`
+    // unchanged for a field the user never touched. `.optional()` alone only
+    // widens the input type to accept `undefined` — a literal `null` still
+    // fails zod's base `z.string()` check before `.trim()`/`.max()` ever run,
+    // surfacing as an untranslated "Invalid input: expected string, received
+    // null" instead of submitting. `cardId` above already accepts `null` for
+    // the identical reason; this mirrors it.
     description: z
       .string()
       .trim()
@@ -117,7 +126,7 @@ export function sharedTransactionFields(t: TransactionValidationTranslator) {
         MAX_TRANSACTION_DESCRIPTION_LENGTH,
         t("description.tooLong", { max: MAX_TRANSACTION_DESCRIPTION_LENGTH }),
       )
-      .optional()
+      .nullish()
       .transform((value) => (value ? value : null)),
   };
 }

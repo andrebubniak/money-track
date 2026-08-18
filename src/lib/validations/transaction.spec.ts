@@ -138,6 +138,22 @@ describe("createTransactionSchema", () => {
       const result = schema.safeParse({ ...valid, description: "   " });
       expect(result.success && result.data.description).toBeNull();
     });
+
+    // Regression: every create page's `defaultValues.description` is `null`
+    // (matching `TransactionValues`'s own `string | null` type), and
+    // react-hook-form submits that raw value unchanged for a field the user
+    // never touched — so a real submission can send `null` here, not just
+    // `undefined` or `""`. `.optional()` alone doesn't accept it.
+    it("normalizes a null description to null, not a type error", () => {
+      const result = schema.safeParse({ ...valid, description: null });
+      expect(result.success && result.data.description).toBeNull();
+    });
+
+    it("normalizes a missing description to null", () => {
+      const { description: _removed, ...withoutDescription } = valid;
+      const result = schema.safeParse(withoutDescription);
+      expect(result.success && result.data.description).toBeNull();
+    });
   });
 
   describe("date", () => {

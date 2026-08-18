@@ -42,10 +42,21 @@ type InstallmentSeriesFormProps = {
   /**
    * The plan's original, frozen total — never incremented or decremented by
    * later per-occurrence edits (`.claude/rules/database.md`'s note on
-   * `RecurringTransaction.occurrencesCount`). Shown as read-only text here,
-   * and reused as the count interpolated into the delete dialog below.
+   * `RecurringTransaction.occurrencesCount`). Shown as read-only text here.
+   * Not what the delete dialog interpolates — see `liveOccurrencesCount`.
    */
   occurrencesCount: number;
+  /**
+   * The plan's *current* live occurrence count — `occurrences.length` on the
+   * edit page, i.e. after any individual occurrences already soft-deleted
+   * from the list's row actions. `deleteInstallmentPlan` only soft-deletes
+   * live rows, so this, not the frozen `occurrencesCount` above, is the
+   * number that actually disappears — the delete dialog "names the number of
+   * transactions that will disappear" (`docs/superpowers/specs/2026-08-16-transactions-design.md`),
+   * and overstates it once any occurrence has been deleted individually if
+   * given the frozen total instead.
+   */
+  liveOccurrencesCount: number;
   frequency: RecurringFrequency;
   /** `YYYY-MM-DD`. Frozen — see the read-only block below. */
   startDate: string;
@@ -87,6 +98,7 @@ export function InstallmentSeriesForm({
   selectedCategory,
   selectedCard,
   occurrencesCount,
+  liveOccurrencesCount,
   frequency,
   startDate,
   dateFormat,
@@ -294,7 +306,7 @@ export function InstallmentSeriesForm({
           <AlertDialogHeader>
             <AlertDialogTitle>{tDeleteDialog("installmentsTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {tDeleteDialog("installmentsDescription", { count: occurrencesCount })}
+              {tDeleteDialog("installmentsDescription", { count: liveOccurrencesCount })}
             </AlertDialogDescription>
           </AlertDialogHeader>
 

@@ -302,6 +302,31 @@ export function buildListQueries({ userId, filters, categorySortNames }: ListQue
   };
 }
 
+/**
+ * The stable `n`/`N` position of every one of a single plan's generated
+ * rows — live or soft-deleted — keyed by transaction id. Reuses the exact
+ * `ROW_NUMBER() OVER (ORDER BY date, id)` scheme `seriesCte` computes for the
+ * list (scoped here to one `recurringTransactionId` instead of partitioned
+ * across all of a user's plans), so the installment edit page's occurrence
+ * table numbers rows exactly the way the list does — an occurrence keeps the
+ * position it was created with even after an earlier sibling is deleted, per
+ * the same rule `seriesCte`'s own comment documents.
+ */
+export async function fetchOccurrenceIndexes(
+  userId: string,
+  recurringTransactionId: string,
+): Promise<Map<string, number>> {
+  const rows = await prisma.$queryRaw<{ id: string; index: number }[]>(Prisma.sql`
+    SELECT t.id AS id,
+           (ROW_NUMBER() OVER (ORDER BY t.date, t.id))::int AS index
+      FROM transactions t
+     WHERE t.user_id = ${userId}
+       AND t.recurring_transaction_id = ${recurringTransactionId}
+  `);
+
+  return new Map(rows.map((row) => [row.id, row.index]));
+}
+
 export async function fetchTransactionList(args: ListQueryArgs): Promise<{
   rows: TransactionListRow[];
   total: number;

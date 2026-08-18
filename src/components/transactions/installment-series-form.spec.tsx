@@ -33,6 +33,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
       selectedCategory={{ id: "cat-1", name: "Food" }}
       selectedCard={{ id: "card-1", name: "Personal Visa" }}
       occurrencesCount={12}
+      liveOccurrencesCount={12}
       frequency="MONTHLY"
       startDate="2026-01-05"
       dateFormat="MDY"
@@ -134,7 +135,7 @@ describe("InstallmentSeriesForm", () => {
 
   it("opens a confirmation before deleting the plan, interpolating the occurrence count", async () => {
     const user = userEvent.setup();
-    render({ occurrencesCount: 7 });
+    render({ liveOccurrencesCount: 7 });
 
     await user.click(screen.getByRole("button", { name: "Delete plan" }));
 
@@ -142,6 +143,22 @@ describe("InstallmentSeriesForm", () => {
       await screen.findByText("This will remove the plan and all 7 of its payments. This can't be undone."),
     ).toBeInTheDocument();
     expect(deleteInstallmentPlan).not.toHaveBeenCalled();
+  });
+
+  // The dialog names how many transactions actually disappear —
+  // `deleteInstallmentPlan` only soft-deletes *live* rows — not the plan's
+  // frozen original total, which would overstate the count once any
+  // occurrence has already been deleted individually.
+  it("interpolates the live occurrence count, not the frozen original total", async () => {
+    const user = userEvent.setup();
+    render({ occurrencesCount: 12, liveOccurrencesCount: 9 });
+
+    await user.click(screen.getByRole("button", { name: "Delete plan" }));
+
+    expect(
+      await screen.findByText("This will remove the plan and all 9 of its payments. This can't be undone."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/all 12 of its payments/)).not.toBeInTheDocument();
   });
 
   it("deletes the plan and navigates back to the list on confirm", async () => {

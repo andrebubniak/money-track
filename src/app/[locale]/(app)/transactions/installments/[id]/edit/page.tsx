@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth";
 import { resolveCategoryDisplay } from "@/lib/category-display";
 import { toIsoDate } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { fetchOccurrenceIndexes } from "@/lib/transactions/list-query";
 
 export default async function EditInstallmentPlanPage({
   params,
@@ -38,7 +39,7 @@ export default async function EditInstallmentPlanPage({
   });
   if (!plan) notFound();
 
-  const [user, occurrences, t, tPresets] = await Promise.all([
+  const [user, occurrences, occurrenceIndexes, t, tPresets] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session.user.id },
       select: { dateFormat: true },
@@ -48,6 +49,10 @@ export default async function EditInstallmentPlanPage({
       where: { recurringTransactionId: plan.id, deactivatedAt: null },
       orderBy: { date: "asc" },
     }),
+    // Every row's stable `n`/`N` position, live or soft-deleted — the same
+    // numbering the list itself uses, so deleting one occurrence here can't
+    // renumber its still-live siblings differently than the list shows them.
+    fetchOccurrenceIndexes(session.user.id, plan.id),
     getTranslations("transactions"),
     getTranslations("categories.presets"),
   ]);
@@ -95,6 +100,7 @@ export default async function EditInstallmentPlanPage({
           selectedCategory={selectedCategory}
           selectedCard={selectedCard}
           occurrencesCount={plan.occurrencesCount}
+          liveOccurrencesCount={occurrences.length}
           frequency={plan.frequency}
           startDate={toIsoDate(plan.startDate)}
           dateFormat={user.dateFormat}
@@ -107,6 +113,11 @@ export default async function EditInstallmentPlanPage({
           planId={plan.id}
           occurrences={occurrences.map((occurrence) => ({
             id: occurrence.id,
+            // The position this row was created with, not its position
+            // among today's live rows — matches the list's own numbering, so
+            // deleting an earlier occurrence can't renumber this one
+            // differently here than it reads in the list.
+            index: occurrenceIndexes.get(occurrence.id) ?? 0,
             date: toIsoDate(occurrence.date),
             // A `Decimal(12, 2)` column always round-trips to two places;
             // `toFixed(2)` is what keeps that guarantee on the way back out
@@ -115,6 +126,7 @@ export default async function EditInstallmentPlanPage({
             description: occurrence.description,
             isPaid: occurrence.isPaid,
           }))}
+          occurrencesCount={plan.occurrencesCount}
           seriesValues={{
             type: plan.type,
             categoryId: plan.categoryId,

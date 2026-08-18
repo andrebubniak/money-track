@@ -29,6 +29,15 @@ import { createTransactionSchema } from "@/lib/validations/transaction";
 
 export type InstallmentOccurrence = {
   id: string;
+  /**
+   * The 1-based position this row was created with — the same stable
+   * numbering the transactions list shows (`fetchOccurrenceIndexes`,
+   * computed over every generated row, live or soft-deleted, before this
+   * component ever filters to what's currently visible). Not derived from
+   * this table's own row order: doing that here would renumber a row
+   * whenever an earlier sibling is deleted, disagreeing with the list.
+   */
+  index: number;
   date: string;
   amount: string;
   description: string | null;
@@ -38,6 +47,13 @@ export type InstallmentOccurrence = {
 type InstallmentOccurrencesTableProps = {
   planId: string;
   occurrences: InstallmentOccurrence[];
+  /**
+   * The plan's original, frozen total (`RecurringTransaction.occurrencesCount`)
+   * — the same `N` the list's `n/N` numbering uses, and never the count of
+   * currently-visible rows. `installment-series-form.tsx`'s read-only
+   * "Occurrences" field shows the same number for the same reason.
+   */
+  occurrencesCount: number;
   seriesValues: InstallmentSeriesValues;
   dateFormat: DateFormat;
   /**
@@ -94,6 +110,7 @@ function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, 
 export function InstallmentOccurrencesTable({
   planId,
   occurrences,
+  occurrencesCount,
   seriesValues,
   dateFormat,
   focusOccurrenceId,
@@ -330,7 +347,7 @@ export function InstallmentOccurrencesTable({
         </TableHeader>
 
         <TableBody>
-          {visibleOccurrences.map((occurrence, index) => {
+          {visibleOccurrences.map((occurrence) => {
             // Falls back to the occurrence's own server values for an id
             // `values` has never seen — defensive only: the render-time
             // adjustment above already seeds/resyncs `values` for every id
@@ -347,7 +364,7 @@ export function InstallmentOccurrencesTable({
                 }}
               >
                 <TableCell className="text-muted-foreground">
-                  {t("series", { index: index + 1, total: visibleOccurrences.length })}
+                  {t("series", { index: occurrence.index, total: occurrencesCount })}
                 </TableCell>
 
                 <TableCell>
@@ -360,7 +377,7 @@ export function InstallmentOccurrencesTable({
                     // a distinct name or a screen reader announces every
                     // picker on the page identically. See
                     // `.claude/rules/ui.md` and `date-picker.tsx`.
-                    triggerLabel={tInstallments("occurrenceDateLabel", { index: index + 1 })}
+                    triggerLabel={tInstallments("occurrenceDateLabel", { index: occurrence.index })}
                   />
                 </TableCell>
 
@@ -370,7 +387,7 @@ export function InstallmentOccurrencesTable({
                     step="0.01"
                     defaultValue={occurrence.amount}
                     onChange={() => clearRowFeedback(occurrence.id)}
-                    aria-label={tInstallments("occurrenceAmountLabel", { index: index + 1 })}
+                    aria-label={tInstallments("occurrenceAmountLabel", { index: occurrence.index })}
                     className="w-28"
                     ref={(element) => {
                       amountRefs.current[occurrence.id] = element;
@@ -383,7 +400,7 @@ export function InstallmentOccurrencesTable({
                     type="text"
                     defaultValue={occurrence.description ?? ""}
                     onChange={() => clearRowFeedback(occurrence.id)}
-                    aria-label={tInstallments("occurrenceDescriptionLabel", { index: index + 1 })}
+                    aria-label={tInstallments("occurrenceDescriptionLabel", { index: occurrence.index })}
                     ref={(element) => {
                       descriptionRefs.current[occurrence.id] = element;
                     }}
@@ -394,7 +411,7 @@ export function InstallmentOccurrencesTable({
                   <Checkbox
                     checked={row.isPaid}
                     onCheckedChange={(next) => updateRow(occurrence.id, { isPaid: next === true })}
-                    aria-label={tInstallments("occurrencePaidLabel", { index: index + 1 })}
+                    aria-label={tInstallments("occurrencePaidLabel", { index: occurrence.index })}
                   />
                 </TableCell>
 

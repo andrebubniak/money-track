@@ -15,9 +15,9 @@ import { InstallmentOccurrencesTable } from "@/components/transactions/installme
 import enUS from "../../../messages/en-US.json";
 
 const occurrences = [
-  { id: "tx-1", date: "2026-01-05", amount: "89.00", description: "Gym", isPaid: true },
-  { id: "tx-2", date: "2026-02-05", amount: "89.00", description: "Gym", isPaid: false },
-  { id: "tx-3", date: "2026-03-05", amount: "89.00", description: "Gym", isPaid: false },
+  { id: "tx-1", index: 1, date: "2026-01-05", amount: "89.00", description: "Gym", isPaid: true },
+  { id: "tx-2", index: 2, date: "2026-02-05", amount: "89.00", description: "Gym", isPaid: false },
+  { id: "tx-3", index: 3, date: "2026-03-05", amount: "89.00", description: "Gym", isPaid: false },
 ];
 
 const seriesValues = { type: "EXPENSE" as const, categoryId: "cat-1", cardId: "card-1" };
@@ -27,6 +27,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
     <InstallmentOccurrencesTable
       planId="plan-1"
       occurrences={occurrences}
+      occurrencesCount={3}
       seriesValues={seriesValues}
       dateFormat="MDY"
       focusOccurrenceId={null}
@@ -48,6 +49,7 @@ const rerenderWithNewProps = (
       <InstallmentOccurrencesTable
         planId="plan-1"
         occurrences={occurrences}
+        occurrencesCount={3}
         seriesValues={seriesValues}
         dateFormat="MDY"
         focusOccurrenceId={null}
@@ -132,6 +134,25 @@ describe("InstallmentOccurrencesTable", () => {
 
     expect(deleteTransaction).toHaveBeenCalledTimes(1);
     expect(vi.mocked(deleteTransaction).mock.calls[0][0]).toBe("tx-2");
+  });
+
+  // Regression coverage: numbering must come from each occurrence's own
+  // stable `index` (its position when created), never from this table's own
+  // visible row order — otherwise deleting an earlier occurrence renumbers
+  // every later one here while the list (which numbers the same stable way)
+  // keeps showing their original positions, disagreeing with this table.
+  it("keeps a remaining occurrence's original position after an earlier one is deleted", async () => {
+    const user = userEvent.setup();
+    render();
+
+    const firstRow = screen.getAllByRole("row")[1];
+    await user.click(within(firstRow).getByRole("button", { name: "Delete payment" }));
+    await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+    // tx-1 (index 1) is gone; tx-3 keeps "3 of 3", not renumbered to "2 of 3".
+    expect(screen.queryByText("1 of 3")).not.toBeInTheDocument();
+    expect(screen.getByText("2 of 3")).toBeInTheDocument();
+    expect(screen.getByText("3 of 3")).toBeInTheDocument();
   });
 
   // Per-row state, not one flag for the table: saving two rows in sequence

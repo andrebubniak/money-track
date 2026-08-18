@@ -58,6 +58,16 @@ describe("TransactionForm", () => {
     expect(screen.getByRole("radio", { name: "Expense" })).toBeChecked();
   });
 
+  // The test above renders with the same type the fixture already carries,
+  // so it would pass even if the form ignored `defaultValues.type` and
+  // hardcoded the radio. Rendering with the other value is what actually
+  // proves the radio is wired to `defaultValues.type` rather than fixed.
+  it("checks whichever type is actually passed in, not just Expense", () => {
+    render({ defaultValues: { ...values, type: "INCOME" } });
+
+    expect(screen.getByRole("radio", { name: "Income" })).toBeChecked();
+  });
+
   // The invariant from the schema, made visible: income has no card.
   it("hides the card field when Income is chosen", async () => {
     const user = userEvent.setup();

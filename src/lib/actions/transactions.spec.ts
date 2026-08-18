@@ -161,11 +161,11 @@ describe("updateTransaction", () => {
     expect(prisma.transaction.update).not.toHaveBeenCalled();
   });
 
-  it("scopes the ownership lookup to the session user", async () => {
+  it("scopes the ownership lookup to the session user and to active rows", async () => {
     await updateTransaction("tx-1", validValues, LOCALE);
 
     expect(prisma.transaction.findFirst).toHaveBeenCalledWith({
-      where: { id: "tx-1", userId: "user-1" },
+      where: { id: "tx-1", userId: "user-1", deactivatedAt: null },
     });
   });
 

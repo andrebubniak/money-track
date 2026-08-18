@@ -23,8 +23,12 @@ export default async function EditTransactionPage({
 
   // Scoped to the session's userId, never to the id alone — someone else's
   // id finds nothing, which is indistinguishable from a nonexistent one.
+  // `deactivatedAt: null` excludes a soft-deleted transaction, the same
+  // guard `cards/[id]/edit/page.tsx` and `categories/[id]/edit/page.tsx`
+  // apply — without it, a deleted row still opens from a bookmark, a stale
+  // tab, or Back, and can be silently re-saved.
   const transaction = await prisma.transaction.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: session.user.id, deactivatedAt: null },
     include: { category: true, card: true },
   });
   if (!transaction) notFound();

@@ -393,7 +393,12 @@
       "occurrenceSave": "Salvar",
       "occurrenceSaving": "Salvando…",
       "occurrenceSaved": "Salvo",
-      "occurrenceDelete": "Excluir parcela"
+      "occurrenceDelete": "Excluir parcela",
+      "occurrenceDateLabel": "Data da parcela {index}",
+      "occurrenceAmountLabel": "Valor da parcela {index}",
+      "occurrenceDescriptionLabel": "Descrição da parcela {index}",
+      "occurrencePaidLabel": "Parcela {index} paga",
+      "deletePlan": "Excluir parcelamento"
     },
     "deleteDialog": {
       "title": "Excluir esta transação?",

@@ -393,7 +393,12 @@
       "occurrenceSave": "Speichern",
       "occurrenceSaving": "Wird gespeichert…",
       "occurrenceSaved": "Gespeichert",
-      "occurrenceDelete": "Rate löschen"
+      "occurrenceDelete": "Rate löschen",
+      "occurrenceDateLabel": "Rate {index} Datum",
+      "occurrenceAmountLabel": "Rate {index} Betrag",
+      "occurrenceDescriptionLabel": "Rate {index} Beschreibung",
+      "occurrencePaidLabel": "Rate {index} bezahlt",
+      "deletePlan": "Ratenzahlung löschen"
     },
     "deleteDialog": {
       "title": "Diese Transaktion löschen?",

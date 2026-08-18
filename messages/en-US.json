@@ -393,7 +393,12 @@
       "occurrenceSave": "Save",
       "occurrenceSaving": "Saving…",
       "occurrenceSaved": "Saved",
-      "occurrenceDelete": "Delete payment"
+      "occurrenceDelete": "Delete payment",
+      "occurrenceDateLabel": "Payment {index} date",
+      "occurrenceAmountLabel": "Payment {index} amount",
+      "occurrenceDescriptionLabel": "Payment {index} description",
+      "occurrencePaidLabel": "Payment {index} paid",
+      "deletePlan": "Delete plan"
     },
     "deleteDialog": {
       "title": "Delete this transaction?",

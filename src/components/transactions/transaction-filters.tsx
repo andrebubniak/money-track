@@ -92,8 +92,29 @@ export function TransactionFiltersPanel({
   const patchDraft = (patch: Partial<TransactionFilters>) =>
     setDraft((current) => ({ ...current, ...patch }));
 
+  // Merges only the fields this panel actually owns — categoryId, cardId,
+  // type, show, from, to — over the *live* `filters` prop, not the whole
+  // `draft` over nothing. `draft` is seeded once from `filters` on mount and
+  // this panel never remounts on a client navigation, so `sort`/`dir` (set
+  // by clicking a column header, outside this panel) would otherwise sit
+  // stale in `draft` and get written back out here, silently reverting
+  // whatever sort was active the moment Apply is pressed.
   const handleApply = () => {
-    router.push(hrefFrom({ ...draft, page: 1 }, today));
+    router.push(
+      hrefFrom(
+        {
+          ...filters,
+          categoryId: draft.categoryId,
+          cardId: draft.cardId,
+          type: draft.type,
+          show: draft.show,
+          from: draft.from,
+          to: draft.to,
+          page: 1,
+        },
+        today,
+      ),
+    );
   };
 
   const handleClear = () => {

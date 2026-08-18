@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 
 const push = vi.fn();
 vi.mock("@/i18n/navigation", async () => {
@@ -8,22 +9,39 @@ vi.mock("@/i18n/navigation", async () => {
   return { ...actual, useRouter: () => ({ push, replace: push, refresh: vi.fn() }) };
 });
 
+import enUS from "../../../messages/en-US.json";
 import { renderWithIntl } from "@/test-utils/intl";
 import { TransactionFiltersPanel } from "@/components/transactions/transaction-filters";
 import { parseTransactionFilters } from "@/lib/validations/transaction-filters";
 
 const TODAY = new Date("2026-08-16T00:00:00.000Z");
 
-const render = (params: Record<string, string> = {}) =>
-  renderWithIntl(
+function panel(params: Record<string, string> = {}) {
+  return (
     <TransactionFiltersPanel
       filters={parseTransactionFilters(params, TODAY)}
       today="2026-08-16"
       dateFormat="MDY"
       selectedCategory={null}
       selectedCard={null}
-    />,
+    />
   );
+}
+
+const render = (params: Record<string, string> = {}) => renderWithIntl(panel(params));
+
+/**
+ * Wraps `panel(params)` the same way `renderWithIntl` does, for use with
+ * `rerender` — `rerender` replaces the whole previously-rendered tree, so it
+ * needs its own `NextIntlClientProvider`, not just the bare component.
+ */
+function rerenderPanel(params: Record<string, string> = {}) {
+  return (
+    <NextIntlClientProvider locale="en-US" messages={enUS}>
+      {panel(params)}
+    </NextIntlClientProvider>
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -74,6 +92,31 @@ describe("TransactionFiltersPanel", () => {
     await user.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(push).toHaveBeenCalledWith("/transactions?show=recurring");
+  });
+
+  // The panel's `draft` state is seeded once from the `filters` prop on
+  // mount, and this same component instance stays mounted across a client
+  // navigation (sorting is a plain link outside this panel, not a remount).
+  // `rerender` with a new `filters` prop reproduces exactly that: the sort
+  // changes underneath the panel while `draft` is left holding the old
+  // value. Regression coverage for a bug where Apply always wrote `draft`'s
+  // stale `sort`/`dir` back out, silently reverting whatever sort was active
+  // the moment Apply was pressed.
+  it("keeps the active sort and direction when applying a filter", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render();
+
+    // Simulates clicking a "Sort by amount" column header: the URL (and so
+    // the `filters` prop) changes to sort=amount&dir=asc without the panel
+    // ever unmounting.
+    rerender(rerenderPanel({ sort: "amount", dir: "asc" }));
+
+    await user.click(screen.getByRole("button", { name: /Filters/ }));
+    await user.click(screen.getByLabelText("Show"));
+    await user.click(await screen.findByRole("option", { name: "Recurring only" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(push).toHaveBeenCalledWith("/transactions?show=recurring&sort=amount&dir=asc");
   });
 
   it("clears to the bare path", async () => {

@@ -86,9 +86,12 @@ export async function updateRecurringTransaction(
   // rewrites its generated rows. Editing one here would change the
   // definition and silently leave every occurrence behind, so the query
   // itself excludes plans — a plan id gets the same generic not-found as
-  // any other miss.
+  // any other miss. `deactivatedAt: null` excludes a soft-deleted recurrence
+  // for the same reason `updateTransaction` excludes a soft-deleted
+  // transaction — without it, a forged or replayed request could still
+  // write to a recurrence the user already deleted.
   const recurring = await prisma.recurringTransaction.findFirst({
-    where: { id, userId, fixedOccurrencesCount: false },
+    where: { id, userId, fixedOccurrencesCount: false, deactivatedAt: null },
   });
   if (!recurring) return notFoundError(locale);
 
@@ -122,8 +125,11 @@ export async function deleteRecurringTransaction(
 
   // Excludes installment plans the same way `updateRecurringTransaction`
   // does — a plan id is filtered out by the query, not spotted afterward.
+  // `deactivatedAt: null` excludes an already-deleted recurrence, so
+  // re-deleting it can't overwrite its original `deactivatedAt` with a
+  // fresh timestamp.
   const recurring = await prisma.recurringTransaction.findFirst({
-    where: { id, userId, fixedOccurrencesCount: false },
+    where: { id, userId, fixedOccurrencesCount: false, deactivatedAt: null },
   });
   if (!recurring) return notFoundError(locale);
 

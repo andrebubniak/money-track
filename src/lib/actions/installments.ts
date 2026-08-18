@@ -124,8 +124,12 @@ export async function updateInstallmentSeries(
   // Every ownership lookup for a plan carries `fixedOccurrencesCount: true`,
   // so an ongoing recurrence's id gets the same generic not-found error as
   // another user's id — that one is edited through its own action.
+  // `deactivatedAt: null` excludes a soft-deleted plan for the same reason
+  // `updateTransaction` excludes a soft-deleted transaction — without it, a
+  // forged or replayed request could still write to a plan the user already
+  // deleted.
   const plan = await prisma.recurringTransaction.findFirst({
-    where: { id, userId, fixedOccurrencesCount: true },
+    where: { id, userId, fixedOccurrencesCount: true, deactivatedAt: null },
   });
   if (!plan) return notFoundError(locale);
 
@@ -157,8 +161,10 @@ export async function deleteInstallmentPlan(id: string, locale: string): Promise
   if (!userId) return notFoundError(locale);
   if (!transactionIdSchema.safeParse(id).success) return notFoundError(locale);
 
+  // `deactivatedAt: null` excludes an already-deleted plan, so re-deleting it
+  // can't overwrite its original `deactivatedAt` with a fresh timestamp.
   const plan = await prisma.recurringTransaction.findFirst({
-    where: { id, userId, fixedOccurrencesCount: true },
+    where: { id, userId, fixedOccurrencesCount: true, deactivatedAt: null },
   });
   if (!plan) return notFoundError(locale);
 

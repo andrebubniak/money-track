@@ -204,6 +204,16 @@ describe("deleteTransaction", () => {
     expect(prisma.transaction).not.toHaveProperty("delete");
   });
 
+  // `deactivatedAt: null` excludes an already-deleted row, so re-deleting it
+  // can't overwrite its original `deactivatedAt` with a fresh timestamp.
+  it("scopes the ownership lookup to the session user and to active rows", async () => {
+    await deleteTransaction("tx-1", LOCALE);
+
+    expect(prisma.transaction.findFirst).toHaveBeenCalledWith({
+      where: { id: "tx-1", userId: "user-1", deactivatedAt: null },
+    });
+  });
+
   it("refuses an id that is not the caller's", async () => {
     vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null as never);
 

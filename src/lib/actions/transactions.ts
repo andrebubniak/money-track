@@ -112,7 +112,10 @@ export async function deleteTransaction(id: string, locale: string): Promise<Act
   if (!userId) return notFoundError(locale);
   if (!transactionIdSchema.safeParse(id).success) return notFoundError(locale);
 
-  const transaction = await prisma.transaction.findFirst({ where: { id, userId } });
+  // `deactivatedAt: null` excludes an already-deleted transaction, so
+  // re-deleting it can't overwrite its original `deactivatedAt` with a fresh
+  // timestamp.
+  const transaction = await prisma.transaction.findFirst({ where: { id, userId, deactivatedAt: null } });
   if (!transaction) return notFoundError(locale);
 
   // Soft delete, never a hard one — this row is financial history, and

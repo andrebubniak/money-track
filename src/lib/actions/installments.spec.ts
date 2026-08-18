@@ -174,7 +174,7 @@ describe("updateInstallmentSeries", () => {
     await updateInstallmentSeries("plan-1", seriesValues, LOCALE);
 
     expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
-      where: { id: "plan-1", userId: "user-1", fixedOccurrencesCount: true },
+      where: { id: "plan-1", userId: "user-1", fixedOccurrencesCount: true, deactivatedAt: null },
     });
   });
 
@@ -226,7 +226,7 @@ describe("deleteInstallmentPlan", () => {
     await deleteInstallmentPlan("plan-1", LOCALE);
 
     expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
-      where: { id: "plan-1", userId: "user-1", fixedOccurrencesCount: true },
+      where: { id: "plan-1", userId: "user-1", fixedOccurrencesCount: true, deactivatedAt: null },
     });
   });
 

@@ -133,7 +133,7 @@ describe("updateRecurringTransaction", () => {
       error: "notFound",
     });
     expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
-      where: { id: "rec-1", userId: "user-1", fixedOccurrencesCount: false },
+      where: { id: "rec-1", userId: "user-1", fixedOccurrencesCount: false, deactivatedAt: null },
     });
     expect(prisma.recurringTransaction.update).not.toHaveBeenCalled();
   });
@@ -176,7 +176,7 @@ describe("deleteRecurringTransaction", () => {
       error: "notFound",
     });
     expect(prisma.recurringTransaction.findFirst).toHaveBeenCalledWith({
-      where: { id: "rec-1", userId: "user-1", fixedOccurrencesCount: false },
+      where: { id: "rec-1", userId: "user-1", fixedOccurrencesCount: false, deactivatedAt: null },
     });
   });
 });

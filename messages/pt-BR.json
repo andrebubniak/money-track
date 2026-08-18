@@ -429,12 +429,10 @@
       "close": "Fechar"
     },
     "asyncCombobox": {
-      "search": "Buscar",
       "loading": "Carregando…",
       "loadingMore": "Carregando mais…",
       "empty": "Nenhum resultado.",
-      "error": "Não foi possível carregar as opções. Tente novamente.",
-      "clear": "Limpar seleção"
+      "error": "Não foi possível carregar as opções. Tente novamente."
     },
     "pagination": {
       "label": "Paginação",

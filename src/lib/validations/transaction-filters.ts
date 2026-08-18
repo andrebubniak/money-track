@@ -35,10 +35,11 @@ const idSchema = z.string().trim().min(1).max(TRANSACTION_ID_MAX_LENGTH);
 
 /**
  * `new Date("2026-02-31T00:00:00.000Z")` does NOT return an Invalid Date —
- * V8 silently rolls the day over to March 2nd. (An out-of-range *month* like
- * `2026-13-01` does fail, which is what makes the trap easy to miss.) So a
- * NaN check cannot reject a nonexistent day; round-tripping through
- * `toIsoDate` and comparing to the input is what actually does.
+ * V8 silently rolls the day over to March 3rd (2026 is not a leap year, so
+ * February has 28 days). (An out-of-range *month* like `2026-13-01` does
+ * fail, which is what makes the trap easy to miss.) So a NaN check cannot
+ * reject a nonexistent day; round-tripping through `toIsoDate` and comparing
+ * to the input is what actually does.
  */
 const dateSchema = z
   .string()

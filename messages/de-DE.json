@@ -429,12 +429,10 @@
       "close": "Schließen"
     },
     "asyncCombobox": {
-      "search": "Suchen",
       "loading": "Wird geladen…",
       "loadingMore": "Mehr wird geladen…",
       "empty": "Keine Ergebnisse.",
-      "error": "Optionen konnten nicht geladen werden. Bitte erneut versuchen.",
-      "clear": "Auswahl löschen"
+      "error": "Optionen konnten nicht geladen werden. Bitte erneut versuchen."
     },
     "pagination": {
       "label": "Seitennummerierung",

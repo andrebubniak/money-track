@@ -429,12 +429,10 @@
       "close": "Close"
     },
     "asyncCombobox": {
-      "search": "Search",
       "loading": "Loading…",
       "loadingMore": "Loading more…",
       "empty": "No results.",
-      "error": "Couldn't load options. Try again.",
-      "clear": "Clear selection"
+      "error": "Couldn't load options. Try again."
     },
     "pagination": {
       "label": "Pagination",

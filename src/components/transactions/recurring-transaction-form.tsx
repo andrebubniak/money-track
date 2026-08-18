@@ -193,9 +193,11 @@ export function RecurringTransactionForm({
       </div>
 
       <div className="col-span-12 flex flex-col gap-2 lg:col-span-4">
-        <Label htmlFor="startDate" required>
-          {t("startDateLabel")}
-        </Label>
+        {/* No `required`: `startDate` always carries a pre-filled value —
+            today's date on create, the recurrence's own on edit — the same
+            reasoning `.claude/rules/ui.md` documents for `CategoryForm`'s
+            icon field. */}
+        <Label htmlFor="startDate">{t("startDateLabel")}</Label>
         <DatePicker
           id="startDate"
           value={startDate}
@@ -263,9 +265,10 @@ export function RecurringTransactionForm({
       </div>
 
       <div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
-        <Label htmlFor="frequency" required>
-          {t("frequencyLabel")}
-        </Label>
+        {/* No `required`: `frequency` always carries a pre-filled value —
+            `MONTHLY` on create, the recurrence's own on edit — same
+            reasoning as `startDate` above. */}
+        <Label htmlFor="frequency">{t("frequencyLabel")}</Label>
         <Select
           value={frequency}
           onValueChange={(next) => {

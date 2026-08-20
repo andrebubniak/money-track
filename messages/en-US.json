@@ -394,7 +394,7 @@
       "editTitle": "Edit installments",
       "preview": "{count} transactions, {first} to {last}",
       "seriesTitle": "All payments",
-      "seriesNote": "Changing the category, card, or type updates every payment below.",
+      "seriesNote": "Changing the description, category, card, or type updates every payment below.",
       "frozenNote": "How often it repeats, when it starts, and how many payments there are can't be changed. Create a new plan instead.",
       "occurrencesTitle": "Payments",
       "occurrenceSave": "Save",
@@ -403,7 +403,6 @@
       "occurrenceDelete": "Delete payment",
       "occurrenceDateLabel": "Payment {index} date",
       "occurrenceAmountLabel": "Payment {index} amount",
-      "occurrenceDescriptionLabel": "Payment {index} description",
       "occurrencePaidLabel": "Payment {index} paid",
       "deletePlan": "Delete plan"
     },

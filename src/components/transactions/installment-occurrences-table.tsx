@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { CircleAlert, Trash2 } from "lucide-react";
 
-import type { DateFormat } from "@/generated/prisma/enums";
+import type { DateFormat, NumberFormat } from "@/generated/prisma/enums";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteTransaction, updateTransaction } from "@/lib/actions/transactions";
@@ -43,7 +43,6 @@ export type InstallmentOccurrence = {
   index: number;
   date: string;
   amount: string;
-  description: string | null;
   /** `YYYY-MM-DD` when paid, null when not. */
   paymentDate: string | null;
 };
@@ -62,6 +61,8 @@ type InstallmentOccurrencesTableProps = {
   /** `YYYY-MM-DD`, computed on the server — see `createTransactionSchema`. */
   today: string;
   dateFormat: DateFormat;
+  /** The user's stored separator convention, never the UI language's. */
+  numberFormat: NumberFormat;
   /**
    * The occurrence named by `?occurrence=` on the edit page — already
    * validated to be both well-formed and a row of this plan, or `null`. This
@@ -73,28 +74,30 @@ type InstallmentOccurrencesTableProps = {
 };
 
 /**
- * Only `date` and `paymentDate` live in state — both are driven by components
- * with their own controlled value/onChange (`DatePicker`, `Checkbox`), which
- * have no native-input quirks to avoid. `amount` and `description` are plain
- * `<input>`s read through a ref instead, uncontrolled the same way a
- * `register()`-ed field is elsewhere in the app (`.claude/rules/ui.md`) — a
- * *controlled* `type="number"` input fights the browser's own
- * mid-edit handling of a value like "95.00": React re-committing `value`
- * from state after every keystroke can drop the trailing "." or "0" before
- * the digits after it are ever typed. Reading `.value` from the DOM only at
- * Save time sidesteps that entirely.
+ * Every editable field of a row lives in state, and every input reading one
+ * is controlled: `DatePicker` and `Checkbox` have their own value/onChange,
+ * and `amount` is a `MoneyInput`.
+ *
+ * `amount` used to be a plain, uncontrolled `type="number"` input read
+ * through a ref at Save time, because a *controlled* one fights the
+ * browser's own mid-edit handling of a value like "95.00": React
+ * re-committing `value` from state after every keystroke can drop the
+ * trailing "." or "0" before the digits after it are ever typed.
+ * `MoneyInput` derives its display from a digit string, so there is no
+ * free-form "." or trailing "0" left to lose and that reason no longer
+ * applies.
+ *
+ * With nothing uncontrolled left in a row, the render-time state adjustment
+ * below is the *only* place a changed `occurrences` prop is reconciled with
+ * what is on screen — the ref-based `useEffect` that used to push `amount`
+ * and `description` into their DOM nodes went with them.
  */
-type RowValues = { date: string; paymentDate: string | null };
+type RowValues = { date: string; amount: string; paymentDate: string | null };
 type RowStatus = "idle" | "saving" | "saved";
 
 /** Field-by-field equality for one occurrence's server data. */
 function occurrenceDataEqual(a: InstallmentOccurrence, b: InstallmentOccurrence): boolean {
-  return (
-    a.date === b.date &&
-    a.amount === b.amount &&
-    a.description === b.description &&
-    a.paymentDate === b.paymentDate
-  );
+  return a.date === b.date && a.amount === b.amount && a.paymentDate === b.paymentDate;
 }
 
 function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, InstallmentOccurrence> {
@@ -102,12 +105,13 @@ function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, 
 }
 
 /**
- * One row per occurrence, each its own small form. `amount`, `date`,
- * `description`, and `paymentDate` are the only fields that vary row to row
- * — the series' category, card, and type ride along unchanged on every save, so a
- * per-row edit can never reclassify the row. `installment-series-form.tsx`
- * owns those three fields instead; see `.claude/rules/database.md`'s note on
- * why `type` has to be a series-level field.
+ * One row per occurrence, each its own small form. `amount`, `date`, and
+ * `paymentDate` are the only fields that vary row to row — the series'
+ * category, card, type, and description ride along unchanged on every save,
+ * so a per-row edit can never reclassify the row.
+ * `installment-series-form.tsx` owns those four fields instead; see
+ * `.claude/rules/database.md`'s note on why `type` has to be a series-level
+ * field.
  *
  * Pending/saved/error state is tracked per occurrence id, in a `Record`, not
  * as one flag for the whole table — saving one row must not blank another
@@ -120,6 +124,7 @@ export function InstallmentOccurrencesTable({
   seriesValues,
   today,
   dateFormat,
+  numberFormat,
   focusOccurrenceId,
 }: InstallmentOccurrencesTableProps) {
   const t = useTranslations("transactions.table");
@@ -146,7 +151,11 @@ export function InstallmentOccurrencesTable({
     Object.fromEntries(
       occurrences.map((occurrence) => [
         occurrence.id,
-        { date: occurrence.date, paymentDate: occurrence.paymentDate },
+        {
+          date: occurrence.date,
+          amount: occurrence.amount,
+          paymentDate: occurrence.paymentDate,
+        },
       ]),
     ),
   );
@@ -160,8 +169,9 @@ export function InstallmentOccurrencesTable({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Focus only — never a source of a row's value, which `values` owns. The
+  // `focusOccurrenceId` effect below is the single reader.
   const amountRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const descriptionRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   // The last server data this component has rendered per occurrence id,
@@ -178,10 +188,9 @@ export function InstallmentOccurrencesTable({
   // server value with the stale one — real, silent data loss in a finance
   // app.
   //
-  // The `date`/`paymentDate` half of that fix happens here, *during render*,
-  // rather than in a `useEffect` — this is React's own documented
-  // "adjusting state when a prop changes" pattern
-  // (react.dev/learn/you-might-not-need-an-effect), not the anti-pattern
+  // That fix happens here, *during render*, rather than in a `useEffect` —
+  // this is React's own documented "adjusting state when a prop changes"
+  // pattern (react.dev/learn/you-might-not-need-an-effect), not the anti-pattern
   // `react-hooks/set-state-in-effect` exists to catch (which is why the rule
   // fired here when this lived in an effect: calling a state setter
   // unconditionally inside an effect body). Calling `setState` here is safe
@@ -214,7 +223,11 @@ export function InstallmentOccurrencesTable({
       const next = { ...current };
       for (const occurrence of occurrences) {
         if (changed.has(occurrence.id)) {
-          next[occurrence.id] = { date: occurrence.date, paymentDate: occurrence.paymentDate };
+          next[occurrence.id] = {
+            date: occurrence.date,
+            amount: occurrence.amount,
+            paymentDate: occurrence.paymentDate,
+          };
         }
       }
       return next;
@@ -230,35 +243,6 @@ export function InstallmentOccurrencesTable({
       return next;
     });
   }
-
-  // The `amount`/`description` half of the same fix: those two fields are
-  // uncontrolled (see the note on `RowValues` above), so a prop change alone
-  // does not update what they display. Mutating a DOM node is a genuine side
-  // effect — unlike the state adjustment above, this one *does* belong in a
-  // `useEffect`, not render, and needs its own ref-based snapshot rather
-  // than sharing `lastServerValues`: by the time this effect runs (after the
-  // render-time adjustment above has already caught `lastServerValues` up to
-  // `occurrences`), diffing against that state would always see "nothing
-  // changed".
-  const syncedAmountsRef = useRef(toServerSnapshot(occurrences));
-
-  useEffect(() => {
-    const previous = syncedAmountsRef.current;
-
-    for (const occurrence of occurrences) {
-      const before = previous[occurrence.id];
-      if (before && before.amount === occurrence.amount && before.description === occurrence.description) {
-        continue;
-      }
-
-      const amountInput = amountRefs.current[occurrence.id];
-      if (amountInput) amountInput.value = occurrence.amount;
-      const descriptionInput = descriptionRefs.current[occurrence.id];
-      if (descriptionInput) descriptionInput.value = occurrence.description ?? "";
-    }
-
-    syncedAmountsRef.current = toServerSnapshot(occurrences);
-  }, [occurrences]);
 
   // Scrolls to and focuses the occurrence named by the query param, once.
   // Guards membership itself rather than trusting the page's own validation
@@ -289,9 +273,10 @@ export function InstallmentOccurrencesTable({
 
   async function handleSave(occurrence: InstallmentOccurrence) {
     const row = values[occurrence.id];
-    const amount = amountRefs.current[occurrence.id]?.value ?? "";
-    const description = descriptionRefs.current[occurrence.id]?.value ?? "";
-    const parsed = schema.safeParse({ ...seriesValues, ...row, amount, description });
+    // `row`, never `amountRefs.current[...].value`: the field is controlled,
+    // so state is the value, and reading the DOM back would only reintroduce
+    // a second source of truth.
+    const parsed = schema.safeParse({ ...seriesValues, ...row });
 
     if (!parsed.success) {
       setRowError((current) => ({
@@ -357,7 +342,6 @@ export function InstallmentOccurrencesTable({
             </TableHead>
             <TableHead>{t("date")}</TableHead>
             <TableHead>{t("amount")}</TableHead>
-            <TableHead>{t("description")}</TableHead>
             <TableHead>{t("paymentDate")}</TableHead>
             <TableHead className="text-right">{t("actions")}</TableHead>
           </TableRow>
@@ -371,6 +355,7 @@ export function InstallmentOccurrencesTable({
             // in `occurrences` before this ever runs.
             const row = values[occurrence.id] ?? {
               date: occurrence.date,
+              amount: occurrence.amount,
               paymentDate: occurrence.paymentDate,
             };
             const rowStatus = status[occurrence.id] ?? "idle";
@@ -402,27 +387,16 @@ export function InstallmentOccurrencesTable({
                 </TableCell>
 
                 <TableCell>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    defaultValue={occurrence.amount}
-                    onChange={() => clearRowFeedback(occurrence.id)}
+                  <MoneyInput
+                    value={row.amount}
+                    onValueChange={(next) => updateRow(occurrence.id, { amount: next })}
+                    numberFormat={numberFormat}
+                    // One field per row, so each needs a distinct accessible
+                    // name — the same reasoning as the date picker above.
                     aria-label={tInstallments("occurrenceAmountLabel", { index: occurrence.index })}
-                    className="w-28"
+                    className="w-36"
                     ref={(element) => {
                       amountRefs.current[occurrence.id] = element;
-                    }}
-                  />
-                </TableCell>
-
-                <TableCell>
-                  <Input
-                    type="text"
-                    defaultValue={occurrence.description ?? ""}
-                    onChange={() => clearRowFeedback(occurrence.id)}
-                    aria-label={tInstallments("occurrenceDescriptionLabel", { index: occurrence.index })}
-                    ref={(element) => {
-                      descriptionRefs.current[occurrence.id] = element;
                     }}
                   />
                 </TableCell>

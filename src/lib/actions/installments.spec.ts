@@ -156,7 +156,12 @@ describe("updateInstallmentSeries", () => {
     } as never);
   });
 
-  const seriesValues = { type: "EXPENSE" as const, categoryId: "cat-2", cardId: "card-2" };
+  const seriesValues = {
+    type: "EXPENSE" as const,
+    categoryId: "cat-2",
+    cardId: "card-2",
+    description: null,
+  };
 
   it("refuses an id that is not the caller's", async () => {
     vi.mocked(prisma.recurringTransaction.findFirst).mockResolvedValue(null as never);
@@ -187,19 +192,33 @@ describe("updateInstallmentSeries", () => {
 
     expect(tx.recurringTransaction.update).toHaveBeenCalledWith({
       where: { id: "plan-1" },
-      data: { categoryId: "cat-2", cardId: "card-2", type: "EXPENSE" },
+      data: { categoryId: "cat-2", cardId: "card-2", type: "EXPENSE", description: null },
     });
     expect(tx.transaction.updateMany).toHaveBeenCalledWith({
       where: { recurringTransactionId: "plan-1", deactivatedAt: null },
-      data: { categoryId: "cat-2", cardId: "card-2", type: "EXPENSE" },
+      data: { categoryId: "cat-2", cardId: "card-2", type: "EXPENSE", description: null },
     });
+  });
+
+  // A plan's payments all describe the same thing, so the description
+  // classifies the series the way type/category/card do — it is written to
+  // the definition and to every live occurrence, not row by row.
+  it("writes the description to the plan and every live occurrence", async () => {
+    await updateInstallmentSeries("plan-1", { ...seriesValues, description: "Gym" }, LOCALE);
+
+    expect(tx.recurringTransaction.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: "Gym" }) }),
+    );
+    expect(tx.transaction.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: "Gym" }) }),
+    );
   });
 
   it("leaves the per-occurrence fields alone", async () => {
     await updateInstallmentSeries("plan-1", seriesValues, LOCALE);
 
     const { data } = tx.transaction.updateMany.mock.calls[0][0];
-    for (const field of ["amount", "date", "description", "paymentDate"]) {
+    for (const field of ["amount", "date", "paymentDate"]) {
       expect(field in data).toBe(false);
     }
   });

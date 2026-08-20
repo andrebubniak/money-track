@@ -23,6 +23,7 @@ const values: InstallmentSeriesValues = {
   type: "EXPENSE",
   categoryId: "cat-1",
   cardId: "card-1",
+  description: "Gym",
 };
 
 const render = (overrides: Record<string, unknown> = {}) =>
@@ -52,13 +53,32 @@ beforeEach(() => {
 });
 
 describe("InstallmentSeriesForm", () => {
-  it("has no amount, date, description, or paid field — those are per occurrence", () => {
+  it("has no amount, date, or paid field — those are per occurrence", () => {
     render();
 
     expect(screen.queryByLabelText(/Amount/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^Date/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Description/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Already paid")).not.toBeInTheDocument();
+  });
+
+  // Description classifies the whole plan — every payment describes the same
+  // thing — so it lives here rather than once per occurrence row.
+  it("renders the plan's description, server-rendered rather than only after hydration", () => {
+    render();
+
+    expect(screen.getByRole("textbox", { name: "Description" })).toHaveValue("Gym");
+  });
+
+  it("submits the description as a series field", async () => {
+    const user = userEvent.setup();
+    render();
+
+    const description = screen.getByRole("textbox", { name: "Description" });
+    await user.clear(description);
+    await user.type(description, "Gym membership");
+    await submit(user);
+
+    expect(vi.mocked(updateInstallmentSeries).mock.calls[0][1].description).toBe("Gym membership");
   });
 
   it("shows frequency, start date, and payment count as read-only text", () => {
@@ -76,7 +96,9 @@ describe("InstallmentSeriesForm", () => {
     render();
 
     expect(
-      screen.getByText("Changing the category, card, or type updates every payment below."),
+      screen.getByText(
+        "Changing the description, category, card, or type updates every payment below.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -107,6 +129,7 @@ describe("InstallmentSeriesForm", () => {
       type: "EXPENSE",
       categoryId: "cat-1",
       cardId: "card-1",
+      description: "Gym",
     });
     expect(vi.mocked(updateInstallmentSeries).mock.calls[0][2]).toBe("en-US");
   });

@@ -6,10 +6,10 @@ const PLACEHOLDER_ROWS = [0, 1, 2, 3, 4];
 
 /**
  * In-shell loading state for the installment plan edit page — the series
- * form's grid (type/category/card, then the frozen frequency/start
- * date/count row, then its submit button and its own "Delete plan" button),
- * followed by the occurrences table's own shape, per
- * `.claude/rules/navigation-loading.md`.
+ * form's grid (type/category/card, then description on its own full row,
+ * then the frozen frequency/start date/count row, then its submit button and
+ * its own "Delete plan" button), followed by the occurrences table's own
+ * shape, per `.claude/rules/navigation-loading.md`.
  */
 export default async function EditInstallmentPlanLoading() {
   const t = await getTranslations("common");
@@ -35,6 +35,11 @@ export default async function EditInstallmentPlanLoading() {
           </div>
           <div className="col-span-12 flex flex-col gap-2 lg:col-span-4">
             <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-9 w-full lg:h-11" />
+          </div>
+
+          <div className="col-span-12 flex flex-col gap-2">
+            <Skeleton className="h-4 w-24" />
             <Skeleton className="h-9 w-full lg:h-11" />
           </div>
 

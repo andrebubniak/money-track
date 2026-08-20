@@ -103,9 +103,9 @@ export async function createInstallmentPlan(
 }
 
 /**
- * The series half of the plan edit page. `amount`, `date`, `description`,
- * and `paymentDate` are deliberately absent: those belong to each occurrence
- * and are edited row by row through `updateTransaction`.
+ * The series half of the plan edit page. `amount`, `date`, and `paymentDate`
+ * are deliberately absent: those belong to each occurrence and are edited
+ * row by row through `updateTransaction`.
  */
 export async function updateInstallmentSeries(
   id: string,
@@ -139,6 +139,7 @@ export async function updateInstallmentSeries(
     categoryId: parsed.data.categoryId,
     cardId: parsed.data.cardId,
     type: parsed.data.type,
+    description: parsed.data.description,
   };
 
   await prisma.$transaction(async (client) => {

@@ -42,7 +42,7 @@ export default async function EditInstallmentPlanPage({
   const [user, occurrences, occurrenceIndexes, t, tPresets] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session.user.id },
-      select: { dateFormat: true },
+      select: { dateFormat: true, numberFormat: true },
     }),
     // Only the plan's live rows — a soft-deleted occurrence stays gone.
     prisma.transaction.findMany({
@@ -96,6 +96,7 @@ export default async function EditInstallmentPlanPage({
             type: plan.type,
             categoryId: plan.categoryId,
             cardId: plan.cardId,
+            description: plan.description,
           }}
           selectedCategory={selectedCategory}
           selectedCard={selectedCard}
@@ -123,7 +124,6 @@ export default async function EditInstallmentPlanPage({
             // `toFixed(2)` is what keeps that guarantee on the way back out
             // of Prisma's `Decimal`, matching the schema's amount regex.
             amount: occurrence.amount.toFixed(2),
-            description: occurrence.description,
             paymentDate: occurrence.paymentDate ? toIsoDate(occurrence.paymentDate) : null,
           }))}
           occurrencesCount={plan.occurrencesCount}
@@ -131,9 +131,11 @@ export default async function EditInstallmentPlanPage({
             type: plan.type,
             categoryId: plan.categoryId,
             cardId: plan.cardId,
+            description: plan.description,
           }}
           today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
+          numberFormat={user.numberFormat}
           focusOccurrenceId={focusOccurrenceId}
         />
       </div>

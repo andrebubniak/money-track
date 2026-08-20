@@ -394,7 +394,7 @@
       "editTitle": "Ratenzahlung bearbeiten",
       "preview": "{count} Transaktionen, {first} bis {last}",
       "seriesTitle": "Alle Raten",
-      "seriesNote": "Kategorie, Karte oder Art zu ändern aktualisiert alle Raten unten.",
+      "seriesNote": "Beschreibung, Kategorie, Karte oder Typ zu ändern aktualisiert jede Zahlung unten.",
       "frozenNote": "Wiederholung, Startdatum und Anzahl der Raten lassen sich nicht ändern. Bitte eine neue Ratenzahlung anlegen.",
       "occurrencesTitle": "Raten",
       "occurrenceSave": "Speichern",
@@ -403,7 +403,6 @@
       "occurrenceDelete": "Rate löschen",
       "occurrenceDateLabel": "Rate {index} Datum",
       "occurrenceAmountLabel": "Rate {index} Betrag",
-      "occurrenceDescriptionLabel": "Rate {index} Beschreibung",
       "occurrencePaidLabel": "Rate {index} bezahlt",
       "deletePlan": "Ratenzahlung löschen"
     },

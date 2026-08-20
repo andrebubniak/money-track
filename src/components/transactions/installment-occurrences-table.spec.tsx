@@ -15,33 +15,17 @@ import { InstallmentOccurrencesTable } from "@/components/transactions/installme
 import enUS from "../../../messages/en-US.json";
 
 const occurrences = [
-  {
-    id: "tx-1",
-    index: 1,
-    date: "2026-01-05",
-    amount: "89.00",
-    description: "Gym",
-    paymentDate: "2026-01-05",
-  },
-  {
-    id: "tx-2",
-    index: 2,
-    date: "2026-02-05",
-    amount: "89.00",
-    description: "Gym",
-    paymentDate: null,
-  },
-  {
-    id: "tx-3",
-    index: 3,
-    date: "2026-03-05",
-    amount: "89.00",
-    description: "Gym",
-    paymentDate: null,
-  },
+  { id: "tx-1", index: 1, date: "2026-01-05", amount: "89.00", paymentDate: "2026-01-05" },
+  { id: "tx-2", index: 2, date: "2026-02-05", amount: "89.00", paymentDate: null },
+  { id: "tx-3", index: 3, date: "2026-03-05", amount: "89.00", paymentDate: null },
 ];
 
-const seriesValues = { type: "EXPENSE" as const, categoryId: "cat-1", cardId: "card-1" };
+const seriesValues = {
+  type: "EXPENSE" as const,
+  categoryId: "cat-1",
+  cardId: "card-1",
+  description: "Gym",
+};
 
 const render = (overrides: Record<string, unknown> = {}) =>
   renderWithIntl(
@@ -52,6 +36,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
       seriesValues={seriesValues}
       today="2026-08-19"
       dateFormat="MDY"
+      numberFormat="COMMA_DOT"
       focusOccurrenceId={null}
       {...overrides}
     />,
@@ -75,6 +60,7 @@ const rerenderWithNewProps = (
         seriesValues={seriesValues}
         today="2026-08-19"
         dateFormat="MDY"
+        numberFormat="COMMA_DOT"
         focusOccurrenceId={null}
         {...overrides}
       />
@@ -105,19 +91,47 @@ describe("InstallmentOccurrencesTable", () => {
     render();
 
     const secondRow = screen.getAllByRole("row")[2];
-    // `fireEvent.change`, not `user.clear`/`user.type`: jsdom's <input
-    // type="number"> rejects the momentarily-invalid "95." it would pass
-    // through mid-keystroke (no digit yet after the decimal point) and
-    // silently drops the rest of the value — reproducible with a bare,
-    // component-free `<input type="number">`, so it is a jsdom/user-event
-    // gap, not something this component can work around. Setting the final
-    // value in one commit sidesteps the invalid intermediate state entirely.
-    fireEvent.change(within(secondRow).getByRole("spinbutton"), { target: { value: "95.00" } });
+    const amount = within(secondRow).getByRole("textbox", { name: "Payment 2 amount" });
+    // Keystroke by keystroke, which the masked field handles: it derives its
+    // display from a digit string, so there is no free-form "." or trailing
+    // "0" for a re-render to drop mid-edit — the hazard the old, uncontrolled
+    // number input existed to avoid.
+    await user.clear(amount);
+    await user.type(amount, "9500");
     await user.click(within(secondRow).getByRole("button", { name: "Save" }));
 
     expect(updateTransaction).toHaveBeenCalledTimes(1);
     expect(vi.mocked(updateTransaction).mock.calls[0][0]).toBe("tx-2");
     expect(vi.mocked(updateTransaction).mock.calls[0][1].amount).toBe("95.00");
+  });
+
+  // The masked field shows the user's stored `NumberFormat`, never the UI
+  // language's conventions — see `money-input.tsx`.
+  it("masks each amount with the user's number format", () => {
+    render({ numberFormat: "DOT_COMMA" });
+
+    expect(screen.getByRole("textbox", { name: "Payment 1 amount" })).toHaveValue("89,00");
+  });
+
+  // Description classifies the whole plan, so it is edited once in the
+  // series form above rather than repeated on every row here.
+  it("has no per-occurrence description field", () => {
+    render();
+
+    expect(screen.queryByRole("columnheader", { name: "Description" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: /description/i })).not.toBeInTheDocument();
+  });
+
+  // The series description rides along on every per-row save, the same way
+  // category, card, and type do.
+  it("submits the series' description unchanged", async () => {
+    const user = userEvent.setup();
+    render();
+
+    const firstRow = screen.getAllByRole("row")[1];
+    await user.click(within(firstRow).getByRole("button", { name: "Save" }));
+
+    expect(vi.mocked(updateTransaction).mock.calls[0][1].description).toBe("Gym");
   });
 
   // The occurrence carries the series' classification unchanged, so a
@@ -195,7 +209,7 @@ describe("InstallmentOccurrencesTable", () => {
   it("focuses the occurrence named by the query param", () => {
     render({ focusOccurrenceId: "tx-3" });
 
-    expect(screen.getAllByRole("spinbutton")[2]).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Payment 3 amount" })).toHaveFocus();
   });
 
   // In this design a ref only ever exists for an id that came from
@@ -220,7 +234,9 @@ describe("InstallmentOccurrencesTable", () => {
     const { rerender } = render();
 
     const secondRow = screen.getAllByRole("row")[2];
-    expect(within(secondRow).getByRole("spinbutton")).toHaveValue(89);
+    expect(within(secondRow).getByRole("textbox", { name: "Payment 2 amount" })).toHaveValue(
+      "89.00",
+    );
     expect(within(secondRow).getByRole("checkbox")).not.toBeChecked();
 
     const updatedOccurrences = occurrences.map((occurrence) =>
@@ -231,7 +247,9 @@ describe("InstallmentOccurrencesTable", () => {
     rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
 
     const secondRowAfter = screen.getAllByRole("row")[2];
-    expect(within(secondRowAfter).getByRole("spinbutton")).toHaveValue(150);
+    expect(within(secondRowAfter).getByRole("textbox", { name: "Payment 2 amount" })).toHaveValue(
+      "150.00",
+    );
     expect(within(secondRowAfter).getByRole("checkbox")).toBeChecked();
   });
 
@@ -242,7 +260,9 @@ describe("InstallmentOccurrencesTable", () => {
     const { rerender } = render();
 
     const firstRow = screen.getAllByRole("row")[1];
-    fireEvent.change(within(firstRow).getByRole("spinbutton"), { target: { value: "999.00" } });
+    fireEvent.change(within(firstRow).getByRole("textbox", { name: "Payment 1 amount" }), {
+      target: { value: "999.00" },
+    });
 
     const updatedOccurrences = occurrences.map((occurrence) =>
       occurrence.id === "tx-2" ? { ...occurrence, amount: "150.00" } : occurrence,
@@ -250,7 +270,9 @@ describe("InstallmentOccurrencesTable", () => {
     rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
 
     const firstRowAfter = screen.getAllByRole("row")[1];
-    expect(within(firstRowAfter).getByRole("spinbutton")).toHaveValue(999);
+    expect(within(firstRowAfter).getByRole("textbox", { name: "Payment 1 amount" })).toHaveValue(
+      "999.00",
+    );
 
     await user.click(within(firstRowAfter).getByRole("button", { name: "Save" }));
     expect(vi.mocked(updateTransaction).mock.calls[0][1].amount).toBe("999.00");

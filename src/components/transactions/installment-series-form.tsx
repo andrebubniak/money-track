@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AsyncCombobox } from "@/components/ui/async-combobox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRouter } from "@/i18n/navigation";
@@ -79,11 +80,11 @@ const FREQUENCY_LABEL_KEYS = {
 } as const satisfies Record<RecurringFrequency, string>;
 
 /**
- * The series half of the plan edit page: `type`, `category`, and `card` only
- * — the fields that classify the whole series and are written to the
- * definition *and* every live occurrence via `updateInstallmentSeries`.
- * `amount`, `date`, `description`, and `paymentDate` belong to each
- * occurrence instead and are edited row by row in
+ * The series half of the plan edit page: `type`, `category`, `card`, and
+ * `description` — the fields that classify the whole series and are written
+ * to the definition *and* every live occurrence via
+ * `updateInstallmentSeries`. `amount`, `date`, and `paymentDate` belong to
+ * each occurrence instead and are edited row by row in
  * `installment-occurrences-table.tsx`.
  *
  * `frequency`, `startDate`, and the occurrence count are frozen after
@@ -126,6 +127,7 @@ export function InstallmentSeriesForm({
   const {
     handleSubmit,
     control,
+    register,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof schema>, unknown, InstallmentSeriesValues>({
@@ -164,7 +166,8 @@ export function InstallmentSeriesForm({
     // create/edit form, this page also hosts the occurrences table below —
     // leaving would abandon whatever the user is mid-editing there.
     // `refresh()` re-reads the plan server-side so every row's next save
-    // carries the category/card/type just chosen, without navigating away.
+    // carries the description/category/card/type just chosen, without
+    // navigating away.
     router.refresh();
   }
 
@@ -262,6 +265,31 @@ export function InstallmentSeriesForm({
             {errors.cardId && <p className="text-sm text-destructive">{errors.cardId.message}</p>}
           </div>
         )}
+
+        {/* Its own full row: type/category/card already fill one, and a
+            description has more to show than a third of a row. */}
+        <div className="col-span-12 flex flex-col gap-2 lg:col-span-12">
+          <Label htmlFor="description">{t("descriptionLabel")}</Label>
+          <Input
+            id="description"
+            type="text"
+            placeholder={t("descriptionPlaceholder")}
+            aria-invalid={Boolean(errors.description)}
+            aria-describedby={errors.description ? "description-error" : undefined}
+            className="lg:h-11 lg:text-base"
+            // `register` sets the value imperatively once mounted, so without
+            // this the server-rendered HTML ships an empty input and the
+            // plan's existing description only appears after hydration —
+            // `.claude/rules/ui.md`.
+            defaultValue={defaultValues.description ?? ""}
+            {...register("description")}
+          />
+          {errors.description && (
+            <p id="description-error" className="text-sm text-destructive">
+              {errors.description.message}
+            </p>
+          )}
+        </div>
 
         <p className="col-span-12 text-sm text-muted-foreground">{tInstallments("frozenNote")}</p>
 

@@ -39,8 +39,8 @@ export type InstallmentValues = z.infer<ReturnType<typeof createInstallmentSchem
 /**
  * The series-level half of the plan edit page: the fields that classify the
  * whole series and are written to the definition *and* every occurrence.
- * Amount, date, description, and paid are edited per occurrence instead, so
- * they are deliberately absent here.
+ * Amount, date, and payment date are edited per occurrence instead, so they
+ * are deliberately absent here.
  *
  * `type` is a series field because `cardId` must be null exactly when the
  * type is `INCOME` — letting one occurrence flip to income would break that
@@ -59,6 +59,11 @@ export function createInstallmentSeriesSchema(t: TransactionValidationTranslator
         .union([z.string().trim().max(TRANSACTION_ID_MAX_LENGTH, t("card.invalid")), z.null()])
         .optional()
         .transform((value) => (value ? value : null)),
+      // A plan's payments describe the same thing, so description
+      // classifies the series the way type/category/card do. Adopted from
+      // `sharedTransactionFields` rather than redeclared, so the bound and
+      // the `null` handling stay in one place.
+      description: sharedTransactionFields(t).description,
     })
     .superRefine(incomeHasNoCard(t));
 }

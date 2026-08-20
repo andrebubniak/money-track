@@ -140,24 +140,36 @@ describe("createInstallmentSchema", () => {
 describe("createInstallmentSeriesSchema", () => {
   const schema = createInstallmentSeriesSchema(t);
 
-  // Only the fields that classify the whole series. Amount, date, description
-  // and paid belong to each occurrence and are edited row by row.
-  it("accepts just type, category, and card", () => {
+  const seriesBase = {
+    type: "EXPENSE" as const,
+    categoryId: "clx0000000000000000000001",
+    cardId: "clx0000000000000000000002",
+    description: "Gym",
+  };
+
+  // Only the fields that classify the whole series. Amount, date, and payment
+  // date belong to each occurrence and are edited row by row.
+  it("accepts type, category, card, and description", () => {
+    expect(schema.safeParse(seriesBase).success).toBe(true);
+  });
+
+  // Adopted from `sharedTransactionFields` rather than redeclared, so the
+  // bound, the trimming, and the `null` handling cannot drift from the
+  // per-transaction description's.
+  it("carries the shared description field's trimming, null handling, and bound", () => {
+    const trimmed = schema.safeParse({ ...seriesBase, description: "  Gym  " });
+    expect(trimmed.success && trimmed.data.description).toBe("Gym");
+
+    const cleared = schema.safeParse({ ...seriesBase, description: null });
+    expect(cleared.success && cleared.data.description).toBeNull();
+
     expect(
-      schema.safeParse({
-        type: "EXPENSE",
-        categoryId: "clx0000000000000000000001",
-        cardId: "clx0000000000000000000002",
-      }).success,
-    ).toBe(true);
+      firstIssue(schema, { ...seriesBase, description: "x".repeat(201) }).message,
+    ).toContain("description.tooLong");
   });
 
   it("keeps the income/card rule", () => {
-    const issue = firstIssue(schema, {
-      type: "INCOME",
-      categoryId: "clx0000000000000000000001",
-      cardId: "clx0000000000000000000002",
-    });
+    const issue = firstIssue(schema, { ...seriesBase, type: "INCOME" });
     expect(issue.message).toBe("card.notForIncome");
     expect(issue.path).toEqual(["cardId"]);
   });

@@ -394,7 +394,7 @@
       "editTitle": "Editar parcelamento",
       "preview": "{count} transações, de {first} até {last}",
       "seriesTitle": "Todas as parcelas",
-      "seriesNote": "Alterar a categoria, o cartão ou o tipo atualiza todas as parcelas abaixo.",
+      "seriesNote": "Alterar a descrição, categoria, cartão ou tipo atualiza todos os pagamentos abaixo.",
       "frozenNote": "A frequência, a data de início e o número de parcelas não podem ser alterados. Crie um novo parcelamento.",
       "occurrencesTitle": "Parcelas",
       "occurrenceSave": "Salvar",
@@ -403,7 +403,6 @@
       "occurrenceDelete": "Excluir parcela",
       "occurrenceDateLabel": "Data da parcela {index}",
       "occurrenceAmountLabel": "Valor da parcela {index}",
-      "occurrenceDescriptionLabel": "Descrição da parcela {index}",
       "occurrencePaidLabel": "Parcela {index} paga",
       "deletePlan": "Excluir parcelamento"
     },

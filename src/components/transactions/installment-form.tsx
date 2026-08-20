@@ -351,9 +351,13 @@ export function InstallmentForm({
 						aria-invalid={Boolean(errors.frequency)}
 						className="w-full lg:h-11 lg:text-base"
 					>
-						<SelectValue />
+						<SelectValue>
+							{(value: RecurringFrequency) =>
+								tFrequency(FREQUENCY_LABEL_KEYS[value])
+							}
+						</SelectValue>
 					</SelectTrigger>
-					<SelectContent>
+					<SelectContent alignItemWithTrigger={false}>
 						{RECURRING_FREQUENCIES.map((value) => (
 							<SelectItem key={value} value={value}>
 								{tFrequency(FREQUENCY_LABEL_KEYS[value])}

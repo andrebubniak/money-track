@@ -174,7 +174,15 @@ export function TransactionFiltersPanel({
               onValueChange={(type) => patchDraft({ type })}
             >
               <SelectTrigger id="filter-type" className="w-full lg:h-11 lg:text-base">
-                <SelectValue />
+                {/* Base UI resolves a label only from the Root's `items` prop,
+                    which this select does not pass — without a function
+                    child it renders the raw value, and nothing at all for
+                    the `null` "All" entry. */}
+                <SelectValue>
+                  {(type: TransactionType | null) =>
+                    type === null ? t("filters.any") : t(TYPE_LABEL_KEYS[type])
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={null}>{t("filters.any")}</SelectItem>
@@ -201,7 +209,9 @@ export function TransactionFiltersPanel({
               }}
             >
               <SelectTrigger id="filter-show" className="w-full lg:h-11 lg:text-base">
-                <SelectValue />
+                <SelectValue>
+                  {(show: TransactionShow) => t(SHOW_LABEL_KEYS[show])}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {TRANSACTION_SHOW_VALUES.map((show) => (

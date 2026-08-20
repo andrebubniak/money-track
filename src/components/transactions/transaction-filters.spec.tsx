@@ -141,4 +141,33 @@ describe("TransactionFiltersPanel", () => {
     expect(screen.getByRole("button", { name: "From" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "To" })).toBeInTheDocument();
   });
+
+  it("shows the 'All' label in the type trigger when no type is filtered", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: /Filters/ }));
+
+    expect(screen.getByLabelText("Type")).toHaveTextContent("All");
+  });
+
+  it("shows the selected type's label, not its enum value", async () => {
+    const user = userEvent.setup();
+    render({ type: "EXPENSE" });
+
+    await user.click(screen.getByRole("button", { name: /Filters/ }));
+
+    expect(screen.getByLabelText("Type")).toHaveTextContent("Expense");
+    expect(screen.getByLabelText("Type")).not.toHaveTextContent("EXPENSE");
+  });
+
+  it("shows the show filter's label, not its raw value", async () => {
+    const user = userEvent.setup();
+    render({ show: "recurring" });
+
+    await user.click(screen.getByRole("button", { name: /Filters/ }));
+
+    expect(screen.getByLabelText("Show")).toHaveTextContent("Recurring only");
+    expect(screen.getByLabelText("Show")).not.toHaveTextContent("recurring only");
+  });
 });

@@ -32,9 +32,17 @@ describe("NewTransactionMenu", () => {
 
   it("opens the same three choices from the link variant", async () => {
     const user = userEvent.setup();
-    renderWithIntl(<NewTransactionMenu variant="link" label="New transaction" />);
+    // Deliberately not "New transaction" — that's `t("actions.new")`, the
+    // button variant's own default text, so using it here would let a
+    // component that ignores `label` entirely still pass.
+    renderWithIntl(<NewTransactionMenu variant="link" label="Add a transaction" />);
 
-    await user.click(screen.getByRole("button", { name: "New transaction" }));
+    const trigger = screen.getByRole("button", { name: "Add a transaction" });
+    // The link variant is the only one that omits the leading `Plus` icon —
+    // asserting that here pins the variant itself, not just the label.
+    expect(trigger.querySelector("svg")).toBeNull();
+
+    await user.click(trigger);
 
     expect(
       await screen.findByRole("menuitem", { name: /One-off transaction/ }),

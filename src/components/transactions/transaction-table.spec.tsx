@@ -213,7 +213,13 @@ describe("TransactionTable", () => {
     render([], { hasAnyTransactions: false });
 
     expect(screen.getByRole("button", { name: "New transaction" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "New transaction" })).not.toBeInTheDocument();
+    // The discriminating fact: the old empty state rendered a real anchor to
+    // /transactions/new. The menu trigger is a <button>, not an <a>, so no
+    // link with that href exists once the empty state opens the menu.
+    expect(
+      screen.queryByRole("link", { name: "New transaction" }),
+    ).not.toBeInTheDocument();
+    expect(document.querySelector('a[href="/en-US/transactions/new"]')).toBeNull();
   });
 
   it("offers to clear the filters when they are what emptied the list", () => {

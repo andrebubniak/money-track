@@ -403,7 +403,12 @@
       "occurrenceDelete": "Delete payment",
       "occurrenceDateLabel": "Payment {index} date",
       "occurrenceAmountLabel": "Payment {index} amount",
-      "occurrencePaidLabel": "Payment {index} paid",
+      "occurrenceMarkPaidLabel": "Payment {index} mark as paid",
+      "occurrencePaymentDateLabel": "Payment {index} payment date",
+      "markPaid": "Mark as paid",
+      "markPaidTitle": "When was this paid?",
+      "markPaidConfirm": "Mark as paid",
+      "markPaidClear": "Mark as unpaid",
       "deletePlan": "Delete plan"
     },
     "deleteDialog": {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CircleAlert, Trash2 } from "lucide-react";
+import { BadgeCheck, CircleAlert, Trash2 } from "lucide-react";
 
 import type { DateFormat, NumberFormat } from "@/generated/prisma/enums";
 
@@ -17,13 +17,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteTransaction, updateTransaction } from "@/lib/actions/transactions";
+import { toUtcMidnight } from "@/lib/dates";
+import { formatDate } from "@/lib/format";
 import type { InstallmentSeriesValues } from "@/lib/validations/installment";
 import {
   createTransactionSchema,
@@ -75,8 +84,9 @@ type InstallmentOccurrencesTableProps = {
 
 /**
  * Every editable field of a row lives in state, and every input reading one
- * is controlled: `DatePicker` and `Checkbox` have their own value/onChange,
- * and `amount` is a `MoneyInput`.
+ * is controlled: `DatePicker` has its own value/onChange, `amount` is a
+ * `MoneyInput`, and `paymentDate` is written by the mark-as-paid dialog
+ * below.
  *
  * `amount` used to be a plain, uncontrolled `type="number"` input read
  * through a ref at Save time, because a *controlled* one fights the
@@ -102,6 +112,28 @@ function occurrenceDataEqual(a: InstallmentOccurrence, b: InstallmentOccurrence)
 
 function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, InstallmentOccurrence> {
   return Object.fromEntries(occurrences.map((occurrence) => [occurrence.id, occurrence]));
+}
+
+/**
+ * The latest day a payment may be dated: the *earlier* of today and the
+ * occurrence's own date. A payment cannot postdate the occurrence it
+ * settles, and `createTransactionSchema` caps `paymentDate` at today
+ * regardless of how far into the future `date` itself is allowed to run.
+ *
+ * That second half is the whole reason this exists. A plan's occurrences
+ * are generated months ahead, so the old checkbox — which marked a row paid
+ * by copying the row's own `date` into `paymentDate` — produced a
+ * future-dated payment on every unpaid row of a fresh plan (11 of 12 in a
+ * yearly one) and failed `paymentDate.notInFuture` before the save ever
+ * left the browser. Taking the earlier of the two is always satisfiable.
+ *
+ * The cap belongs here, on `paymentDate`, and *never* on `date`: a
+ * future-dated occurrence is exactly what a plan is made of, and the row's
+ * own schema deliberately widens `date`'s ceiling to `MAX_TRANSACTION_DATE`
+ * for that reason (see `schema` below, and `transactions.spec.ts`).
+ */
+function paymentDateCeiling(occurrenceDate: string, today: string): string {
+  return occurrenceDate < today ? occurrenceDate : today;
 }
 
 /**
@@ -168,6 +200,12 @@ export function InstallmentOccurrencesTable({
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Which row the one shared mark-as-paid dialog is currently editing, and
+  // the day it has staged — the same "id, not an instance per row" shape
+  // `deleteTargetId` uses below.
+  const [paidTargetId, setPaidTargetId] = useState<string | null>(null);
+  const [paidDraft, setPaidDraft] = useState("");
 
   // Focus only — never a source of a row's value, which `values` owns. The
   // `focusOccurrenceId` effect below is the single reader.
@@ -271,6 +309,25 @@ export function InstallmentOccurrencesTable({
     clearRowFeedback(id);
   }
 
+  // Seeding the draft here rather than in an effect keeps the dialog's
+  // first frame correct: `paidTargetId` and `paidDraft` are set in the same
+  // event, so the picker never renders a stale day.
+  function openPaidDialog(occurrence: InstallmentOccurrence) {
+    const rowDate = values[occurrence.id]?.date ?? occurrence.date;
+    setPaidDraft(paymentDateCeiling(rowDate, today));
+    setPaidTargetId(occurrence.id);
+  }
+
+  // Draft state only — the row's own Save is still what persists it, exactly
+  // as this table's date and amount fields behave. Calling
+  // `updateTransaction` from here would make one field of a row save on a
+  // different gesture than the rest of it.
+  function commitPaid(paymentDate: string | null) {
+    if (!paidTargetId) return;
+    updateRow(paidTargetId, { paymentDate });
+    setPaidTargetId(null);
+  }
+
   async function handleSave(occurrence: InstallmentOccurrence) {
     const row = values[occurrence.id];
     // `row`, never `amountRefs.current[...].value`: the field is controlled,
@@ -331,6 +388,13 @@ export function InstallmentOccurrencesTable({
   }
 
   const visibleOccurrences = occurrences.filter((occurrence) => !hiddenIds.has(occurrence.id));
+
+  // Resolved against the *visible* rows, so a row deleted while its dialog
+  // is open closes the dialog rather than leaving it editing a row that is
+  // no longer on screen.
+  const paidTarget = visibleOccurrences.find((occurrence) => occurrence.id === paidTargetId) ?? null;
+  const paidTargetRow = paidTarget ? (values[paidTarget.id] ?? paidTarget) : null;
+  const paidMax = paidTargetRow ? paymentDateCeiling(paidTargetRow.date, today) : today;
 
   return (
     <div data-plan-id={planId} className="rounded-md border">
@@ -401,14 +465,12 @@ export function InstallmentOccurrencesTable({
                   />
                 </TableCell>
 
-                <TableCell>
-                  <Checkbox
-                    checked={row.paymentDate !== null}
-                    onCheckedChange={(next) =>
-                      updateRow(occurrence.id, { paymentDate: next === true ? row.date : null })
-                    }
-                    aria-label={tInstallments("occurrencePaidLabel", { index: occurrence.index })}
-                  />
+                <TableCell className="text-muted-foreground">
+                  {row.paymentDate ? (
+                    formatDate(toUtcMidnight(row.paymentDate), dateFormat)
+                  ) : (
+                    <Badge variant="secondary">{t("notPaid")}</Badge>
+                  )}
                 </TableCell>
 
                 <TableCell className="text-right">
@@ -428,6 +490,31 @@ export function InstallmentOccurrencesTable({
                         ? tInstallments("occurrenceSaving")
                         : tInstallments("occurrenceSave")}
                     </Button>
+
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="info"
+                            size="icon-sm"
+                            // The tooltip shows the un-indexed label, read in
+                            // the context of its own row; the accessible name
+                            // carries the index, because a screen reader user
+                            // tabbing the table has no such context. One
+                            // interpolated message, never a name assembled in
+                            // code — see `.claude/rules/i18n.md`.
+                            aria-label={tInstallments("occurrenceMarkPaidLabel", {
+                              index: occurrence.index,
+                            })}
+                            onClick={() => openPaidDialog(occurrence)}
+                          />
+                        }
+                      >
+                        <BadgeCheck aria-hidden="true" className="size-4" />
+                      </TooltipTrigger>
+                      <TooltipContent>{tInstallments("markPaid")}</TooltipContent>
+                    </Tooltip>
 
                     <Tooltip>
                       <TooltipTrigger
@@ -481,6 +568,51 @@ export function InstallmentOccurrencesTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* One dialog for every row's mark-as-paid button, the same way the
+          delete dialog above is shared — which occurrence it targets lives
+          in `paidTargetId`, not in a per-row instance.
+
+          It writes to the row's draft state only; the row's own Save is
+          what sends it to the server. */}
+      <Dialog
+        open={paidTarget !== null}
+        onOpenChange={(next) => {
+          if (!next) setPaidTargetId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{tInstallments("markPaidTitle")}</DialogTitle>
+          </DialogHeader>
+
+          {paidTarget && (
+            <DatePicker
+              value={paidDraft}
+              onValueChange={setPaidDraft}
+              dateFormat={dateFormat}
+              // Capped at the earlier of today and this occurrence's own
+              // date — see `paymentDateCeiling`. This is the fix for a
+              // future-dated occurrence being unmarkable at all.
+              maxDate={paidMax}
+              triggerLabel={tInstallments("occurrencePaymentDateLabel", {
+                index: paidTarget.index,
+              })}
+            />
+          )}
+
+          <DialogFooter>
+            {paidTargetRow?.paymentDate != null && (
+              <Button type="button" variant="secondary" onClick={() => commitPaid(null)}>
+                {tInstallments("markPaidClear")}
+              </Button>
+            )}
+            <Button type="button" onClick={() => commitPaid(paidDraft)}>
+              {tInstallments("markPaidConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

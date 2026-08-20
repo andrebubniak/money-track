@@ -150,15 +150,120 @@ describe("InstallmentOccurrencesTable", () => {
     });
   });
 
-  it("marks an occurrence paid", async () => {
+  // Paid-ness is shown, not toggled: the cell reads the stored payment date,
+  // and a row with none reads "Not paid".
+  it("shows each occurrence's payment date, or a not-paid badge", () => {
+    render();
+
+    const rows = screen.getAllByRole("row");
+    // index, Date, Value, Payment date, Actions.
+    expect(within(rows[1]).getAllByRole("cell")[3]).toHaveTextContent("01/05/2026");
+    expect(within(rows[1]).queryByText("Not paid")).not.toBeInTheDocument();
+    expect(within(rows[2]).getAllByRole("cell")[3]).toHaveTextContent("Not paid");
+    expect(screen.getAllByText("Not paid")).toHaveLength(2);
+  });
+
+  it("has no paid checkbox any more", () => {
+    render();
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("marks an occurrence paid from the row action", async () => {
     const user = userEvent.setup();
     render();
 
-    const secondRow = screen.getAllByRole("row")[2];
-    await user.click(within(secondRow).getByRole("checkbox"));
-    await user.click(within(secondRow).getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Payment 2 mark as paid" }));
+    await user.click(await screen.findByRole("button", { name: "Mark as paid" }));
+    await user.click(within(screen.getAllByRole("row")[2]).getByRole("button", { name: "Save" }));
 
+    expect(updateTransaction).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(updateTransaction).mock.calls[0][0]).toBe("tx-2");
     expect(vi.mocked(updateTransaction).mock.calls[0][1].paymentDate).toBe("2026-02-05");
+  });
+
+  // Regression coverage for the bug this row action exists to fix. A plan's
+  // occurrences are generated into the future by design, but
+  // `createTransactionSchema` caps `paymentDate` at today — so the old
+  // checkbox, which seeded `paymentDate` from the row's own date, failed
+  // validation on every future-dated row (11 of 12 in a fresh yearly plan)
+  // and never reached the server at all. The ceiling is the *earlier* of
+  // today and the occurrence's own date, which is always satisfiable.
+  it("caps the payment date at today for a future-dated occurrence", async () => {
+    const user = userEvent.setup();
+    render({
+      occurrences: [
+        { id: "tx-future", index: 1, date: "2026-12-05", amount: "89.00", paymentDate: null },
+      ],
+      occurrencesCount: 1,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Payment 1 mark as paid" }));
+    await user.click(await screen.findByRole("button", { name: "Mark as paid" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    // Reached the server at all — the old checkbox never did, because the
+    // schema rejected the future payment date before the action was called.
+    expect(updateTransaction).toHaveBeenCalledTimes(1);
+    const { paymentDate } = vi.mocked(updateTransaction).mock.calls[0][1];
+    expect(paymentDate).toBe("2026-08-19");
+    expect(paymentDate! <= "2026-08-19").toBe(true);
+    // The cap belongs on `paymentDate` alone: the occurrence's own future
+    // date must still go through untouched.
+    expect(vi.mocked(updateTransaction).mock.calls[0][1].date).toBe("2026-12-05");
+  });
+
+  // The other half of the ceiling: for an occurrence already in the past, a
+  // payment cannot postdate the occurrence it settles.
+  it("caps the payment date picker at the occurrence's own date", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Payment 1 mark as paid" }));
+    await user.click(await screen.findByRole("button", { name: "Payment 1 payment date" }));
+
+    // Full accessible names, not bare day numbers — react-day-picker names a
+    // day button with the whole formatted date, and "6" would also match
+    // the 16th and the 26th.
+    expect(await screen.findByRole("button", { name: /January 5th, 2026/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /January 6th, 2026/ })).toBeDisabled();
+  });
+
+  it("marks a paid occurrence unpaid from the same dialog", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Payment 1 mark as paid" }));
+    await user.click(await screen.findByRole("button", { name: "Mark as unpaid" }));
+    await user.click(within(screen.getAllByRole("row")[1]).getByRole("button", { name: "Save" }));
+
+    expect(vi.mocked(updateTransaction).mock.calls[0][1].paymentDate).toBeNull();
+  });
+
+  // An unpaid row has nothing to clear, so the dialog does not offer it.
+  it("offers no unpaid button for an occurrence that is not paid", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Payment 2 mark as paid" }));
+    await screen.findByRole("button", { name: "Mark as paid" });
+
+    expect(screen.queryByRole("button", { name: "Mark as unpaid" })).not.toBeInTheDocument();
+  });
+
+  // The dialog edits the row's draft only, exactly as its date and amount
+  // fields do — the row's own Save is still what persists it.
+  it("does not save the row when the dialog is confirmed", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Payment 2 mark as paid" }));
+    await user.click(await screen.findByRole("button", { name: "Mark as paid" }));
+
+    expect(updateTransaction).not.toHaveBeenCalled();
+    expect(within(screen.getAllByRole("row")[2]).getAllByRole("cell")[3]).toHaveTextContent(
+      "02/05/2026",
+    );
   });
 
   it("deletes a single occurrence without touching the others", async () => {
@@ -237,7 +342,7 @@ describe("InstallmentOccurrencesTable", () => {
     expect(within(secondRow).getByRole("textbox", { name: "Payment 2 amount" })).toHaveValue(
       "89.00",
     );
-    expect(within(secondRow).getByRole("checkbox")).not.toBeChecked();
+    expect(within(secondRow).getAllByRole("cell")[3]).toHaveTextContent("Not paid");
 
     const updatedOccurrences = occurrences.map((occurrence) =>
       occurrence.id === "tx-2"
@@ -250,7 +355,7 @@ describe("InstallmentOccurrencesTable", () => {
     expect(within(secondRowAfter).getByRole("textbox", { name: "Payment 2 amount" })).toHaveValue(
       "150.00",
     );
-    expect(within(secondRowAfter).getByRole("checkbox")).toBeChecked();
+    expect(within(secondRowAfter).getAllByRole("cell")[3]).toHaveTextContent("02/05/2026");
   });
 
   // The resync above must not clobber a row nobody else touched: only the

@@ -403,7 +403,12 @@
       "occurrenceDelete": "Excluir parcela",
       "occurrenceDateLabel": "Data da parcela {index}",
       "occurrenceAmountLabel": "Valor da parcela {index}",
-      "occurrencePaidLabel": "Parcela {index} paga",
+      "occurrenceMarkPaidLabel": "Marcar parcela {index} como paga",
+      "occurrencePaymentDateLabel": "Data de pagamento da parcela {index}",
+      "markPaid": "Marcar como pago",
+      "markPaidTitle": "Quando isso foi pago?",
+      "markPaidConfirm": "Marcar como pago",
+      "markPaidClear": "Marcar como não pago",
       "deletePlan": "Excluir parcelamento"
     },
     "deleteDialog": {

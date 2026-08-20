@@ -403,7 +403,12 @@
       "occurrenceDelete": "Rate löschen",
       "occurrenceDateLabel": "Rate {index} Datum",
       "occurrenceAmountLabel": "Rate {index} Betrag",
-      "occurrencePaidLabel": "Rate {index} bezahlt",
+      "occurrenceMarkPaidLabel": "Rate {index} als bezahlt markieren",
+      "occurrencePaymentDateLabel": "Rate {index} Zahlungsdatum",
+      "markPaid": "Als bezahlt markieren",
+      "markPaidTitle": "Wann wurde das bezahlt?",
+      "markPaidConfirm": "Als bezahlt markieren",
+      "markPaidClear": "Als unbezahlt markieren",
       "deletePlan": "Ratenzahlung löschen"
     },
     "deleteDialog": {

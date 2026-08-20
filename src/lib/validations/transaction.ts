@@ -191,7 +191,7 @@ export function incomeHasNoCard(t: TransactionValidationTranslator) {
  * that shape, which is what the guard below is really protecting.
  *
  * Guarded so a payload whose `date` or `paymentDate` already failed its own
- * check does not also collect this issue on the same path —
+ * *shape* check does not also collect this issue on the same path —
  * `.claude/rules/validation.md`. The shape re-check is the same move
  * `incomeHasNoCard` makes for `cardId`'s length: an object-level
  * `superRefine` still runs when a *string* field only failed its own

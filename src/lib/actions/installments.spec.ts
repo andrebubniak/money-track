@@ -118,7 +118,9 @@ describe("createInstallmentPlan", () => {
 
     const { data } = tx.transaction.createMany.mock.calls[0][0];
     expect(data.every((row: { recurringTransactionId: string }) => row.recurringTransactionId === "plan-1")).toBe(true);
-    expect(data.every((row: { paymentDate?: Date }) => row.paymentDate === undefined)).toBe(true);
+    expect(data.every((row: { paymentDate?: Date | null }) => (row.paymentDate ?? null) === null)).toBe(
+      true,
+    );
     expect(data.every((row: { amount: string }) => row.amount === "89.00")).toBe(true);
   });
 

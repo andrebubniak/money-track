@@ -21,8 +21,13 @@ const base = {
   frequency: "MONTHLY" as const,
 };
 
-/** Well after every `startDate` in this file, so the ceiling never fires. */
+/**
+ * Well after every `startDate` in the `base` fixture, so the "not in the
+ * future" ceiling never fires for the tests that are not about it. The two
+ * that *are* about it pass `TOMORROW` explicitly.
+ */
 const TODAY = "2026-08-19";
+const TOMORROW = "2026-08-20";
 
 const firstIssue = (schema: { safeParse: (v: unknown) => unknown }, values: unknown) => {
   const result = schema.safeParse(values) as
@@ -65,6 +70,16 @@ describe("createRecurringTransactionSchema", () => {
     );
   });
 
+  // The ceiling `today` supplies, not the absolute `MAX_TRANSACTION_DATE`
+  // range above: a recurrence may not be scheduled to have started tomorrow.
+  it("rejects a startDate in the future", () => {
+    expect(firstIssue(schema, { ...base, startDate: TOMORROW }).message).toBe("date.notInFuture");
+  });
+
+  it("accepts a startDate of today", () => {
+    expect(schema.safeParse({ ...base, startDate: TODAY }).success).toBe(true);
+  });
+
   it("carries the income/card rule over from the shared fields", () => {
     expect(firstIssue(schema, { ...base, type: "INCOME" }).path).toEqual(["cardId"]);
   });
@@ -104,6 +119,21 @@ describe("createInstallmentSchema", () => {
     expect(firstIssue(schema, { ...base, occurrencesCount: 2.5 }).message).toBe(
       "occurrences.invalid",
     );
+  });
+
+  // A plan's *generated occurrences* are legitimately future-dated, but the
+  // plan itself may not start in the future — the occurrences get their own
+  // widened ceiling in `createTransactionSchema`, not this one.
+  it("rejects a startDate in the future", () => {
+    expect(
+      firstIssue(schema, { ...base, startDate: TOMORROW, occurrencesCount: 12 }).message,
+    ).toBe("date.notInFuture");
+  });
+
+  it("accepts a startDate of today", () => {
+    expect(
+      schema.safeParse({ ...base, startDate: TODAY, occurrencesCount: 12 }).success,
+    ).toBe(true);
   });
 });
 

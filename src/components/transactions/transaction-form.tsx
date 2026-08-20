@@ -241,7 +241,7 @@ export function TransactionForm({
             id="paymentDate"
             checked={paymentDate !== null}
             onCheckedChange={(next) =>
-              setValue("paymentDate", next ? date : null, { shouldValidate: true })
+              setValue("paymentDate", next === true ? date : null, { shouldValidate: true })
             }
             aria-invalid={Boolean(errors.paymentDate)}
           />

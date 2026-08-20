@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import { CircleAlert } from "lucide-react";
 
-import type { DateFormat } from "@/generated/prisma/enums";
+import type { DateFormat, NumberFormat } from "@/generated/prisma/enums";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AsyncCombobox } from "@/components/ui/async-combobox";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
 	Select,
@@ -50,6 +51,7 @@ type RecurringTransactionFormProps = {
 	/** `YYYY-MM-DD`, computed on the server — see `isoDateField`. */
 	today: string;
 	dateFormat: DateFormat;
+	numberFormat: NumberFormat;
 	selectedCategory: ComboboxOption | null;
 	selectedCard: ComboboxOption | null;
 };
@@ -82,6 +84,7 @@ export function RecurringTransactionForm({
 	defaultValues,
 	today,
 	dateFormat,
+	numberFormat,
 	selectedCategory,
 	selectedCard,
 }: RecurringTransactionFormProps) {
@@ -117,6 +120,7 @@ export function RecurringTransactionForm({
 	// (react-hooks/incompatible-library). Needed because none of these are
 	// native inputs `register()` can read back from the DOM.
 	const type = useWatch({ control, name: "type" });
+	const amount = useWatch({ control, name: "amount" });
 	const startDate = useWatch({ control, name: "startDate" });
 	const categoryId = useWatch({ control, name: "categoryId" });
 	const cardId = useWatch({ control, name: "cardId" });
@@ -212,20 +216,18 @@ export function RecurringTransactionForm({
 				<Label htmlFor="amount" required>
 					{t("amountLabel")}
 				</Label>
-				<Input
+				<MoneyInput
 					id="amount"
-					type="number"
-					step="0.01"
+					value={amount}
+					onValueChange={(next) =>
+						setValue("amount", next, { shouldValidate: true })
+					}
+					numberFormat={numberFormat}
 					placeholder={t("amountPlaceholder")}
-					aria-invalid={Boolean(errors.amount)}
+					invalid={Boolean(errors.amount)}
 					aria-describedby={
 						errors.amount ? "amount-error" : undefined
 					}
-					className="lg:h-11 lg:text-base"
-					// register() sets the DOM value imperatively via its ref callback
-					// after mount, not through props — see `.claude/rules/ui.md`.
-					defaultValue={defaultValues.amount}
-					{...register("amount")}
 				/>
 				{errors.amount && (
 					<p id="amount-error" className="text-sm text-destructive">
@@ -247,6 +249,7 @@ export function RecurringTransactionForm({
 						setValue("startDate", next, { shouldValidate: true })
 					}
 					dateFormat={dateFormat}
+					maxDate={today}
 					triggerLabel={t("startDateLabel")}
 					invalid={Boolean(errors.startDate)}
 				/>
@@ -303,7 +306,7 @@ export function RecurringTransactionForm({
 				</div>
 			)}
 
-			<div className="col-span-12 flex flex-col gap-2 lg:col-span-9">
+			<div className="col-span-12 flex flex-col gap-2 lg:col-span-6">
 				<Label htmlFor="description">{t("descriptionLabel")}</Label>
 				<Input
 					id="description"
@@ -327,7 +330,7 @@ export function RecurringTransactionForm({
 				)}
 			</div>
 
-			<div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
+			<div className="col-span-12 flex flex-col gap-2 lg:col-span-6">
 				{/* No `required`: `frequency` always carries a pre-filled value —
             `MONTHLY` on create, the recurrence's own on edit — same
             reasoning as `startDate` above. */}

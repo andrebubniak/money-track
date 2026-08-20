@@ -35,6 +35,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
       defaultValues={values}
       today="2026-08-19"
       dateFormat="MDY"
+      numberFormat="COMMA_DOT"
       selectedCategory={{ id: "cat-1", name: "Food" }}
       selectedCard={{ id: "card-1", name: "Personal Visa" }}
       {...overrides}
@@ -119,5 +120,28 @@ describe("InstallmentForm", () => {
 
     expect(screen.queryByLabelText("Card")).not.toBeInTheDocument();
     expect(vi.mocked(createInstallmentPlan).mock.calls[0][0].cardId).toBeNull();
+  });
+
+  it("caps the start date at today", async () => {
+    const user = userEvent.setup();
+    // The default startDate ("2026-01-05") would open the calendar on
+    // January, where an August maxDate has no day buttons to assert on —
+    // moving startDate onto today's own month keeps the two in view together.
+    render({ defaultValues: { ...values, startDate: "2026-08-19" } });
+
+    await user.click(screen.getByRole("button", { name: "Start date" }));
+
+    expect(screen.getByRole("button", { name: /August 19th, 2026/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /August 20th, 2026/ })).toBeDisabled();
+  });
+
+  it("labels the amount field Value", () => {
+    render();
+
+    // "Value" is required, so its <Label> carries a trailing "*" that is
+    // aria-hidden but still part of the label's raw text content — an exact
+    // getByLabelText("Value") would not match "Value*". getByRole respects
+    // aria-hidden when computing the accessible name — see `.claude/rules/ui.md`.
+    expect(screen.getByRole("textbox", { name: "Value" })).toBeInTheDocument();
   });
 });

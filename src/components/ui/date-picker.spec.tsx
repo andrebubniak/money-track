@@ -57,4 +57,32 @@ describe("DatePicker", () => {
 
     expect(screen.getByRole("button")).toHaveAttribute("aria-invalid", "true");
   });
+
+  it("disables days after maxDate", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(
+      <DatePicker
+        value="2026-08-10"
+        onValueChange={vi.fn()}
+        dateFormat="MDY"
+        maxDate="2026-08-19"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Choose a date" }));
+
+    expect(screen.getByRole("button", { name: /August 19th, 2026/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /August 20th, 2026/ })).toBeDisabled();
+  });
+
+  it("does not disable any day when maxDate is omitted", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(
+      <DatePicker value="2026-08-10" onValueChange={vi.fn()} dateFormat="MDY" />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Choose a date" }));
+
+    expect(screen.getByRole("button", { name: /August 20th, 2026/ })).not.toBeDisabled();
+  });
 });

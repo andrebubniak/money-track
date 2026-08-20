@@ -30,6 +30,13 @@ export type DatePickerProps = {
    * screen reader announces every picker on the page identically.
    */
   triggerLabel?: string;
+  /**
+   * `YYYY-MM-DD`. Days after this are unselectable *and* unreachable: it
+   * feeds both `disabled` and `endMonth`. `disabled` alone would leave the
+   * user paging through empty future months; `endMonth` alone would not stop
+   * a date already sitting in `value`.
+   */
+  maxDate?: string;
 };
 
 /**
@@ -61,6 +68,7 @@ export function DatePicker({
   invalid,
   disabled,
   triggerLabel,
+  maxDate,
 }: DatePickerProps) {
   const t = useTranslations("ui.datePicker");
   const [open, setOpen] = useState(false);
@@ -69,6 +77,9 @@ export function DatePicker({
   const selectedForDisplay = value ? toUtcMidnight(value) : undefined;
   // Read with correct local parts, for `Calendar`.
   const selectedForCalendar = value ? toLocalMidnight(value) : undefined;
+  // Read with correct local parts, for `Calendar` — same reason as
+  // `selectedForCalendar` above.
+  const maxForCalendar = maxDate ? toLocalMidnight(maxDate) : undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -98,6 +109,8 @@ export function DatePicker({
           required
           selected={selectedForCalendar}
           defaultMonth={selectedForCalendar}
+          disabled={maxForCalendar ? { after: maxForCalendar } : undefined}
+          endMonth={maxForCalendar}
           onSelect={(next) => {
             if (!next) return;
             // `Calendar` hands back a local-midnight Date; rebuilding it from

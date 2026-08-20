@@ -34,7 +34,7 @@ const validValues: TransactionValues = {
   cardId: "card-1",
   description: "Groceries",
   date: "2026-08-14",
-  isPaid: false,
+  paymentDate: null,
 };
 
 beforeEach(() => {

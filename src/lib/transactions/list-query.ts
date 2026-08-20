@@ -32,7 +32,8 @@ export type TransactionListRow = {
   description: string | null;
   type: TransactionType;
   amount: string;
-  isPaid: boolean;
+  /** `YYYY-MM-DD` when paid, null when not. Always null for a recurrence. */
+  paymentDate: string | null;
   categoryId: string;
   cardId: string | null;
   frequency: RecurringFrequency | null;
@@ -91,7 +92,7 @@ function singleArm(userId: string, filters: TransactionFilters, from: Date, toEx
            t.description AS "description",
            t.type::text AS "type",
            t.amount::text AS "amount",
-           t.is_paid AS "isPaid",
+           to_char(t.payment_date, 'YYYY-MM-DD') AS "paymentDate",
            t.category_id AS "categoryId",
            t.card_id AS "cardId",
            NULL::text AS "frequency",
@@ -133,7 +134,7 @@ function installmentArm(
            t.description AS "description",
            t.type::text AS "type",
            t.amount::text AS "amount",
-           t.is_paid AS "isPaid",
+           to_char(t.payment_date, 'YYYY-MM-DD') AS "paymentDate",
            t.category_id AS "categoryId",
            t.card_id AS "cardId",
            r.frequency::text AS "frequency",
@@ -171,7 +172,7 @@ function recurringArm(userId: string, filters: TransactionFilters, from: Date, t
            r.description AS "description",
            r.type::text AS "type",
            r.amount::text AS "amount",
-           false AS "isPaid",
+           NULL::text AS "paymentDate",
            r.category_id AS "categoryId",
            r.card_id AS "cardId",
            r.frequency::text AS "frequency",

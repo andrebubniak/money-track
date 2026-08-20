@@ -12,7 +12,7 @@ import {
   type ActionResult,
 } from "@/lib/actions/action-helpers";
 import { ownsReferences } from "@/lib/actions/references";
-import { toUtcMidnight } from "@/lib/dates";
+import { toIsoDate, toUtcMidnight } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { occurrenceDates } from "@/lib/transactions/occurrences";
 import {
@@ -22,12 +22,12 @@ import {
   type InstallmentValues,
 } from "@/lib/validations/installment";
 
-async function parseValues(values: InstallmentValues, locale: string) {
+async function parseValues(values: InstallmentValues, locale: string, today: string) {
   const t = await getTranslations({
     locale: resolveLocale(locale),
     namespace: "validation.transactions",
   });
-  return createInstallmentSchema(t).safeParse(values);
+  return createInstallmentSchema(t, today).safeParse(values);
 }
 
 async function parseSeriesValues(values: InstallmentSeriesValues, locale: string) {
@@ -49,7 +49,8 @@ export async function createInstallmentPlan(
   const userId = await getSessionUserId();
   if (!userId) return notFoundError(locale);
 
-  const parsed = await parseValues(values, locale);
+  const today = toIsoDate(new Date());
+  const parsed = await parseValues(values, locale, today);
   if (!parsed.success) return invalidInputError(locale);
 
   if (!(await ownsReferences(userId, parsed.data.categoryId, parsed.data.cardId))) {
@@ -90,7 +91,8 @@ export async function createInstallmentPlan(
         amount: parsed.data.amount,
         description: parsed.data.description,
         date,
-        isPaid: false,
+        // `paymentDate` is left unset: it defaults to null, so every
+        // generated occurrence starts unpaid.
         recurringTransactionId: plan.id,
       })),
     });
@@ -101,9 +103,9 @@ export async function createInstallmentPlan(
 }
 
 /**
- * The series half of the plan edit page. `amount`, `date`, `description`, and
- * `isPaid` are deliberately absent: those belong to each occurrence and are
- * edited row by row through `updateTransaction`.
+ * The series half of the plan edit page. `amount`, `date`, `description`,
+ * and `paymentDate` are deliberately absent: those belong to each occurrence
+ * and are edited row by row through `updateTransaction`.
  */
 export async function updateInstallmentSeries(
   id: string,

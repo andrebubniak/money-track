@@ -48,6 +48,7 @@ export default async function NewInstallmentPlanPage() {
             frequency: "MONTHLY",
             occurrencesCount: "",
           }}
+          today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
           selectedCategory={null}
           selectedCard={null}

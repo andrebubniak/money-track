@@ -25,7 +25,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteTransaction, updateTransaction } from "@/lib/actions/transactions";
 import type { InstallmentSeriesValues } from "@/lib/validations/installment";
-import { createTransactionSchema } from "@/lib/validations/transaction";
+import {
+  createTransactionSchema,
+  MAX_TRANSACTION_DATE,
+} from "@/lib/validations/transaction";
 
 export type InstallmentOccurrence = {
   id: string;
@@ -41,7 +44,8 @@ export type InstallmentOccurrence = {
   date: string;
   amount: string;
   description: string | null;
-  isPaid: boolean;
+  /** `YYYY-MM-DD` when paid, null when not. */
+  paymentDate: string | null;
 };
 
 type InstallmentOccurrencesTableProps = {
@@ -55,6 +59,8 @@ type InstallmentOccurrencesTableProps = {
    */
   occurrencesCount: number;
   seriesValues: InstallmentSeriesValues;
+  /** `YYYY-MM-DD`, computed on the server — see `createTransactionSchema`. */
+  today: string;
   dateFormat: DateFormat;
   /**
    * The occurrence named by `?occurrence=` on the edit page — already
@@ -67,7 +73,7 @@ type InstallmentOccurrencesTableProps = {
 };
 
 /**
- * Only `date` and `isPaid` live in state — both are driven by components
+ * Only `date` and `paymentDate` live in state — both are driven by components
  * with their own controlled value/onChange (`DatePicker`, `Checkbox`), which
  * have no native-input quirks to avoid. `amount` and `description` are plain
  * `<input>`s read through a ref instead, uncontrolled the same way a
@@ -78,7 +84,7 @@ type InstallmentOccurrencesTableProps = {
  * the digits after it are ever typed. Reading `.value` from the DOM only at
  * Save time sidesteps that entirely.
  */
-type RowValues = { date: string; isPaid: boolean };
+type RowValues = { date: string; paymentDate: string | null };
 type RowStatus = "idle" | "saving" | "saved";
 
 /** Field-by-field equality for one occurrence's server data. */
@@ -87,7 +93,7 @@ function occurrenceDataEqual(a: InstallmentOccurrence, b: InstallmentOccurrence)
     a.date === b.date &&
     a.amount === b.amount &&
     a.description === b.description &&
-    a.isPaid === b.isPaid
+    a.paymentDate === b.paymentDate
   );
 }
 
@@ -97,8 +103,8 @@ function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, 
 
 /**
  * One row per occurrence, each its own small form. `amount`, `date`,
- * `description`, and `isPaid` are the only fields that vary row to row — the
- * series' category, card, and type ride along unchanged on every save, so a
+ * `description`, and `paymentDate` are the only fields that vary row to row
+ * — the series' category, card, and type ride along unchanged on every save, so a
  * per-row edit can never reclassify the row. `installment-series-form.tsx`
  * owns those three fields instead; see `.claude/rules/database.md`'s note on
  * why `type` has to be a series-level field.
@@ -112,6 +118,7 @@ export function InstallmentOccurrencesTable({
   occurrences,
   occurrencesCount,
   seriesValues,
+  today,
   dateFormat,
   focusOccurrenceId,
 }: InstallmentOccurrencesTableProps) {
@@ -126,11 +133,21 @@ export function InstallmentOccurrencesTable({
   // Rebuilt when the translator changes — which is when the locale changes.
   // The same schema `updateTransaction` validates with server-side, so a row
   // can never disagree with the server about what a valid occurrence is.
-  const schema = useMemo(() => createTransactionSchema(tValidation), [tValidation]);
+  // `maxDate: MAX_TRANSACTION_DATE` widens the ceiling back: a plan's
+  // occurrences are generated into the future by design, so capping them at
+  // today would make every one of them unsavable. `updateTransaction` picks
+  // the same ceiling from the row itself.
+  const schema = useMemo(
+    () => createTransactionSchema(tValidation, { today, maxDate: MAX_TRANSACTION_DATE }),
+    [tValidation, today],
+  );
 
   const [values, setValues] = useState<Record<string, RowValues>>(() =>
     Object.fromEntries(
-      occurrences.map((occurrence) => [occurrence.id, { date: occurrence.date, isPaid: occurrence.isPaid }]),
+      occurrences.map((occurrence) => [
+        occurrence.id,
+        { date: occurrence.date, paymentDate: occurrence.paymentDate },
+      ]),
     ),
   );
   const [status, setStatus] = useState<Record<string, RowStatus>>({});
@@ -161,7 +178,7 @@ export function InstallmentOccurrencesTable({
   // server value with the stale one — real, silent data loss in a finance
   // app.
   //
-  // The `date`/`isPaid` half of that fix happens here, *during render*,
+  // The `date`/`paymentDate` half of that fix happens here, *during render*,
   // rather than in a `useEffect` — this is React's own documented
   // "adjusting state when a prop changes" pattern
   // (react.dev/learn/you-might-not-need-an-effect), not the anti-pattern
@@ -197,7 +214,7 @@ export function InstallmentOccurrencesTable({
       const next = { ...current };
       for (const occurrence of occurrences) {
         if (changed.has(occurrence.id)) {
-          next[occurrence.id] = { date: occurrence.date, isPaid: occurrence.isPaid };
+          next[occurrence.id] = { date: occurrence.date, paymentDate: occurrence.paymentDate };
         }
       }
       return next;
@@ -352,7 +369,10 @@ export function InstallmentOccurrencesTable({
             // `values` has never seen — defensive only: the render-time
             // adjustment above already seeds/resyncs `values` for every id
             // in `occurrences` before this ever runs.
-            const row = values[occurrence.id] ?? { date: occurrence.date, isPaid: occurrence.isPaid };
+            const row = values[occurrence.id] ?? {
+              date: occurrence.date,
+              paymentDate: occurrence.paymentDate,
+            };
             const rowStatus = status[occurrence.id] ?? "idle";
             const error = rowError[occurrence.id];
 
@@ -409,8 +429,10 @@ export function InstallmentOccurrencesTable({
 
                 <TableCell>
                   <Checkbox
-                    checked={row.isPaid}
-                    onCheckedChange={(next) => updateRow(occurrence.id, { isPaid: next === true })}
+                    checked={row.paymentDate !== null}
+                    onCheckedChange={(next) =>
+                      updateRow(occurrence.id, { paymentDate: next === true ? row.date : null })
+                    }
                     aria-label={tInstallments("occurrencePaidLabel", { index: occurrence.index })}
                   />
                 </TableCell>

@@ -82,8 +82,9 @@ const FREQUENCY_LABEL_KEYS = {
  * The series half of the plan edit page: `type`, `category`, and `card` only
  * — the fields that classify the whole series and are written to the
  * definition *and* every live occurrence via `updateInstallmentSeries`.
- * `amount`, `date`, `description`, and `isPaid` belong to each occurrence
- * instead and are edited row by row in `installment-occurrences-table.tsx`.
+ * `amount`, `date`, `description`, and `paymentDate` belong to each
+ * occurrence instead and are edited row by row in
+ * `installment-occurrences-table.tsx`.
  *
  * `frequency`, `startDate`, and the occurrence count are frozen after
  * creation — recomputing dates the user may already have hand-adjusted, or

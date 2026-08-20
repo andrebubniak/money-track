@@ -69,7 +69,8 @@ export type SeedTransaction = {
   description?: string | null;
   /** `YYYY-MM-DD`. */
   date: string;
-  isPaid?: boolean;
+  /** `YYYY-MM-DD` when paid, null/omitted when not. */
+  paymentDate?: string | null;
   recurringTransactionId?: string | null;
 };
 
@@ -78,9 +79,9 @@ export async function insertTransaction(input: SeedTransaction): Promise<string>
   const id = input.id ?? randomId("txn");
   await dbQuery(
     `INSERT INTO transactions
-       (id, user_id, category_id, card_id, type, amount, description, date, is_paid,
+       (id, user_id, category_id, card_id, type, amount, description, date, payment_date,
         recurring_transaction_id, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5::"TransactionType", $6, $7, $8::timestamp, $9, $10, now(), now())`,
+     VALUES ($1, $2, $3, $4, $5::"TransactionType", $6, $7, $8::timestamp, $9::timestamp, $10, now(), now())`,
     [
       id,
       input.userId,
@@ -90,7 +91,7 @@ export async function insertTransaction(input: SeedTransaction): Promise<string>
       input.amount,
       input.description ?? null,
       input.date,
-      input.isPaid ?? false,
+      input.paymentDate ?? null,
       input.recurringTransactionId ?? null,
     ],
   );

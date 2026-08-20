@@ -175,7 +175,8 @@ type OneOffOptions = {
   description?: string;
   /** Days before today. 0 (the default) leaves the form's own default (today) untouched. */
   daysAgo?: number;
-  isPaid?: boolean;
+  /** Ticks the form's paid checkbox, which dates the payment on the transaction's own date. */
+  paid?: boolean;
 };
 
 /** Fills and submits the one-off transaction form, and waits for the redirect back to the list. */
@@ -193,7 +194,7 @@ async function createOneOffTransaction(page: Page, options: OneOffOptions): Prom
   if (options.description) {
     await page.getByRole("textbox", { name: "Description", exact: true }).fill(options.description);
   }
-  if (options.isPaid) {
+  if (options.paid) {
     await page.getByRole("checkbox", { name: "Already paid" }).click();
   }
 

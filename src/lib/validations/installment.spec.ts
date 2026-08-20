@@ -21,6 +21,9 @@ const base = {
   frequency: "MONTHLY" as const,
 };
 
+/** Well after every `startDate` in this file, so the ceiling never fires. */
+const TODAY = "2026-08-19";
+
 const firstIssue = (schema: { safeParse: (v: unknown) => unknown }, values: unknown) => {
   const result = schema.safeParse(values) as
     | { success: true }
@@ -30,7 +33,7 @@ const firstIssue = (schema: { safeParse: (v: unknown) => unknown }, values: unkn
 };
 
 describe("createRecurringTransactionSchema", () => {
-  const schema = createRecurringTransactionSchema(t);
+  const schema = createRecurringTransactionSchema(t, TODAY);
 
   it("accepts a complete payload", () => {
     expect(schema.safeParse(base).success).toBe(true);
@@ -73,7 +76,7 @@ describe("createRecurringTransactionSchema", () => {
 });
 
 describe("createInstallmentSchema", () => {
-  const schema = createInstallmentSchema(t);
+  const schema = createInstallmentSchema(t, TODAY);
 
   it("accepts a plan with a count", () => {
     expect(schema.safeParse({ ...base, occurrencesCount: 12 }).success).toBe(true);

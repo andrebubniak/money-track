@@ -124,7 +124,7 @@ export default async function EditInstallmentPlanPage({
             // of Prisma's `Decimal`, matching the schema's amount regex.
             amount: occurrence.amount.toFixed(2),
             description: occurrence.description,
-            isPaid: occurrence.isPaid,
+            paymentDate: occurrence.paymentDate ? toIsoDate(occurrence.paymentDate) : null,
           }))}
           occurrencesCount={plan.occurrencesCount}
           seriesValues={{
@@ -132,6 +132,7 @@ export default async function EditInstallmentPlanPage({
             categoryId: plan.categoryId,
             cardId: plan.cardId,
           }}
+          today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
           focusOccurrenceId={focusOccurrenceId}
         />

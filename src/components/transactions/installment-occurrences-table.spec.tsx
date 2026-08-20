@@ -15,9 +15,30 @@ import { InstallmentOccurrencesTable } from "@/components/transactions/installme
 import enUS from "../../../messages/en-US.json";
 
 const occurrences = [
-  { id: "tx-1", index: 1, date: "2026-01-05", amount: "89.00", description: "Gym", isPaid: true },
-  { id: "tx-2", index: 2, date: "2026-02-05", amount: "89.00", description: "Gym", isPaid: false },
-  { id: "tx-3", index: 3, date: "2026-03-05", amount: "89.00", description: "Gym", isPaid: false },
+  {
+    id: "tx-1",
+    index: 1,
+    date: "2026-01-05",
+    amount: "89.00",
+    description: "Gym",
+    paymentDate: "2026-01-05",
+  },
+  {
+    id: "tx-2",
+    index: 2,
+    date: "2026-02-05",
+    amount: "89.00",
+    description: "Gym",
+    paymentDate: null,
+  },
+  {
+    id: "tx-3",
+    index: 3,
+    date: "2026-03-05",
+    amount: "89.00",
+    description: "Gym",
+    paymentDate: null,
+  },
 ];
 
 const seriesValues = { type: "EXPENSE" as const, categoryId: "cat-1", cardId: "card-1" };
@@ -29,6 +50,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
       occurrences={occurrences}
       occurrencesCount={3}
       seriesValues={seriesValues}
+      today="2026-08-19"
       dateFormat="MDY"
       focusOccurrenceId={null}
       {...overrides}
@@ -51,6 +73,7 @@ const rerenderWithNewProps = (
         occurrences={occurrences}
         occurrencesCount={3}
         seriesValues={seriesValues}
+        today="2026-08-19"
         dateFormat="MDY"
         focusOccurrenceId={null}
         {...overrides}
@@ -121,7 +144,7 @@ describe("InstallmentOccurrencesTable", () => {
     await user.click(within(secondRow).getByRole("checkbox"));
     await user.click(within(secondRow).getByRole("button", { name: "Save" }));
 
-    expect(vi.mocked(updateTransaction).mock.calls[0][1].isPaid).toBe(true);
+    expect(vi.mocked(updateTransaction).mock.calls[0][1].paymentDate).toBe("2026-02-05");
   });
 
   it("deletes a single occurrence without touching the others", async () => {
@@ -201,7 +224,9 @@ describe("InstallmentOccurrencesTable", () => {
     expect(within(secondRow).getByRole("checkbox")).not.toBeChecked();
 
     const updatedOccurrences = occurrences.map((occurrence) =>
-      occurrence.id === "tx-2" ? { ...occurrence, amount: "150.00", isPaid: true } : occurrence,
+      occurrence.id === "tx-2"
+        ? { ...occurrence, amount: "150.00", paymentDate: "2026-02-05" }
+        : occurrence,
     );
     rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
 

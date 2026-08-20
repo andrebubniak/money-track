@@ -264,7 +264,14 @@
       "type": { "invalid": "Escolha receita ou despesa." },
       "date": {
         "invalid": "Digite uma data válida.",
-        "outOfRange": "A data deve estar entre {min} e {max}."
+        "outOfRange": "A data deve estar entre {min} e {max}.",
+        "notInFuture": "A data não pode ser futura.",
+        "beforePrevious": "Este pagamento não pode ter data anterior à do pagamento anterior."
+      },
+      "paymentDate": {
+        "invalid": "Digite uma data de pagamento válida.",
+        "notInFuture": "A data de pagamento não pode ser futura.",
+        "afterDate": "A data de pagamento não pode ser posterior à data da transação."
       },
       "frequency": { "invalid": "Escolha com que frequência isso se repete." },
       "occurrences": {

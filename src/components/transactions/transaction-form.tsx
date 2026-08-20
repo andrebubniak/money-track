@@ -32,6 +32,8 @@ type TransactionFormProps = {
   mode: "create" | "edit";
   transactionId?: string;
   defaultValues: TransactionValues;
+  /** `YYYY-MM-DD`, computed on the server — see `createTransactionSchema`. */
+  today: string;
   dateFormat: DateFormat;
   selectedCategory: ComboboxOption | null;
   selectedCard: ComboboxOption | null;
@@ -46,6 +48,7 @@ export function TransactionForm({
   mode,
   transactionId,
   defaultValues,
+  today,
   dateFormat,
   selectedCategory,
   selectedCard,
@@ -59,7 +62,10 @@ export function TransactionForm({
   const [formError, setFormError] = useState<string | null>(null);
 
   // Rebuilt when the translator changes — which is when the locale changes.
-  const schema = useMemo(() => createTransactionSchema(tValidation), [tValidation]);
+  const schema = useMemo(
+    () => createTransactionSchema(tValidation, { today }),
+    [tValidation, today],
+  );
 
   const {
     register,
@@ -80,7 +86,7 @@ export function TransactionForm({
   const date = useWatch({ control, name: "date" });
   const categoryId = useWatch({ control, name: "categoryId" });
   const cardId = useWatch({ control, name: "cardId" });
-  const isPaid = useWatch({ control, name: "isPaid" });
+  const paymentDate = useWatch({ control, name: "paymentDate" });
 
   // Switching to Income must clear the card, not just hide it: a hidden
   // field still submits its value, and the schema rejects income carrying a
@@ -232,14 +238,18 @@ export function TransactionForm({
       <div className="col-span-12 flex flex-col justify-center gap-2 lg:col-span-3">
         <div className="flex items-center gap-2 lg:h-11">
           <Checkbox
-            id="isPaid"
-            checked={isPaid}
-            onCheckedChange={(next) => setValue("isPaid", next, { shouldValidate: true })}
-            aria-invalid={Boolean(errors.isPaid)}
+            id="paymentDate"
+            checked={paymentDate !== null}
+            onCheckedChange={(next) =>
+              setValue("paymentDate", next ? date : null, { shouldValidate: true })
+            }
+            aria-invalid={Boolean(errors.paymentDate)}
           />
-          <Label htmlFor="isPaid">{t("paidLabel")}</Label>
+          <Label htmlFor="paymentDate">{t("paidLabel")}</Label>
         </div>
-        {errors.isPaid && <p className="text-sm text-destructive">{errors.isPaid.message}</p>}
+        {errors.paymentDate && (
+          <p className="text-sm text-destructive">{errors.paymentDate.message}</p>
+        )}
       </div>
 
       <div className="col-span-12 lg:justify-self-end">

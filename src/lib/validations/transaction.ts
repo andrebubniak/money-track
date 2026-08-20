@@ -44,6 +44,11 @@ export type TransactionValidationKey =
   | "type.invalid"
   | "date.invalid"
   | "date.outOfRange"
+  | "date.notInFuture"
+  | "date.beforePrevious"
+  | "paymentDate.invalid"
+  | "paymentDate.notInFuture"
+  | "paymentDate.afterDate"
   | "frequency.invalid"
   | "occurrences.invalid"
   | "occurrences.tooMany";
@@ -62,20 +67,38 @@ export type TransactionValidationTranslator = (
  * (`new Date("2026-02-31T00:00:00.000Z")` is `2026-03-03`), so the check
  * round-trips the parsed date back through `toIsoDate` and compares it to
  * the original string rather than trusting `getTime()` alone.
+ *
+ * `maxDate` narrows the upper bound below `MAX_TRANSACTION_DATE` — a
+ * server-computed "today" for the fields that may not be in the future. The
+ * message says *why* rather than restating the range.
+ *
+ * `messageKey` is what lets the payment-date field report its own messages
+ * rather than the transaction date's.
  */
-export function isoDateField(t: TransactionValidationTranslator) {
+export function isoDateField(
+  t: TransactionValidationTranslator,
+  maxDate: string = MAX_TRANSACTION_DATE,
+  messageKey: {
+    invalid: TransactionValidationKey;
+    notInFuture: TransactionValidationKey;
+  } = {
+    invalid: "date.invalid",
+    notInFuture: "date.notInFuture",
+  },
+) {
   return z
     .string()
     .trim()
-    .regex(ISO_DATE_PATTERN, t("date.invalid"))
+    .regex(ISO_DATE_PATTERN, t(messageKey.invalid))
     .refine((value) => {
       const date = new Date(`${value}T00:00:00.000Z`);
       return !Number.isNaN(date.getTime()) && toIsoDate(date) === value;
-    }, t("date.invalid"))
+    }, t(messageKey.invalid))
     .refine(
       (value) => value >= MIN_TRANSACTION_DATE && value <= MAX_TRANSACTION_DATE,
       t("date.outOfRange", { min: MIN_TRANSACTION_DATE, max: MAX_TRANSACTION_DATE }),
-    );
+    )
+    .refine((value) => value <= maxDate, t(messageKey.notInFuture));
 }
 
 /** The fields common to one-off transactions, recurrences, and installments. */
@@ -162,14 +185,61 @@ export function incomeHasNoCard(t: TransactionValidationTranslator) {
   };
 }
 
-export function createTransactionSchema(t: TransactionValidationTranslator) {
+/**
+ * A payment cannot postdate its transaction. Both values are `YYYY-MM-DD`,
+ * for which string comparison is a correct date comparison — but *only* for
+ * that shape, which is what the guard below is really protecting.
+ *
+ * Guarded so a payload whose `date` or `paymentDate` already failed its own
+ * check does not also collect this issue on the same path —
+ * `.claude/rules/validation.md`. The shape re-check is the same move
+ * `incomeHasNoCard` makes for `cardId`'s length: an object-level
+ * `superRefine` still runs when a *string* field only failed its own
+ * `.refine()`s (the value is still a string, so the object's shape parsed),
+ * so the raw, still-malformed value reaches here. Comparing it as a string
+ * is meaningless, and actively wrong — `"not-a-date" > "2026-08-10"` is
+ * `true`, which would stack `paymentDate.afterDate` on top of
+ * `paymentDate.invalid`, both on `["paymentDate"]`.
+ */
+export function paymentDateNotAfterDate(t: TransactionValidationTranslator) {
+  return (values: { date: string; paymentDate: string | null }, ctx: z.RefinementCtx) => {
+    if (!ISO_DATE_PATTERN.test(values.date)) return;
+    if (!values.paymentDate || !ISO_DATE_PATTERN.test(values.paymentDate)) return;
+
+    if (values.paymentDate > values.date) {
+      ctx.addIssue({
+        code: "custom",
+        message: t("paymentDate.afterDate"),
+        path: ["paymentDate"],
+      });
+    }
+  };
+}
+
+/**
+ * `today` is always supplied by the server — a client-side `new Date()`
+ * could sit a day either side of the server's across a timezone boundary
+ * and disagree with the action about what "today" is.
+ *
+ * `maxDate` widens the ceiling back to `MAX_TRANSACTION_DATE` for an
+ * installment plan's generated occurrences, which are legitimately
+ * future-dated. `updateTransaction` picks it from the row itself.
+ */
+export function createTransactionSchema(
+  t: TransactionValidationTranslator,
+  options: { today: string; maxDate?: string },
+) {
   return z
     .object({
       ...sharedTransactionFields(t),
-      date: isoDateField(t),
-      isPaid: z.boolean(),
+      date: isoDateField(t, options.maxDate ?? options.today),
+      paymentDate: isoDateField(t, options.today, {
+        invalid: "paymentDate.invalid",
+        notInFuture: "paymentDate.notInFuture",
+      }).nullable(),
     })
-    .superRefine(incomeHasNoCard(t));
+    .superRefine(incomeHasNoCard(t))
+    .superRefine(paymentDateNotAfterDate(t));
 }
 
 export type TransactionValues = z.infer<ReturnType<typeof createTransactionSchema>>;

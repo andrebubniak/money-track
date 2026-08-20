@@ -118,7 +118,7 @@ describe("createInstallmentPlan", () => {
 
     const { data } = tx.transaction.createMany.mock.calls[0][0];
     expect(data.every((row: { recurringTransactionId: string }) => row.recurringTransactionId === "plan-1")).toBe(true);
-    expect(data.every((row: { isPaid: boolean }) => row.isPaid === false)).toBe(true);
+    expect(data.every((row: { paymentDate?: Date }) => row.paymentDate === undefined)).toBe(true);
     expect(data.every((row: { amount: string }) => row.amount === "89.00")).toBe(true);
   });
 
@@ -197,7 +197,7 @@ describe("updateInstallmentSeries", () => {
     await updateInstallmentSeries("plan-1", seriesValues, LOCALE);
 
     const { data } = tx.transaction.updateMany.mock.calls[0][0];
-    for (const field of ["amount", "date", "description", "isPaid"]) {
+    for (const field of ["amount", "date", "description", "paymentDate"]) {
       expect(field in data).toBe(false);
     }
   });

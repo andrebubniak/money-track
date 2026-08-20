@@ -47,6 +47,8 @@ type RecurringTransactionFormProps = {
 	mode: "create" | "edit";
 	recurringTransactionId?: string;
 	defaultValues: RecurringTransactionValues;
+	/** `YYYY-MM-DD`, computed on the server — see `isoDateField`. */
+	today: string;
 	dateFormat: DateFormat;
 	selectedCategory: ComboboxOption | null;
 	selectedCard: ComboboxOption | null;
@@ -70,7 +72,7 @@ const FREQUENCY_LABEL_KEYS = {
 /**
  * `TransactionForm`'s grid with two substitutions and one removal: a start
  * date replaces the date, a frequency `Select` replaces the paid checkbox,
- * and there is no `isPaid` field at all — an ongoing recurrence is a
+ * and there is no `paymentDate` field at all — an ongoing recurrence is a
  * definition, not a concrete transaction. See `.claude/rules/ui.md` and
  * `transaction-form.tsx`, which this mirrors field for field.
  */
@@ -78,6 +80,7 @@ export function RecurringTransactionForm({
 	mode,
 	recurringTransactionId,
 	defaultValues,
+	today,
 	dateFormat,
 	selectedCategory,
 	selectedCard,
@@ -94,8 +97,8 @@ export function RecurringTransactionForm({
 
 	// Rebuilt when the translator changes — which is when the locale changes.
 	const schema = useMemo(
-		() => createRecurringTransactionSchema(tValidation),
-		[tValidation],
+		() => createRecurringTransactionSchema(tValidation, today),
+		[tValidation, today],
 	);
 
 	const {

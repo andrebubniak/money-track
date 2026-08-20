@@ -33,6 +33,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
   renderWithIntl(
     <InstallmentForm
       defaultValues={values}
+      today="2026-08-19"
       dateFormat="MDY"
       selectedCategory={{ id: "cat-1", name: "Food" }}
       selectedCard={{ id: "card-1", name: "Personal Visa" }}

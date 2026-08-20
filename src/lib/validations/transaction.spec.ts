@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createTransactionSchema,
+  MAX_TRANSACTION_DATE,
   MAX_TRANSACTION_DESCRIPTION_LENGTH,
   TRANSACTION_ID_MAX_LENGTH,
   type TransactionValidationKey,
@@ -12,7 +13,13 @@ import {
 const t = (key: TransactionValidationKey, values?: Record<string, string | number>) =>
   values ? `${key}:${JSON.stringify(values)}` : key;
 
-const schema = createTransactionSchema(t);
+const TODAY = "2026-08-19";
+const options = { today: TODAY };
+
+// The field-level tests below predate the "not in the future" ceiling and
+// exercise the full `MIN`/`MAX_TRANSACTION_DATE` range, so this schema keeps
+// the wide ceiling. The ceiling itself gets its own describe block.
+const schema = createTransactionSchema(t, { today: TODAY, maxDate: MAX_TRANSACTION_DATE });
 
 const valid = {
   type: "EXPENSE" as const,
@@ -21,7 +28,7 @@ const valid = {
   cardId: "clx0000000000000000000002",
   description: "Groceries",
   date: "2026-08-14",
-  isPaid: true,
+  paymentDate: null,
 };
 
 const firstIssue = (values: unknown) => {
@@ -29,6 +36,9 @@ const firstIssue = (values: unknown) => {
   if (result.success) throw new Error("expected the payload to fail validation");
   return result.error.issues[0];
 };
+
+const issueKeys = (result: { success: boolean; error?: { issues: { message: string }[] } }) =>
+  result.success ? [] : (result.error?.issues.map((issue) => issue.message) ?? []);
 
 describe("createTransactionSchema", () => {
   it("accepts a complete payload", () => {
@@ -177,5 +187,78 @@ describe("createTransactionSchema", () => {
     it("rejects a value outside the enum", () => {
       expect(firstIssue({ ...valid, type: "TRANSFER" }).message).toBe("type.invalid");
     });
+  });
+});
+
+describe("createTransactionSchema — date ceiling", () => {
+  it("accepts today", () => {
+    const result = createTransactionSchema(t, options).safeParse({
+      ...valid,
+      date: TODAY,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects tomorrow", () => {
+    const result = createTransactionSchema(t, options).safeParse({
+      ...valid,
+      date: "2026-08-20",
+    });
+    expect(issueKeys(result)).toContain("date.notInFuture");
+  });
+
+  it("accepts a later date when maxDate widens the ceiling", () => {
+    const result = createTransactionSchema(t, {
+      today: TODAY,
+      maxDate: MAX_TRANSACTION_DATE,
+    }).safeParse({ ...valid, date: "2027-03-01" });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("createTransactionSchema — paymentDate", () => {
+  it("accepts null as the unpaid state", () => {
+    const result = createTransactionSchema(t, options).safeParse({
+      ...valid,
+      date: "2026-08-10",
+      paymentDate: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.paymentDate).toBeNull();
+  });
+
+  it("accepts a payment date equal to the transaction date", () => {
+    const result = createTransactionSchema(t, options).safeParse({
+      ...valid,
+      date: "2026-08-10",
+      paymentDate: "2026-08-10",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a payment date after the transaction date", () => {
+    const result = createTransactionSchema(t, options).safeParse({
+      ...valid,
+      date: "2026-08-10",
+      paymentDate: "2026-08-11",
+    });
+    expect(issueKeys(result)).toContain("paymentDate.afterDate");
+  });
+
+  it("rejects a payment date in the future even when the transaction is", () => {
+    const result = createTransactionSchema(t, {
+      today: TODAY,
+      maxDate: MAX_TRANSACTION_DATE,
+    }).safeParse({ ...valid, date: "2027-03-01", paymentDate: "2026-08-20" });
+    expect(issueKeys(result)).toContain("paymentDate.notInFuture");
+  });
+
+  it("does not add afterDate on top of an already-invalid payment date", () => {
+    const result = createTransactionSchema(t, options).safeParse({
+      ...valid,
+      date: "2026-08-10",
+      paymentDate: "not-a-date",
+    });
+    expect(issueKeys(result)).not.toContain("paymentDate.afterDate");
   });
 });

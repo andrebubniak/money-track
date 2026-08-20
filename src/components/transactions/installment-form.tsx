@@ -52,6 +52,8 @@ type InstallmentFormProps = {
 	defaultValues: Omit<InstallmentValues, "occurrencesCount"> & {
 		occurrencesCount: number | "";
 	};
+	/** `YYYY-MM-DD`, computed on the server — see `isoDateField`. */
+	today: string;
 	dateFormat: DateFormat;
 	selectedCategory: ComboboxOption | null;
 	selectedCard: ComboboxOption | null;
@@ -83,6 +85,7 @@ const FREQUENCY_LABEL_KEYS = {
  */
 export function InstallmentForm({
 	defaultValues,
+	today,
 	dateFormat,
 	selectedCategory,
 	selectedCard,
@@ -99,8 +102,8 @@ export function InstallmentForm({
 
 	// Rebuilt when the translator changes — which is when the locale changes.
 	const schema = useMemo(
-		() => createInstallmentSchema(tValidation),
-		[tValidation],
+		() => createInstallmentSchema(tValidation, today),
+		[tValidation, today],
 	);
 
 	const {

@@ -49,6 +49,7 @@ export default async function NewRecurringTransactionPage() {
             startDate: toIsoDate(new Date()),
             frequency: "MONTHLY",
           }}
+          today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
           selectedCategory={null}
           selectedCard={null}

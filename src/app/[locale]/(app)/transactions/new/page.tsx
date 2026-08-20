@@ -46,8 +46,9 @@ export default async function NewTransactionPage() {
             cardId: null,
             description: null,
             date: toIsoDate(new Date()),
-            isPaid: false,
+            paymentDate: null,
           }}
+          today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
           selectedCategory={null}
           selectedCard={null}

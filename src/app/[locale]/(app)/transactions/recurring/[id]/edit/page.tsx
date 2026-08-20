@@ -80,6 +80,7 @@ export default async function EditRecurringTransactionPage({
             startDate: toIsoDate(recurring.startDate),
             frequency: recurring.frequency,
           }}
+          today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
           selectedCategory={selectedCategory}
           selectedCard={selectedCard}

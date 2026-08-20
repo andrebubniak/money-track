@@ -264,7 +264,14 @@
       "type": { "invalid": "Choose income or expense." },
       "date": {
         "invalid": "Enter a valid date.",
-        "outOfRange": "Date must be between {min} and {max}."
+        "outOfRange": "Date must be between {min} and {max}.",
+        "notInFuture": "Date can't be in the future.",
+        "beforePrevious": "This payment can't be dated before the one before it."
+      },
+      "paymentDate": {
+        "invalid": "Enter a valid payment date.",
+        "notInFuture": "Payment date can't be in the future.",
+        "afterDate": "Payment date can't be after the transaction date."
       },
       "frequency": { "invalid": "Choose how often this repeats." },
       "occurrences": {

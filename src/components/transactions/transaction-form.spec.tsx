@@ -26,7 +26,7 @@ const values: TransactionValues = {
   cardId: "card-1",
   description: "Groceries",
   date: "2026-08-14",
-  isPaid: false,
+  paymentDate: null,
 };
 
 const render = (overrides: Record<string, unknown> = {}) =>
@@ -34,6 +34,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
     <TransactionForm
       mode="create"
       defaultValues={values}
+      today="2026-08-19"
       dateFormat="MDY"
       selectedCategory={{ id: "cat-1", name: "Food" }}
       selectedCard={{ id: "card-1", name: "Personal Visa" }}

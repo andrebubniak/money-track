@@ -20,7 +20,7 @@ const row = (overrides: Partial<TransactionListRow> = {}): TransactionListRow =>
   description: "Groceries",
   type: "EXPENSE",
   amount: "120.50",
-  isPaid: false,
+  paymentDate: null,
   categoryId: "cat-1",
   cardId: "card-1",
   frequency: null,

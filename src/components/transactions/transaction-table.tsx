@@ -158,7 +158,7 @@ export function TransactionTable({
                 <TableCell className="text-muted-foreground">
                   {entry.kind === "recurring"
                     ? t("table.none")
-                    : entry.isPaid
+                    : entry.paymentDate
                       ? t("table.paidYes")
                       : t("table.paidNo")}
                 </TableCell>

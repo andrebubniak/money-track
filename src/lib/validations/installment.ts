@@ -16,11 +16,11 @@ import {
  * `occurrenceDates` enforces at the last moment — this one exists to tell the
  * user, that one to make an unbounded write impossible.
  */
-export function createInstallmentSchema(t: TransactionValidationTranslator) {
+export function createInstallmentSchema(t: TransactionValidationTranslator, today: string) {
   return z
     .object({
       ...sharedTransactionFields(t),
-      startDate: isoDateField(t),
+      startDate: isoDateField(t, today),
       frequency: z.enum(RECURRING_FREQUENCIES, t("frequency.invalid")),
       occurrencesCount: z.coerce
         .number(t("occurrences.invalid"))

@@ -264,7 +264,14 @@
       "type": { "invalid": "Bitte Einnahme oder Ausgabe wählen." },
       "date": {
         "invalid": "Bitte ein gültiges Datum eingeben.",
-        "outOfRange": "Das Datum muss zwischen {min} und {max} liegen."
+        "outOfRange": "Das Datum muss zwischen {min} und {max} liegen.",
+        "notInFuture": "Das Datum darf nicht in der Zukunft liegen.",
+        "beforePrevious": "Diese Zahlung darf nicht vor der vorherigen Zahlung datiert sein."
+      },
+      "paymentDate": {
+        "invalid": "Bitte ein gültiges Zahlungsdatum eingeben.",
+        "notInFuture": "Das Zahlungsdatum darf nicht in der Zukunft liegen.",
+        "afterDate": "Das Zahlungsdatum darf nicht nach dem Transaktionsdatum liegen."
       },
       "frequency": { "invalid": "Bitte wählen, wie oft sich das wiederholt." },
       "occurrences": {

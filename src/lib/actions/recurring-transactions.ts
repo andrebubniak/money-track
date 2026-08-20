@@ -12,19 +12,19 @@ import {
   type ActionResult,
 } from "@/lib/actions/action-helpers";
 import { ownsReferences } from "@/lib/actions/references";
-import { toUtcMidnight } from "@/lib/dates";
+import { toIsoDate, toUtcMidnight } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import {
   createRecurringTransactionSchema,
   type RecurringTransactionValues,
 } from "@/lib/validations/recurring-transaction";
 
-async function parseValues(values: RecurringTransactionValues, locale: string) {
+async function parseValues(values: RecurringTransactionValues, locale: string, today: string) {
   const t = await getTranslations({
     locale: resolveLocale(locale),
     namespace: "validation.transactions",
   });
-  return createRecurringTransactionSchema(t).safeParse(values);
+  return createRecurringTransactionSchema(t, today).safeParse(values);
 }
 
 export async function createRecurringTransaction(
@@ -34,7 +34,8 @@ export async function createRecurringTransaction(
   const userId = await getSessionUserId();
   if (!userId) return notFoundError(locale);
 
-  const parsed = await parseValues(values, locale);
+  const today = toIsoDate(new Date());
+  const parsed = await parseValues(values, locale, today);
   if (!parsed.success) return invalidInputError(locale);
 
   if (!(await ownsReferences(userId, parsed.data.categoryId, parsed.data.cardId))) {
@@ -75,7 +76,8 @@ export async function updateRecurringTransaction(
   if (!userId) return notFoundError(locale);
   if (!transactionIdSchema.safeParse(id).success) return notFoundError(locale);
 
-  const parsed = await parseValues(values, locale);
+  const today = toIsoDate(new Date());
+  const parsed = await parseValues(values, locale, today);
   if (!parsed.success) return invalidInputError(locale);
 
   if (!(await ownsReferences(userId, parsed.data.categoryId, parsed.data.cardId))) {

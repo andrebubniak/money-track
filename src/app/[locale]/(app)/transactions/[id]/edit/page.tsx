@@ -80,8 +80,9 @@ export default async function EditTransactionPage({
             cardId: transaction.cardId,
             description: transaction.description,
             date: toIsoDate(transaction.date),
-            isPaid: transaction.isPaid,
+            paymentDate: transaction.paymentDate ? toIsoDate(transaction.paymentDate) : null,
           }}
+          today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
           selectedCategory={selectedCategory}
           selectedCard={selectedCard}

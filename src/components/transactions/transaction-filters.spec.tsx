@@ -57,6 +57,17 @@ describe("TransactionFiltersPanel", () => {
     expect(screen.getByLabelText("Show")).toBeInTheDocument();
   });
 
+  it("keeps the filters collapsed until the header bar is clicked", async () => {
+    const user = userEvent.setup();
+    render();
+
+    expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Filters/ }));
+
+    expect(screen.getByLabelText("Category")).toBeInTheDocument();
+  });
+
   it("badges how many filters differ from the defaults", () => {
     render({ type: "INCOME", show: "single" });
 

@@ -124,23 +124,35 @@ export function TransactionFiltersPanel({
   };
 
   return (
-    <Collapsible>
+    // The same `rounded-md border` container the table below uses, so the
+    // two read as one stack. The header bar is the trigger and carries the
+    // highlight: `bg-muted` is the token `.claude/rules/ui.md` records as
+    // deliberately tuned to read as a visible highlight against the page
+    // background — not a one-off shade.
+    <Collapsible className="overflow-hidden rounded-md border">
+      {/* Still a `Button`, not a bare `<button>`: the chevron's
+          `group-aria-expanded/button:rotate-180` depends on the `group/button`
+          class `buttonVariants` supplies, and a plain element would silently
+          drop the rotation. `rounded-none` and `h-auto` undo the parts of the
+          ghost variant that fight a full-width header bar. */}
       <CollapsibleTrigger
         render={
-          <Button variant="outline">
-            {t("filters.title")}
-            <ChevronDown
-              aria-hidden="true"
-              data-icon="inline-end"
-              className="transition-transform group-aria-expanded/button:rotate-180"
-            />
-            {activeCount > 0 && <Badge>{t("filters.active", { count: activeCount })}</Badge>}
-          </Button>
+          <Button
+            variant="ghost"
+            className="h-auto w-full justify-start gap-2 rounded-none bg-muted px-4 py-3 text-sm font-medium hover:bg-accent"
+          />
         }
-      />
+      >
+        {t("filters.title")}
+        {activeCount > 0 && <Badge>{t("filters.active", { count: activeCount })}</Badge>}
+        <ChevronDown
+          aria-hidden="true"
+          className="ml-auto transition-transform group-aria-expanded/button:rotate-180"
+        />
+      </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="grid grid-cols-12 gap-4 pt-4">
+        <div className="grid grid-cols-12 gap-4 p-4">
           <div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
             <Label htmlFor="filter-category">{t("filters.category")}</Label>
             <AsyncCombobox

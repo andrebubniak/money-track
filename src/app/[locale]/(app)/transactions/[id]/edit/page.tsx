@@ -41,7 +41,7 @@ export default async function EditTransactionPage({
   const [user, t, tPresets] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session.user.id },
-      select: { dateFormat: true },
+      select: { dateFormat: true, numberFormat: true },
     }),
     getTranslations("transactions"),
     getTranslations("categories.presets"),
@@ -84,6 +84,7 @@ export default async function EditTransactionPage({
           }}
           today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
+          numberFormat={user.numberFormat}
           selectedCategory={selectedCategory}
           selectedCard={selectedCard}
         />

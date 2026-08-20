@@ -8,16 +8,17 @@ import type { z } from "zod";
 
 import { CircleAlert } from "lucide-react";
 
-import type { DateFormat } from "@/generated/prisma/enums";
+import type { DateFormat, NumberFormat } from "@/generated/prisma/enums";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AsyncCombobox } from "@/components/ui/async-combobox";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { useRouter } from "@/i18n/navigation";
 import { createTransaction, updateTransaction } from "@/lib/actions/transactions";
 import type { ComboboxOption } from "@/lib/options";
@@ -35,6 +36,7 @@ type TransactionFormProps = {
   /** `YYYY-MM-DD`, computed on the server — see `createTransactionSchema`. */
   today: string;
   dateFormat: DateFormat;
+  numberFormat: NumberFormat;
   selectedCategory: ComboboxOption | null;
   selectedCard: ComboboxOption | null;
 };
@@ -50,6 +52,7 @@ export function TransactionForm({
   defaultValues,
   today,
   dateFormat,
+  numberFormat,
   selectedCategory,
   selectedCard,
 }: TransactionFormProps) {
@@ -83,10 +86,17 @@ export function TransactionForm({
   // (react-hooks/incompatible-library). Needed because none of these are
   // native inputs `register()` can read back from the DOM.
   const type = useWatch({ control, name: "type" });
+  const amount = useWatch({ control, name: "amount" });
   const date = useWatch({ control, name: "date" });
   const categoryId = useWatch({ control, name: "categoryId" });
   const cardId = useWatch({ control, name: "cardId" });
   const paymentDate = useWatch({ control, name: "paymentDate" });
+
+  // A payment cannot postdate its transaction, and cannot be in the future.
+  // For a one-off `date` is itself capped at today, so this is normally just
+  // `date` — seeding the switch with it is always valid and never guesses a
+  // day the user did not choose.
+  const maxPaymentDate = date < today ? date : today;
 
   // Switching to Income must clear the card, not just hide it: a hidden
   // field still submits its value, and the schema rejects income carrying a
@@ -149,18 +159,14 @@ export function TransactionForm({
         <Label htmlFor="amount" required>
           {t("amountLabel")}
         </Label>
-        <Input
+        <MoneyInput
           id="amount"
-          type="number"
-          step="0.01"
+          value={amount}
+          onValueChange={(next) => setValue("amount", next, { shouldValidate: true })}
+          numberFormat={numberFormat}
           placeholder={t("amountPlaceholder")}
-          aria-invalid={Boolean(errors.amount)}
+          invalid={Boolean(errors.amount)}
           aria-describedby={errors.amount ? "amount-error" : undefined}
-          className="lg:h-11 lg:text-base"
-          // register() sets the DOM value imperatively via its ref callback
-          // after mount, not through props — see `.claude/rules/ui.md`.
-          defaultValue={defaultValues.amount}
-          {...register("amount")}
         />
         {errors.amount && (
           <p id="amount-error" className="text-sm text-destructive">
@@ -216,7 +222,7 @@ export function TransactionForm({
         </div>
       )}
 
-      <div className="col-span-12 flex flex-col gap-2 lg:col-span-9">
+      <div className="col-span-12 flex flex-col gap-2 lg:col-span-6">
         <Label htmlFor="description">{t("descriptionLabel")}</Label>
         <Input
           id="description"
@@ -235,22 +241,39 @@ export function TransactionForm({
         )}
       </div>
 
+      {/* Description is 6, this is 3, the picker below is 3 — the row totals
+          12. At description's old span of 9 the picker would wrap onto a line
+          of its own. */}
       <div className="col-span-12 flex flex-col justify-center gap-2 lg:col-span-3">
         <div className="flex items-center gap-2 lg:h-11">
-          <Checkbox
-            id="paymentDate"
+          <Switch
+            id="paid"
             checked={paymentDate !== null}
             onCheckedChange={(next) =>
-              setValue("paymentDate", next === true ? date : null, { shouldValidate: true })
+              setValue("paymentDate", next ? maxPaymentDate : null, { shouldValidate: true })
             }
-            aria-invalid={Boolean(errors.paymentDate)}
           />
-          <Label htmlFor="paymentDate">{t("paidLabel")}</Label>
+          <Label htmlFor="paid">{t("paidLabel")}</Label>
         </div>
-        {errors.paymentDate && (
-          <p className="text-sm text-destructive">{errors.paymentDate.message}</p>
-        )}
       </div>
+
+      {paymentDate !== null && (
+        <div className="col-span-12 flex flex-col gap-2 lg:col-span-3">
+          <Label htmlFor="paymentDate">{t("paymentDateLabel")}</Label>
+          <DatePicker
+            id="paymentDate"
+            value={paymentDate}
+            onValueChange={(next) => setValue("paymentDate", next, { shouldValidate: true })}
+            dateFormat={dateFormat}
+            maxDate={maxPaymentDate}
+            triggerLabel={t("paymentDateLabel")}
+            invalid={Boolean(errors.paymentDate)}
+          />
+          {errors.paymentDate && (
+            <p className="text-sm text-destructive">{errors.paymentDate.message}</p>
+          )}
+        </div>
+      )}
 
       <div className="col-span-12 lg:justify-self-end">
         <Button type="submit" size="lg" className="w-full lg:w-auto" disabled={isSubmitting}>

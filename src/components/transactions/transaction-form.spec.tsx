@@ -36,6 +36,7 @@ const render = (overrides: Record<string, unknown> = {}) =>
       defaultValues={values}
       today="2026-08-19"
       dateFormat="MDY"
+      numberFormat="COMMA_DOT"
       selectedCategory={{ id: "cat-1", name: "Food" }}
       selectedCard={{ id: "card-1", name: "Personal Visa" }}
       {...overrides}
@@ -93,8 +94,14 @@ describe("TransactionForm", () => {
     const user = userEvent.setup();
     render();
 
-    await user.clear(screen.getByRole("spinbutton", { name: /Amount/ }));
-    await user.type(screen.getByRole("spinbutton", { name: /Amount/ }), "0");
+    // "Value" is required, so its <Label> carries a trailing "*" that is
+    // aria-hidden but still part of the label's raw text content — an exact
+    // getByLabelText("Value") would not match "Value*". getByRole respects
+    // aria-hidden when computing the accessible name, which is what the
+    // asterisk wrapper is for — see `.claude/rules/ui.md`.
+    const amountInput = screen.getByRole("textbox", { name: "Value" });
+    await user.clear(amountInput);
+    await user.type(amountInput, "0");
     await submit(user);
 
     expect(await screen.findByText("Amount must be greater than zero.")).toBeInTheDocument();
@@ -156,5 +163,42 @@ describe("TransactionForm", () => {
     render();
 
     expect(screen.getByLabelText(/Category/)).toHaveValue("Food");
+  });
+
+  it("hides the payment date until the switch is on", () => {
+    render();
+
+    expect(screen.queryByLabelText("Payment date")).not.toBeInTheDocument();
+  });
+
+  it("reveals the payment date and seeds it from the transaction date", async () => {
+    const user = userEvent.setup();
+    render({ defaultValues: { ...values, date: "2026-08-14", paymentDate: null } });
+
+    await user.click(screen.getByRole("switch", { name: "Already paid" }));
+
+    expect(screen.getByLabelText("Payment date")).toHaveTextContent("08/14/2026");
+  });
+
+  it("clears the payment date when the switch goes off", async () => {
+    const user = userEvent.setup();
+    render({ defaultValues: { ...values, paymentDate: "2026-08-14" } });
+
+    await user.click(screen.getByRole("switch", { name: "Already paid" }));
+    await submit(user);
+
+    expect(vi.mocked(createTransaction).mock.calls[0][0].paymentDate).toBeNull();
+  });
+
+  it("submits the value the money input masked", async () => {
+    const user = userEvent.setup();
+    render({ defaultValues: { ...values, amount: "" } });
+
+    // See the comment above on the "invalid amount" test for why this is
+    // getByRole rather than getByLabelText.
+    await user.type(screen.getByRole("textbox", { name: "Value" }), "12345");
+    await submit(user);
+
+    expect(vi.mocked(createTransaction).mock.calls[0][0].amount).toBe("123.45");
   });
 });

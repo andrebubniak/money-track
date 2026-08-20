@@ -372,6 +372,7 @@
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "z. B. Wocheneinkauf",
       "paidLabel": "Bereits bezahlt",
+      "paymentDateLabel": "Zahlungsdatum",
       "frequencyLabel": "Wiederholt sich",
       "occurrencesLabel": "Anzahl der Raten",
       "submitCreate": "Transaktion anlegen",

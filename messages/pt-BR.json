@@ -372,6 +372,7 @@
       "descriptionLabel": "Descrição",
       "descriptionPlaceholder": "ex.: Compras da semana",
       "paidLabel": "Já pago",
+      "paymentDateLabel": "Data de pagamento",
       "frequencyLabel": "Repete",
       "occurrencesLabel": "Número de parcelas",
       "submitCreate": "Criar transação",

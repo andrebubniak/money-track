@@ -16,7 +16,7 @@ export default async function NewTransactionPage() {
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
-    select: { dateFormat: true },
+    select: { dateFormat: true, numberFormat: true },
   });
 
   const t = await getTranslations("transactions");
@@ -50,6 +50,7 @@ export default async function NewTransactionPage() {
           }}
           today={toIsoDate(new Date())}
           dateFormat={user.dateFormat}
+          numberFormat={user.numberFormat}
           selectedCategory={null}
           selectedCard={null}
         />

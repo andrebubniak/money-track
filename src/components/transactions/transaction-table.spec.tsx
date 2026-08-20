@@ -206,6 +206,16 @@ describe("TransactionTable", () => {
     expect(screen.getByText("You don't have any transactions yet.")).toBeInTheDocument();
   });
 
+  // The "no transactions at all" empty state is a creation entry point, so it
+  // opens the same three-choice menu the page header offers rather than
+  // linking straight to the one-off form.
+  it("opens the type menu from the empty state instead of a bare link", () => {
+    render([], { hasAnyTransactions: false });
+
+    expect(screen.getByRole("button", { name: "New transaction" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "New transaction" })).not.toBeInTheDocument();
+  });
+
   it("offers to clear the filters when they are what emptied the list", () => {
     render([], { hasAnyTransactions: true });
 

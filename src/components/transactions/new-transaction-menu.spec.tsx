@@ -29,4 +29,17 @@ describe("NewTransactionMenu", () => {
       "/en-US/transactions/installments/new",
     );
   });
+
+  it("opens the same three choices from the link variant", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<NewTransactionMenu variant="link" label="New transaction" />);
+
+    await user.click(screen.getByRole("button", { name: "New transaction" }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: /One-off transaction/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Recurring transaction/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Installments/ })).toBeInTheDocument();
+  });
 });

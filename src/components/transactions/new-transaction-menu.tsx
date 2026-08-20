@@ -18,17 +18,38 @@ import { Link } from "@/i18n/navigation";
  * (`.claude/rules/ui.md`). Each item carries a one-line hint because
  * "Recurring" and "Installments" are not self-explanatory the first time.
  */
-export function NewTransactionMenu() {
+export type NewTransactionMenuProps = {
+  /**
+   * `"link"` is the transactions list's empty state, where the control has
+   * to read as the inline text link it replaces rather than as a second
+   * primary button under the one already in the page header.
+   */
+  variant?: "button" | "link";
+  label?: string;
+};
+
+export function NewTransactionMenu({ variant = "button", label }: NewTransactionMenuProps) {
   const t = useTranslations("transactions.actions");
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button />}>
-        <Plus data-icon="inline-start" aria-hidden="true" />
-        {t("new")}
+      <DropdownMenuTrigger
+        render={
+          variant === "link" ? (
+            <Button
+              variant="link"
+              className="h-auto p-0 text-sm font-medium underline underline-offset-4"
+            />
+          ) : (
+            <Button />
+          )
+        }
+      >
+        {variant === "button" && <Plus data-icon="inline-start" aria-hidden="true" />}
+        {label ?? t("new")}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="max-w-xs">
+      <DropdownMenuContent align="end" className="min-w-64 max-w-sm">
         <DropdownMenuLinkItem render={<Link href="/transactions/new" />}>
           <Receipt aria-hidden="true" className="size-6" />
           <span className="flex flex-col">

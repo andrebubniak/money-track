@@ -15,6 +15,7 @@ import { toUtcMidnight } from "@/lib/dates";
 import { formatDate, formatMoney, type UserFormatPreferences } from "@/lib/format";
 import type { TransactionListRow } from "@/lib/transactions/list-query";
 import type { TransactionFilters, TransactionSort } from "@/lib/validations/transaction-filters";
+import { NewTransactionMenu } from "@/components/transactions/new-transaction-menu";
 import { TransactionRowActions } from "@/components/transactions/transaction-row-actions";
 import { cn } from "@/lib/utils";
 
@@ -108,12 +109,20 @@ export function TransactionTable({
                   <span className="text-sm text-muted-foreground">
                     {hasAnyTransactions ? t("table.emptyFiltered") : t("table.empty")}
                   </span>
-                  <Link
-                    href={hasAnyTransactions ? clearHref : "/transactions/new"}
-                    className="text-sm font-medium underline underline-offset-4"
-                  >
-                    {hasAnyTransactions ? t("table.emptyFilteredCta") : t("table.emptyCta")}
-                  </Link>
+                  {hasAnyTransactions ? (
+                    <Link
+                      href={clearHref}
+                      className="text-sm font-medium underline underline-offset-4"
+                    >
+                      {t("table.emptyFilteredCta")}
+                    </Link>
+                  ) : (
+                    // The same three choices the page header offers — this is a
+                    // creation entry point, and a bare link to /transactions/new
+                    // would hide two of them. "Clear filters" above is not, so
+                    // it stays a plain link.
+                    <NewTransactionMenu variant="link" label={t("table.emptyCta")} />
+                  )}
                 </span>
               </TableCell>
             </TableRow>

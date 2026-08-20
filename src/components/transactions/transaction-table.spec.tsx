@@ -50,7 +50,10 @@ describe("TransactionTable", () => {
   it("renders a one-off row with formatted date and amount", () => {
     render([row()]);
 
-    expect(screen.getByText("08/14/2026")).toBeInTheDocument();
+    // The fixture's payment date matches its effective date, so the
+    // formatted date appears twice: the Date column and the Payment date
+    // column.
+    expect(screen.getAllByText("08/14/2026")).toHaveLength(2);
     expect(screen.getByText(/120\.50/)).toBeInTheDocument();
     expect(screen.getByText("Food")).toBeInTheDocument();
     expect(screen.getByText("Personal Visa")).toBeInTheDocument();
@@ -114,7 +117,7 @@ describe("TransactionTable", () => {
       "aria-sort",
       "descending",
     );
-    expect(screen.getByRole("columnheader", { name: /Amount/ })).toHaveAttribute(
+    expect(screen.getByRole("columnheader", { name: /Value/ })).toHaveAttribute(
       "aria-sort",
       "none",
     );
@@ -126,7 +129,9 @@ describe("TransactionTable", () => {
   it("links every sortable header to its own href, not just Date's", () => {
     render([row()]);
 
-    expect(screen.getByRole("link", { name: /Amount/ })).toHaveAttribute(
+    // `sort=amount` stays the URL value even though the column now reads
+    // "Value" — links already in the wild must keep working.
+    expect(screen.getByRole("link", { name: /Value/ })).toHaveAttribute(
       "href",
       "/en-US/transactions?sort=amount",
     );
@@ -146,6 +151,52 @@ describe("TransactionTable", () => {
     expect(
       within(screen.getByRole("columnheader", { name: "Card" })).queryByRole("link"),
     ).toBeNull();
+  });
+
+  it("orders the columns as Description, Value, Category, Card, Type, Date, Payment date, Actions", () => {
+    render([row()]);
+
+    expect(
+      screen
+        .getAllByRole("columnheader")
+        .map((cell) => cell.textContent?.replace(/\s+/g, " ").trim()),
+    ).toEqual([
+      "Description",
+      "Value",
+      "Category",
+      "Card",
+      "Type",
+      "Date",
+      "Payment date",
+      "Actions",
+    ]);
+  });
+
+  it("shows a Not paid badge for an unpaid transaction", () => {
+    render([row({ paymentDate: null })]);
+
+    expect(screen.getByText("Not paid")).toBeInTheDocument();
+  });
+
+  it("shows the payment date for a paid transaction", () => {
+    render([row({ paymentDate: "2026-08-14" })]);
+
+    expect(screen.getAllByText("08/14/2026")).toHaveLength(2);
+    expect(screen.queryByText("Not paid")).not.toBeInTheDocument();
+  });
+
+  it("shows a dash for a recurrence, which has no payment", () => {
+    render([
+      row({
+        kind: "recurring",
+        id: "rec-1",
+        startDate: "2024-09-12",
+        frequency: "MONTHLY",
+        paymentDate: null,
+      }),
+    ]);
+
+    expect(screen.queryByText("Not paid")).not.toBeInTheDocument();
   });
 
   // Two different empty states: nothing yet, versus nothing matching.

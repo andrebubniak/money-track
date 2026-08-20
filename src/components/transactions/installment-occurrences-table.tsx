@@ -358,7 +358,7 @@ export function InstallmentOccurrencesTable({
             <TableHead>{t("date")}</TableHead>
             <TableHead>{t("amount")}</TableHead>
             <TableHead>{t("description")}</TableHead>
-            <TableHead>{t("paid")}</TableHead>
+            <TableHead>{t("paymentDate")}</TableHead>
             <TableHead className="text-right">{t("actions")}</TableHead>
           </TableRow>
         </TableHeader>

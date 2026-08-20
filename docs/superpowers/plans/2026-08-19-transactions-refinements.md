@@ -344,7 +344,10 @@ describe("MoneyInput", () => {
     await user.type(input, "-50");
 
     expect(onValueChange).toHaveBeenLastCalledWith("0.50");
-    expect(input).not.toHaveValue(expect.stringContaining("-"));
+    // A concrete assertion, not `expect.stringContaining` inside
+    // `toHaveValue` — jest-dom compares that matcher by identity and the
+    // assertion would pass on any value at all.
+    expect((input as HTMLInputElement).value).not.toContain("-");
   });
 
   it("caps input at the Decimal(12,2) ceiling", async () => {
@@ -512,10 +515,10 @@ The schema swap everything after this depends on. This task changes the column, 
 - Create: `prisma/migrations/<timestamp>_add_transaction_payment_date/migration.sql`
 - Modify: `src/lib/validations/transaction.ts`
 - Modify: `src/lib/validations/recurring-transaction.ts`, `src/lib/validations/installment.ts`
-- Modify: `src/lib/actions/transactions.ts`, `src/lib/actions/installments.ts`
+- Modify: `src/lib/actions/transactions.ts`, `src/lib/actions/installments.ts`, `src/lib/actions/recurring-transactions.ts`
 - Modify: `src/lib/transactions/list-query.ts:35,94,136,174`
-- Modify: `src/app/[locale]/(app)/transactions/new/page.tsx`, `.../transactions/[id]/edit/page.tsx`, `.../transactions/installments/[id]/edit/page.tsx`
-- Modify: `src/components/transactions/transaction-form.tsx`, `installment-occurrences-table.tsx`, `transaction-table.tsx`
+- Modify: **every** page that renders a form: `.../transactions/new`, `.../transactions/[id]/edit`, `.../transactions/recurring/new`, `.../transactions/recurring/[id]/edit`, `.../transactions/installments/new`, `.../transactions/installments/[id]/edit`
+- Modify: `src/components/transactions/transaction-form.tsx`, `recurring-transaction-form.tsx`, `installment-form.tsx`, `installment-occurrences-table.tsx`, `transaction-table.tsx`
 - Modify: `messages/en-US.json`, `messages/pt-BR.json`, `messages/de-DE.json`
 - Modify: `e2e/db.ts`
 - Test: `src/lib/validations/transaction.spec.ts`, `src/lib/actions/transactions.spec.ts`
@@ -924,7 +927,21 @@ export async function updateTransaction(
 
 Import `MAX_TRANSACTION_DATE` and `toIsoDate`. The previous-sibling ordering rule is Task 12's; nothing about it belongs here yet.
 
-In `src/lib/actions/installments.ts`, replace `isPaid: false` at line 93 with nothing at all: `paymentDate` defaults to `null`, so generated occurrences start unpaid without an explicit field. Update the comment at line 105 to say `paymentDate` instead of `isPaid`. Both `createRecurringTransaction` and `createInstallmentPlan` now need `today` passed into their schema factories — compute `const today = toIsoDate(new Date());` in each and thread it through, the same way `createTransaction` does.
+In `src/lib/actions/installments.ts`, replace `isPaid: false` at line 93 with nothing at all: `paymentDate` defaults to `null`, so generated occurrences start unpaid without an explicit field. Update the comment at line 105 to say `paymentDate` instead of `isPaid`.
+
+Both `src/lib/actions/installments.ts` and `src/lib/actions/recurring-transactions.ts` have a `parseValues` calling a factory whose signature just changed. Give each one a `today` parameter and compute `const today = toIsoDate(new Date());` in the calling action, the same way `createTransaction` does:
+
+```ts
+async function parseValues(values: InstallmentValues, locale: string, today: string) {
+  const t = await getTranslations({
+    locale: resolveLocale(locale),
+    namespace: "validation.transactions",
+  });
+  return createInstallmentSchema(t, today).safeParse(values);
+}
+```
+
+`createInstallmentSeriesSchema` is unchanged — it has no date field — so `parseSeriesValues` keeps its current signature.
 
 - [ ] **Step 8: Update the list query**
 
@@ -951,10 +968,13 @@ in `singleArm` (line 94) and `installmentArm` (line 136), and in `recurringArm` 
 
 Keep the UI as it is; only rebind it. Task 5 replaces the control.
 
-- `transactions/new/page.tsx`: `isPaid: false` becomes `paymentDate: null`. Add `today={toIsoDate(new Date())}` as a `TransactionForm` prop.
-- `transactions/[id]/edit/page.tsx`: `isPaid: transaction.isPaid` becomes `paymentDate: transaction.paymentDate ? toIsoDate(transaction.paymentDate) : null`. Add the same `today` prop.
+**Every form component now needs a `today: string` prop**, because the schema factory it calls requires one. Add it to `transaction-form.tsx`, `recurring-transaction-form.tsx`, `installment-form.tsx`, and `installment-occurrences-table.tsx`, and pass `today={toIsoDate(new Date())}` from all six pages listed above. This is the whole reason those files appear in this task rather than in Tasks 5–6: leaving them out breaks the build.
+
+- `transactions/new/page.tsx`: `isPaid: false` becomes `paymentDate: null`.
+- `transactions/[id]/edit/page.tsx`: `isPaid: transaction.isPaid` becomes `paymentDate: transaction.paymentDate ? toIsoDate(transaction.paymentDate) : null`.
 - `transactions/installments/[id]/edit/page.tsx`: `isPaid: occurrence.isPaid` becomes `paymentDate: occurrence.paymentDate ? toIsoDate(occurrence.paymentDate) : null`.
-- `transaction-form.tsx`: add a `today: string` prop; pass `{ today }` to `createTransactionSchema`; the `isPaid` watch becomes `paymentDate`; the checkbox becomes `checked={paymentDate !== null}` with `onCheckedChange={(next) => setValue("paymentDate", next ? date : null, { shouldValidate: true })}`.
+- `transaction-form.tsx`: pass `{ today }` to `createTransactionSchema`; the `isPaid` watch becomes `paymentDate`; the checkbox becomes `checked={paymentDate !== null}` with `onCheckedChange={(next) => setValue("paymentDate", next ? date : null, { shouldValidate: true })}`.
+- `recurring-transaction-form.tsx` and `installment-form.tsx`: pass `today` to their factories — `createRecurringTransactionSchema(tValidation, today)` and `createInstallmentSchema(tValidation, today)`. No other change here; Task 6 does the layout and the `maxDate`.
 - `installment-occurrences-table.tsx`: `RowValues` becomes `{ date: string; paymentDate: string | null }`; `InstallmentOccurrence.isPaid` becomes `paymentDate: string | null`; `occurrenceDataEqual` compares `paymentDate`; the checkbox becomes `checked={row.paymentDate !== null}` / `onCheckedChange={(next) => updateRow(occurrence.id, { paymentDate: next === true ? row.date : null })}`. Pass `{ today }` to `createTransactionSchema` — thread a `today: string` prop down from the page, and pass `maxDate: MAX_TRANSACTION_DATE` since these are plan rows.
 - `transaction-table.tsx`: the Paid cell becomes `entry.paymentDate ? t("table.paidYes") : t("table.paidNo")` for non-recurring rows. Task 7 rewrites this cell properly.
 - `e2e/db.ts`: `isPaid?: boolean` becomes `paymentDate?: string | null`; the insert passes `input.paymentDate ?? null` and the SQL column list uses `payment_date`.
@@ -1139,7 +1159,7 @@ const paymentDate = useWatch({ control, name: "paymentDate" });
 const maxPaymentDate = date < today ? date : today;
 ```
 
-Add `today: string` to the props if Task 4 did not already.
+`today` is already a prop from Task 4; do not re-add it.
 
 - [ ] **Step 6: Pass `numberFormat` from both pages**
 
@@ -1181,10 +1201,10 @@ EOF
 - Test: `src/components/transactions/recurring-transaction-form.spec.tsx`, `installment-form.spec.tsx`
 
 **Interfaces:**
-- Consumes: `MoneyInput` (Task 3), `DatePicker.maxDate` (Task 2), the `today`-taking schema factories (Task 4).
-- Produces: `numberFormat: NumberFormat` and `today: string` props on both forms.
+- Consumes: `MoneyInput` (Task 3), `DatePicker.maxDate` (Task 2), the `today`-taking schema factories and the `today` prop both forms already carry (Task 4).
+- Produces: `numberFormat: NumberFormat` on both forms.
 
-Both files use **tabs at width 4**.
+Both files use **tabs at width 4**. Task 4 already added the `today` prop and wired the schema factories — do not re-add either.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1214,23 +1234,22 @@ Expected: FAIL.
 
 - [ ] **Step 3: Apply the changes to `recurring-transaction-form.tsx`**
 
-- Add `numberFormat: NumberFormat` and `today: string` props.
-- Pass `today` into `createRecurringTransactionSchema(tValidation, today)`.
+- Add a `numberFormat: NumberFormat` prop. `today` is already there from Task 4.
 - Replace the amount `Input` with `MoneyInput`, exactly as Task 5 did for the transaction form (watch `amount`, drop `register`/`defaultValue`).
 - Add `maxDate={today}` to the start-date `DatePicker`.
 - Change the description wrapper from `lg:col-span-9` to `lg:col-span-6`, and the frequency wrapper from `lg:col-span-3` to `lg:col-span-6`.
 
 - [ ] **Step 4: Apply the changes to `installment-form.tsx`**
 
-Same five changes (`createInstallmentSchema(tValidation, today)` for the schema), plus the layout:
+Same changes as above (`numberFormat` prop, `MoneyInput`, `maxDate={today}` on the start-date picker), plus the layout:
 
 - Description wrapper: `lg:col-span-6` becomes `lg:col-span-12` — its own row.
 - Frequency wrapper: `lg:col-span-3` becomes `lg:col-span-6`.
 - Occurrences wrapper: `lg:col-span-3` becomes `lg:col-span-6`.
 
-- [ ] **Step 5: Pass the new props from the three pages**
+- [ ] **Step 5: Pass `numberFormat` from the three pages**
 
-In each page, extend the user select to `select: { dateFormat: true, numberFormat: true }` and pass `numberFormat={user.numberFormat}` and `today={toIsoDate(new Date())}`.
+`recurring/new`, `recurring/[id]/edit`, and `installments/new`: extend the user select to `select: { dateFormat: true, numberFormat: true }` and pass `numberFormat={user.numberFormat}`. `today` is already passed from Task 4.
 
 - [ ] **Step 6: Run the tests and lint**
 
@@ -1838,7 +1857,15 @@ The table's columns are now index, Date, Value, Payment date, Actions.
 
 - [ ] **Step 5: Add the action button and its dialog**
 
-Beside the existing Save button and delete trigger, a third control — three separate controls, per the design decision, not an ellipsis menu:
+Beside the existing Save button and delete trigger, a third control — three separate controls, per the design decision, not an ellipsis menu.
+
+First add the indexed accessible-name key to all three catalogs. It must be one interpolated message, never `t("markPaid") + " " + index` — a concatenated name is a sentence assembled in code, which `.claude/rules/i18n.md` forbids because word order differs by language:
+
+| Key | en-US | pt-BR | de-DE |
+| --- | --- | --- | --- |
+| `occurrenceMarkPaidLabel` | `"Payment {index} mark as paid"` | `"Marcar pagamento {index} como pago"` | `"Zahlung {index} als bezahlt markieren"` |
+
+Then the control. The tooltip shows the un-indexed `markPaid`, because a tooltip is read in the context of its own row; the `aria-label` carries the index, because a screen reader user tabbing the table has no such context:
 
 ```tsx
 <Tooltip>
@@ -1848,7 +1875,7 @@ Beside the existing Save button and delete trigger, a third control — three se
         type="button"
         variant="info"
         size="icon-sm"
-        aria-label={tInstallments("markPaid") + " " + occurrence.index}
+        aria-label={tInstallments("occurrenceMarkPaidLabel", { index: occurrence.index })}
         onClick={() => setPaidTargetId(occurrence.id)}
       />
     }
@@ -1857,16 +1884,6 @@ Beside the existing Save button and delete trigger, a third control — three se
   </TooltipTrigger>
   <TooltipContent>{tInstallments("markPaid")}</TooltipContent>
 </Tooltip>
-```
-
-Do **not** concatenate strings for the accessible name — that breaks `.claude/rules/i18n.md`. Add an indexed key instead and use it:
-
-| Key | en-US | pt-BR | de-DE |
-| --- | --- | --- | --- |
-| `occurrenceMarkPaidLabel` | `"Payment {index} mark as paid"` | `"Marcar pagamento {index} como pago"` | `"Zahlung {index} als bezahlt markieren"` |
-
-```tsx
-aria-label={tInstallments("occurrenceMarkPaidLabel", { index: occurrence.index })}
 ```
 
 One dialog shared across every row, targeted by `paidTargetId` — the same shape the delete dialog already uses, and for the same reason:

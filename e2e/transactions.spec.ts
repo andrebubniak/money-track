@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import {
   closeDb,
+  countTransactions,
   dbQuery,
   getCardIdByName,
   getCategoryIdByName,
@@ -30,6 +31,53 @@ function transactionRows(page: Page) {
 /** The row whose Description cell is (or contains) `text` — unique for every description used below. */
 function transactionRow(page: Page, text: string) {
   return page.locator("table tbody tr").filter({ hasText: text });
+}
+
+/**
+ * The rendered column order, 1-indexed for `td:nth-child(n)` — kept in step
+ * with `COLUMNS` in `src/components/transactions/transaction-table.tsx`. It
+ * is a named map rather than a literal in each assertion because the order
+ * has already changed once (Task 7 moved Date from first to sixth and put
+ * Value second), and a bare `td:nth-child(4)` reads as correct no matter
+ * which column it lands on — the pagination scenario below silently compared
+ * amounts while believing they were descriptions.
+ */
+const COLUMN = {
+  description: 1,
+  value: 2,
+  category: 3,
+  card: 4,
+  type: 5,
+  date: 6,
+  paymentDate: 7,
+  actions: 8,
+} as const;
+
+/** One cell of a row, by column name. `rows` may be a single row or a set of them. */
+function cell(rows: ReturnType<typeof transactionRows>, column: keyof typeof COLUMN) {
+  return rows.locator(`td:nth-child(${COLUMN[column]})`);
+}
+
+/**
+ * The transaction amount field. A `MoneyInput` (`src/components/ui/money-input.tsx`),
+ * so `type="text"` — `getByRole("spinbutton")` no longer matches anything.
+ *
+ * `getByRole(..., { name })` and not `getByLabel(..., { exact: true })`: the
+ * field is required, so its `<Label>` renders a trailing `*` inside an
+ * `aria-hidden` span. That keeps the asterisk out of the accessible name
+ * (which is what `getByRole` matches) but *not* out of the label's raw text
+ * (which is what `getByLabel` matches) — see `.claude/rules/ui.md`, and
+ * `cards.spec.ts`/`categories.spec.ts` for the same query on their own
+ * required Name fields.
+ *
+ * `fill` still takes the canonical `"45.50"`: the mask keeps only digits and
+ * reads the last two as cents, so `"45.50"` and `"4550"` both land on
+ * `45.50`. Its *displayed* value is grouped per the user's `NumberFormat`
+ * (`COMMA_DOT` for a freshly registered user), so only amounts below 1000
+ * round-trip through `toHaveValue` unchanged — every amount here is.
+ */
+function amountField(page: Page) {
+  return page.getByRole("textbox", { name: "Value", exact: true });
 }
 
 /**
@@ -112,18 +160,57 @@ function dayButtonNameRegex(date: Date): RegExp {
   return new RegExp(`${month} ${day}, ${year}`);
 }
 
+/** Whole calendar months from `to` back to `from` — negative when `to` is later. */
+function monthsBetween(from: Date, to: Date): number {
+  return (from.getFullYear() - to.getFullYear()) * 12 + (from.getMonth() - to.getMonth());
+}
+
 /**
- * Opens a `DatePicker` by its trigger's accessible name and clicks the given
- * day. Only ever called for a day within the currently displayed month —
- * `DatePicker` opens on the month of its current value (today, for every
- * create form), and every date this suite picks stays inside that same
- * month, so no "previous month" navigation is needed.
+ * Opens a `DatePicker` by its trigger's accessible name, pages to the target
+ * month, and clicks the day.
+ *
+ * `DatePicker` opens on the month of its *current value* — today for every
+ * create form, which is why `openOn` defaults to `today()`. A picker seeded
+ * with something else (the payment-date one, seeded with the transaction's
+ * own date) passes what it was seeded with. The paging is computed rather
+ * than assumed because "two days ago" and "today" are the same month on 28
+ * days out of 30 and different months on the other two — a suite that only
+ * ever ran mid-month would look fine and fail on the 1st.
+ *
+ * The nav buttons' accessible names are react-day-picker's own defaults
+ * (`labelPrevious`/`labelNext` in
+ * `node_modules/react-day-picker/dist/cjs/labels/`), not anything this app
+ * names.
  */
-async function pickDate(page: Page, triggerLabel: string, date: Date): Promise<void> {
+async function pickDate(
+  page: Page,
+  triggerLabel: string,
+  date: Date,
+  { openOn }: { openOn?: Date } = {},
+): Promise<void> {
   await page.getByRole("button", { name: triggerLabel, exact: true }).click();
+  const months = monthsBetween(openOn ?? today(), date);
+  for (let i = 0; i < months; i++) {
+    await page.getByRole("button", { name: "Go to the Previous Month" }).click();
+  }
+  for (let i = 0; i > months; i--) {
+    await page.getByRole("button", { name: "Go to the Next Month" }).click();
+  }
   await page.getByRole("button", { name: dayButtonNameRegex(date) }).click();
 }
 
+/** The day button for `date`, inside whatever `DatePicker` popup is currently open. */
+function dayButton(page: Page, date: Date) {
+  return page.getByRole("button", { name: dayButtonNameRegex(date) });
+}
+
+/**
+ * Every `Date` this file builds is a *local-midnight* one whose local Y/M/D
+ * are the calendar date being named — the shape `Calendar` reads (see
+ * `toLocalMidnight` in `src/components/ui/date-picker.tsx`), so its local
+ * parts are also what `isoDate` and `mdyLabel` must read to agree with what
+ * the app renders.
+ */
 function isoDate(date: Date): string {
   const year = String(date.getFullYear()).padStart(4, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -131,14 +218,55 @@ function isoDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * The app's "today", not the runner's.
+ *
+ * Every ceiling in this feature is `toIsoDate(new Date())`, computed on the
+ * server — and `toIsoDate` reads **UTC** parts (`src/lib/dates.ts`, which
+ * does all its calendar arithmetic in UTC on purpose). A runner west of UTC
+ * is still on the previous day for the last hours of every UTC day, so a
+ * plain `new Date()` here disagrees with the server about what day it is for
+ * part of every run — long enough that this suite failed exactly that way
+ * once: the list rendered 08/21 while the spec expected 08/20, and the
+ * "future date" scenario picked a tomorrow the server considered today.
+ *
+ * So this reads UTC parts and rebuilds them as a local-midnight `Date`, per
+ * `isoDate` above. Everything derived from "now" goes through it.
+ */
+function today(): Date {
+  const now = new Date();
+  return new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
+
 function daysAgo(days: number): Date {
-  const date = new Date();
+  const date = today();
   date.setDate(date.getDate() - days);
   return date;
 }
 
+function daysFromToday(days: number): Date {
+  const date = today();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+/**
+ * A fixed day of the previous month. The date-ceiling scenarios below are
+ * anchored here rather than on `daysAgo(n)` so that a transaction date and
+ * the payment dates just either side of it are always in one displayed
+ * month: `daysAgo(3)` and `daysAgo(2)` straddle a month boundary on the 3rd
+ * of a month and nowhere else, which is exactly the kind of two-days-a-year
+ * failure nobody would be around to diagnose. Days 9–11 exist in every
+ * month, and all of the previous month is safely in the past, so
+ * `date <= today` holds for all three.
+ */
+function previousMonthDay(day: number): Date {
+  const anchor = today();
+  return new Date(anchor.getFullYear(), anchor.getMonth() - 1, day);
+}
+
 function todayIso(): string {
-  return isoDate(new Date());
+  return isoDate(today());
 }
 
 /** Matches `formatDate`'s `MDY` output — the default `dateFormat` for a freshly registered user. */
@@ -167,6 +295,14 @@ async function ensureFiltersOpen(page: Page): Promise<void> {
 const WIDE_FROM = "2000-01-01";
 const WIDE_TO = "2100-12-31";
 
+/**
+ * Inside `MIN_TRANSACTION_DATE`..`MAX_TRANSACTION_DATE` and far past any
+ * plausible "today", so the rule a payload carrying it breaks is the
+ * not-in-the-future one and never `date.outOfRange`. Ten characters, like
+ * every other `YYYY-MM-DD` — see `tamperServerActionBody`.
+ */
+const FUTURE_DATE = "2099-01-01";
+
 type OneOffOptions = {
   type?: "Income" | "Expense";
   amount: string;
@@ -175,8 +311,19 @@ type OneOffOptions = {
   description?: string;
   /** Days before today. 0 (the default) leaves the form's own default (today) untouched. */
   daysAgo?: number;
-  /** Ticks the form's paid checkbox, which dates the payment on the transaction's own date. */
+  /** An explicit transaction date, for scenarios `daysAgo` cannot express safely. */
+  date?: Date;
+  /**
+   * Turns on the form's "Already paid" switch, which seeds the payment date
+   * with the transaction's own date (capped at today) — see `maxPaymentDate`
+   * in `src/components/transactions/transaction-form.tsx`.
+   */
   paid?: boolean;
+  /**
+   * Picks an explicit payment date instead of the seeded one. Implies
+   * `paid`, since the picker only exists once the switch is on.
+   */
+  paymentDate?: Date;
 };
 
 /** Fills and submits the one-off transaction form, and waits for the redirect back to the list. */
@@ -187,15 +334,23 @@ async function createOneOffTransaction(page: Page, options: OneOffOptions): Prom
     await page.getByRole("radio", { name: "Income" }).click();
   }
 
-  await page.getByRole("spinbutton", { name: "Amount", exact: true }).fill(options.amount);
+  await amountField(page).fill(options.amount);
   await selectCombobox(page, "Category", options.category);
   if (options.card) await selectCombobox(page, "Card", options.card);
-  if (options.daysAgo) await pickDate(page, "Date", daysAgo(options.daysAgo));
+
+  const date = options.date ?? (options.daysAgo ? daysAgo(options.daysAgo) : today());
+  if (options.date || options.daysAgo) await pickDate(page, "Date", date);
+
   if (options.description) {
     await page.getByRole("textbox", { name: "Description", exact: true }).fill(options.description);
   }
-  if (options.paid) {
-    await page.getByRole("checkbox", { name: "Already paid" }).click();
+  if (options.paid || options.paymentDate) {
+    await page.getByRole("switch", { name: "Already paid" }).click();
+  }
+  if (options.paymentDate) {
+    // The switch seeded this picker with the transaction's own date, so that
+    // — not today — is the month it opens on.
+    await pickDate(page, "Payment date", options.paymentDate, { openOn: date });
   }
 
   await page.getByRole("button", { name: "Create transaction" }).click();
@@ -218,7 +373,7 @@ async function createRecurring(page: Page, options: RecurringOptions): Promise<v
     await page.getByRole("radio", { name: "Income" }).click();
   }
 
-  await page.getByRole("spinbutton", { name: "Amount", exact: true }).fill(options.amount);
+  await amountField(page).fill(options.amount);
   await selectCombobox(page, "Category", options.category);
   if (options.card) await selectCombobox(page, "Card", options.card);
   if (options.description) {
@@ -246,7 +401,7 @@ async function createInstallmentPlan(page: Page, options: InstallmentOptions): P
     await page.getByRole("radio", { name: "Income" }).click();
   }
 
-  await page.getByRole("spinbutton", { name: "Amount", exact: true }).fill(options.amount);
+  await amountField(page).fill(options.amount);
   await selectCombobox(page, "Category", options.category);
   if (options.card) await selectCombobox(page, "Card", options.card);
   if (options.description) {
@@ -260,10 +415,107 @@ async function createInstallmentPlan(page: Page, options: InstallmentOptions): P
   await expect(page).toHaveURL(path("/transactions"));
 }
 
+/**
+ * The generic message every Server Action in `src/lib/actions/transactions.ts`
+ * returns for a payload its schema refused — `transactions.invalidInput`. It
+ * deliberately never names the rule that failed, so it is the same string for
+ * every bypass scenario below.
+ */
+const INVALID_INPUT =
+  "There was a problem with the information you submitted. Please check the fields and try again.";
+
+/**
+ * Rewrites `find` to `replace` inside the body of the Server Action POST the
+ * page is about to make, and reports whether it ever fired.
+ *
+ * This is how a server-side rule gets tested *past* the form, which
+ * `.claude/rules/validation.md` requires: "a rule enforced only in the
+ * browser is not enforced", and a rule only the form exercises is untested.
+ * `e2e/registration.spec.ts` does the same thing by posting straight at
+ * `/api/auth/sign-up/email` — but these rules live in a Server Action, not a
+ * route handler, and a Server Action has no stable URL or documented body
+ * format to post at by hand: it is addressed by a build-specific
+ * `next-action` id over React's own flight encoding. So instead of forging a
+ * request, this lets the browser build a genuine one — correct id, correct
+ * encoding, real session cookie — and mutates one value in flight, exactly
+ * what a client that had been patched to skip its own validation would send.
+ *
+ * `find` and `replace` must be the same length. The flight body is
+ * length-prefixed in places, so a substitution that changes the total length
+ * can desync the parse and fail for the wrong reason — every caller here
+ * swaps one `YYYY-MM-DD` for another, or one cuid for another.
+ *
+ * The returned `applied()` is not decoration. If the value never appears in
+ * the body — a different encoding, a renamed field — the request passes
+ * through untouched, the action succeeds, and every "was it refused?"
+ * assertion would be testing a submission that was never tampered with in
+ * the first place. Asserting `applied()` is what stops that from reading as
+ * coverage.
+ */
+async function tamperServerActionBody(
+  page: Page,
+  url: string,
+  find: string,
+  replace: string,
+): Promise<() => boolean> {
+  if (find.length !== replace.length) {
+    throw new Error(`Tampered values must be the same length: "${find}" vs "${replace}"`);
+  }
+
+  let applied = false;
+  await page.route(url, async (route) => {
+    const request = route.request();
+    if (request.method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    const postData = request.postData();
+    if (postData?.includes(find)) {
+      applied = true;
+      await route.continue({ postData: postData.split(find).join(replace) });
+      return;
+    }
+    await route.continue();
+  });
+
+  return () => applied;
+}
+
+/**
+ * Opens a row's Actions menu and clicks one of its items.
+ *
+ * The click is retried until the menu actually opens. A single click is a
+ * real, if rare, flake: `TransactionRowActions` is a Client Component, and
+ * the trigger is visible and stable — everything `click()` waits for — from
+ * the moment the server-rendered HTML paints, which is *before* React has
+ * hydrated it and attached the handler that opens the menu. A click landing
+ * in that window does nothing at all, and the wait for the menu item then
+ * burns the whole test timeout with no second attempt. Caught on a full-suite
+ * run of exactly this helper, where the list page is heavier and hydration
+ * later than in the single-file runs where it always passed.
+ *
+ * Re-clicking is safe: the retry only runs when the item is *not* visible,
+ * i.e. when the menu is closed, so it can never toggle an open menu shut.
+ */
+async function clickRowAction(
+  page: Page,
+  row: ReturnType<typeof transactionRow>,
+  action: "Edit" | "Delete",
+): Promise<void> {
+  const trigger = row.getByRole("button", { name: "Actions" });
+  const item = page.getByRole("menuitem", { name: action, exact: true });
+
+  await expect(async () => {
+    await trigger.click();
+    await expect(item).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+
+  await item.click();
+}
+
 /** Opens a row's Actions menu and clicks Edit, returning the id captured from the resulting URL. */
 async function editRowAndCaptureId(page: Page, row: ReturnType<typeof transactionRow>): Promise<string> {
-  await row.getByRole("button", { name: "Actions" }).click();
-  await page.getByRole("menuitem", { name: "Edit" }).click();
+  await clickRowAction(page, row, "Edit");
   await page.waitForURL(/\/transactions\/(installments\/|recurring\/)?[^/?]+\/edit/);
   const match = /\/transactions\/(?:installments\/|recurring\/)?([^/?]+)\/edit/.exec(page.url());
   if (!match) throw new Error(`Could not parse an id out of ${page.url()}`);
@@ -291,22 +543,24 @@ test.describe("transactions", () => {
 
     const row = transactionRow(page, "Weekly groceries");
     await expect(transactionRows(page)).toHaveCount(1);
-    await expect(row.locator("td:nth-child(1)")).toContainText(mdyLabel(new Date()));
-    await expect(row.locator("td:nth-child(3)")).toHaveText("Groceries");
-    await expect(row.locator("td:nth-child(4)")).toHaveText("−$45.50");
+    await expect(cell(row, "date")).toContainText(mdyLabel(today()));
+    await expect(cell(row, "category")).toHaveText("Groceries");
+    await expect(cell(row, "value")).toHaveText("−$45.50");
+    // Created without the "Already paid" switch, so the Payment date column
+    // carries the badge rather than a date.
+    await expect(cell(row, "paymentDate")).toHaveText("Not paid");
 
     await editRowAndCaptureId(page, row);
-    const amountField = page.getByRole("spinbutton", { name: "Amount", exact: true });
-    await expect(amountField).toHaveValue("45.50");
-    await amountField.fill("60.00");
+    const amount = amountField(page);
+    await expect(amount).toHaveValue("45.50");
+    await amount.fill("60.00");
     await page.getByRole("button", { name: "Save changes" }).click();
     await expect(page).toHaveURL(path("/transactions"));
 
     await expect(transactionRows(page)).toHaveCount(1);
-    await expect(transactionRow(page, "Weekly groceries").locator("td:nth-child(4)")).toHaveText("−$60.00");
+    await expect(cell(transactionRow(page, "Weekly groceries"), "value")).toHaveText("−$60.00");
 
-    await transactionRow(page, "Weekly groceries").getByRole("button", { name: "Actions" }).click();
-    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await clickRowAction(page, transactionRow(page, "Weekly groceries"), "Delete");
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Delete" }).click();
@@ -333,18 +587,20 @@ test.describe("transactions", () => {
     await expect(transactionRows(page)).toHaveCount(1);
     await expect(row).toContainText("Monthly");
     await expect(row).toContainText("Started");
-    await expect(row.locator("td:nth-child(4)")).toHaveText("−$20.00");
+    await expect(cell(row, "value")).toHaveText("−$20.00");
+    // A recurrence is a definition, not a payment — it never shows a payment
+    // date, and never the "Not paid" badge either.
+    await expect(cell(row, "paymentDate")).toHaveText("—");
 
     await editRowAndCaptureId(page, row);
-    const amountField = page.getByRole("spinbutton", { name: "Amount", exact: true });
-    await amountField.fill("25.00");
+    const amount = amountField(page);
+    await amount.fill("25.00");
     await page.getByRole("button", { name: "Save changes" }).click();
     await expect(page).toHaveURL(path("/transactions"));
 
-    await expect(transactionRow(page, "Streaming service").locator("td:nth-child(4)")).toHaveText("−$25.00");
+    await expect(cell(transactionRow(page, "Streaming service"), "value")).toHaveText("−$25.00");
 
-    await transactionRow(page, "Streaming service").getByRole("button", { name: "Actions" }).click();
-    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await clickRowAction(page, transactionRow(page, "Streaming service"), "Delete");
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toHaveText(/Delete this recurring transaction\?/);
     await dialog.getByRole("button", { name: "Delete" }).click();
@@ -379,8 +635,7 @@ test.describe("transactions", () => {
     await expect(rows.first()).toContainText("1 of 12");
     await expect(rows.last()).toContainText("12 of 12");
 
-    await rows.first().getByRole("button", { name: "Actions" }).click();
-    await page.getByRole("menuitem", { name: "Edit" }).click();
+    await clickRowAction(page, rows.first(), "Edit");
     await expect(page).toHaveURL(/\/transactions\/installments\/[^/?]+\/edit\?occurrence=/);
   });
 
@@ -415,7 +670,7 @@ test.describe("transactions", () => {
     await expect(page.getByText("Saved")).toBeVisible();
 
     await page.goto(listUrl);
-    const categoryCells = transactionRows(page).locator("td:nth-child(3)");
+    const categoryCells = cell(transactionRows(page), "category");
     await expect(categoryCells).toHaveCount(12);
     for (const text of await categoryCells.allInnerTexts()) {
       expect(text).toBe("Home");
@@ -423,27 +678,16 @@ test.describe("transactions", () => {
 
     // Occurrence-level edit: only the row whose amount was changed changes.
     await page.goto(path(`/transactions/installments/${planId}/edit`));
-    const amountInputs = page.getByRole("spinbutton", { name: /^Payment 1 amount$/ });
+    const amountInputs = page.getByRole("textbox", { name: /^Payment 1 amount$/ });
     await expect(amountInputs).toBeVisible();
 
-    // Base UI's `Input` (`@base-ui/react/input`) re-applies `defaultValue`
-    // once, shortly after this row's own mount — logging "A component is
-    // changing the default value state of an uncontrolled FieldControl
-    // after being initialized" to the console when it does. That resync
-    // clobbers a value typed *before* it fires back to the server's own
-    // ("50.00"), which `handleSave` then reads instead of "999.00" —
-    // observed directly: `toHaveValue` right after `fill()` can still see
-    // the correct value an instant before this fires. It is a one-time
-    // event per mount (React Strict Mode's dev-only double-invoke is the
-    // likely cause), so waiting for it to fire — or for it to *not* fire
-    // within a short window, on a run where it doesn't — before typing is
-    // what makes the type stick.
-    await page
-      .waitForEvent("console", {
-        predicate: (msg) => msg.text().includes("uncontrolled FieldControl"),
-        timeout: 2000,
-      })
-      .catch(() => {});
+    // This used to need a wait for Base UI's `Input` to re-apply its
+    // `defaultValue` — an uncontrolled field's one-time post-mount resync,
+    // which clobbered anything typed before it fired. The row's amount is a
+    // controlled `MoneyInput` now (Task 3), holding its value in React state
+    // rather than in the DOM, so there is no resync left to race and the wait
+    // is gone with it. `MoneyInput`'s own header comment records the same
+    // change from the other side.
     await amountInputs.fill("999.00");
     await expect(amountInputs).toHaveValue("999.00");
     await page
@@ -456,7 +700,7 @@ test.describe("transactions", () => {
     ).toBeVisible();
 
     await page.goto(listUrl);
-    const amountCells = await transactionRows(page).locator("td:nth-child(4)").allInnerTexts();
+    const amountCells = await cell(transactionRows(page), "value").allInnerTexts();
     const changed = amountCells.filter((text) => text === "−$999.00");
     const unchanged = amountCells.filter((text) => text === "−$50.00");
     expect(changed).toHaveLength(1);
@@ -577,7 +821,7 @@ test.describe("transactions", () => {
     await page.getByRole("option", { name: "Expense", exact: true }).click();
     // A period different from the default (this month up to today) so it's
     // written into the URL too — the default's own `from` is the 1st.
-    await pickDate(page, "From", new Date());
+    await pickDate(page, "From", today());
     await page.getByRole("button", { name: "Apply" }).click();
 
     await page.waitForURL(/\/transactions\?/);
@@ -678,11 +922,11 @@ test.describe("transactions", () => {
     await page.goto(path("/transactions"));
     const rows = transactionRows(page);
     await expect(rows).toHaveCount(50);
-    const firstPageDescriptions = await rows.locator("td:nth-child(2)").allInnerTexts();
+    const firstPageDescriptions = await cell(rows, "description").allInnerTexts();
 
     await page.getByRole("link", { name: "Next", exact: true }).click();
     await expect(rows).toHaveCount(1);
-    const secondPageDescriptions = await rows.locator("td:nth-child(2)").allInnerTexts();
+    const secondPageDescriptions = await cell(rows, "description").allInnerTexts();
 
     expect(firstPageDescriptions).toHaveLength(50);
     expect(secondPageDescriptions).toHaveLength(1);
@@ -780,7 +1024,7 @@ test.describe("transactions", () => {
     await expect(transactionRows(page)).toHaveCount(3);
 
     async function firstRowDescription(): Promise<string> {
-      return (await transactionRows(page).first().locator("td:nth-child(2)").innerText()).trim();
+      return (await cell(transactionRows(page).first(), "description").innerText()).trim();
     }
 
     // Clicks a column header and waits for the URL's own `sort`/`dir` to
@@ -821,9 +1065,14 @@ test.describe("transactions", () => {
     await clickSort("Category", "category", "asc");
     await expect.poll(firstRowDescription).toContain("Zebra purchase");
 
-    await clickSort("Amount", "amount", "desc");
+    // The column now reads "Value", so that is what its "Sort by …" link is
+    // named — but the URL's own `sort` value stays `amount`, deliberately, so
+    // links already in the wild keep working (`COLUMNS` in
+    // `transaction-table.tsx`). Asserting both in one call is what would
+    // catch a rename that changed the wire format too.
+    await clickSort("Value", "amount", "desc");
     await expect.poll(firstRowDescription).toContain("Zebra purchase");
-    await clickSort("Amount", "amount", "asc");
+    await clickSort("Value", "amount", "asc");
     await expect.poll(firstRowDescription).toContain("Apple purchase");
   });
 
@@ -845,8 +1094,7 @@ test.describe("transactions", () => {
     const id = await editRowAndCaptureId(page, row);
     await page.goto(path("/transactions"));
 
-    await transactionRow(page, "Weekly groceries").getByRole("button", { name: "Actions" }).click();
-    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await clickRowAction(page, transactionRow(page, "Weekly groceries"), "Delete");
     const dialog = page.getByRole("alertdialog");
     await dialog.getByRole("button", { name: "Delete" }).click();
     await expect(dialog).toBeHidden();
@@ -882,7 +1130,7 @@ test.describe("transactions", () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
     await expect(page.getByText("This page does not exist.")).toBeVisible();
-    await expect(page.getByRole("spinbutton", { name: "Amount", exact: true })).toHaveCount(0);
+    await expect(amountField(page)).toHaveCount(0);
   });
 
   // 10c. An installment occurrence has no edit page of its own — the one-off
@@ -924,7 +1172,7 @@ test.describe("transactions", () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
     await expect(page.getByText("This page does not exist.")).toBeVisible();
-    await expect(page.getByRole("spinbutton", { name: "Amount", exact: true })).toHaveCount(0);
+    await expect(amountField(page)).toHaveCount(0);
   });
 
   // 11. A garbage query string renders page 1.
@@ -965,31 +1213,245 @@ test.describe("transactions", () => {
     // and the network request the Server Action call makes is intercepted
     // and tampered with, the way a malicious client bypassing its own UI
     // would: the *server*, not the form, is what must refuse this.
-    await page.route(path("/transactions/new"), async (route) => {
-      const request = route.request();
-      if (request.method() !== "POST") {
-        await route.continue();
-        return;
-      }
-      const postData = request.postData();
-      if (postData?.includes(ownCategoryId)) {
-        await route.continue({ postData: postData.split(ownCategoryId).join(foreignCategoryId) });
-        return;
-      }
-      await route.continue();
-    });
+    const tampered = await tamperServerActionBody(
+      page,
+      path("/transactions/new"),
+      ownCategoryId,
+      foreignCategoryId,
+    );
 
     await page.goto(path("/transactions/new"));
-    await page.getByRole("spinbutton", { name: "Amount", exact: true }).fill("10.00");
+    await amountField(page).fill("10.00");
     await selectCombobox(page, "Category", "My category");
     await page.getByRole("button", { name: "Create transaction" }).click();
 
-    await expect(page.locator("form").getByRole("alert")).toHaveText(
-      "There was a problem with the information you submitted. Please check the fields and try again.",
-    );
+    await expect(page.locator("form").getByRole("alert")).toHaveText(INVALID_INPUT);
     await expect(page).toHaveURL(path("/transactions/new"));
+    expect(tampered()).toBe(true);
 
     await page.goto(path("/transactions"));
     await expect(page.getByText("You don't have any transactions yet.")).toBeVisible();
+  });
+
+  // 13. Payment dates round-trip: form → database → list.
+  test("a payment date set on the form is stored and shown, and clearing it shows Not paid", async ({
+    page,
+  }) => {
+    const email = uniqueEmail("payment-date");
+    await registerUser(page, { email });
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Groceries");
+    await createCard(page, "Personal Visa");
+
+    const transactionDate = previousMonthDay(10);
+    const paidOn = previousMonthDay(9);
+
+    await createOneOffTransaction(page, {
+      amount: "45.50",
+      category: "Groceries",
+      card: "Personal Visa",
+      description: "Settled groceries",
+      date: transactionDate,
+      // No paging of its own: the switch seeds the payment date with the
+      // transaction's date, so the popup already opens on last month.
+      paymentDate: paidOn,
+    });
+    await createOneOffTransaction(page, {
+      amount: "12.00",
+      category: "Groceries",
+      card: "Personal Visa",
+      description: "Outstanding groceries",
+    });
+
+    // A wide window: the paid row is dated last month, outside the default
+    // period (this month up to today).
+    const listUrl = path(`/transactions?from=${WIDE_FROM}&to=${WIDE_TO}`);
+    await page.goto(listUrl);
+
+    // Neither description contains the other: `transactionRow`'s `hasText`
+    // is a case-insensitive *substring* match, so "Paid groceries" and
+    // "Unpaid groceries" — the obvious pair to name these — would both match
+    // a lookup for the first one, and every cell assertion would fail strict
+    // mode instead of failing usefully.
+    const paidRow = transactionRow(page, "Settled groceries");
+    await expect(cell(paidRow, "date")).toContainText(mdyLabel(transactionDate));
+    await expect(cell(paidRow, "paymentDate")).toHaveText(mdyLabel(paidOn));
+    await expect(cell(transactionRow(page, "Outstanding groceries"), "paymentDate")).toHaveText(
+      "Not paid",
+    );
+
+    // The column is rendering a stored value, not echoing the form. Read as
+    // text in SQL rather than as a `Date`: `payment_date` is a `timestamp`
+    // without a zone, and letting `pg` hand back a JS `Date` would reinterpret
+    // that UTC midnight in the runner's local zone and shift the day.
+    const userId = await getUserIdByEmail(email);
+    const [stored] = await dbQuery<{ payment_date: string | null }>(
+      `SELECT to_char(payment_date, 'YYYY-MM-DD') AS payment_date
+         FROM transactions WHERE user_id = $1 AND description = $2`,
+      [userId, "Settled groceries"],
+    );
+    expect(stored?.payment_date).toBe(isoDate(paidOn));
+
+    // Turning the switch back off clears the date rather than leaving the
+    // last one behind — `paymentDate` is nullable, and null is "not paid".
+    await editRowAndCaptureId(page, paidRow);
+    await page.getByRole("switch", { name: "Already paid" }).click();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page).toHaveURL(path("/transactions"));
+
+    await page.goto(listUrl);
+    await expect(cell(transactionRow(page, "Settled groceries"), "paymentDate")).toHaveText("Not paid");
+  });
+
+  // 14. The payment-date ceiling, enforced by the picker itself.
+  test("the payment-date picker cannot reach a day after the transaction's own date", async ({
+    page,
+  }) => {
+    await registerUser(page);
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Groceries");
+
+    await page.goto(path("/transactions/new"));
+    await pickDate(page, "Date", previousMonthDay(10));
+    await page.getByRole("switch", { name: "Already paid" }).click();
+
+    await page.getByRole("button", { name: "Payment date", exact: true }).click();
+    await expect(dayButton(page, previousMonthDay(9))).toBeEnabled();
+    await expect(dayButton(page, previousMonthDay(10))).toBeEnabled();
+    await expect(dayButton(page, previousMonthDay(11))).toBeDisabled();
+
+    // Unreachable, not merely unselectable: `maxDate` feeds `endMonth` too,
+    // so there is no paging forward to find an allowed later day. Without
+    // that half, a user would be free to browse months of dead calendar.
+    await expect(page.getByRole("button", { name: "Go to the Next Month" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+
+  // 15. The transaction-date ceiling, enforced by the schema on submit.
+  test("a future date chosen on the form is refused before anything is written", async ({ page }) => {
+    const email = uniqueEmail("future-date-form");
+    await registerUser(page, { email });
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Groceries");
+    const userId = await getUserIdByEmail(email);
+
+    await page.goto(path("/transactions/new"));
+    await amountField(page).fill("10.00");
+    await selectCombobox(page, "Category", "Groceries");
+    // Tomorrow is *pickable* here — `pickDate` even pages forward a month to
+    // reach it on the last day of a month. Unlike the recurring and
+    // installment start-date pickers (both `maxDate={today}`) and the
+    // payment-date picker above, the one-off Date picker is given no
+    // `maxDate`, so the calendar offers a day the schema then refuses. That
+    // is a real inconsistency in the shipped UI, and not something this spec
+    // is free to paper over: asserting the day is disabled would fail, and
+    // disabling it belongs in `transaction-form.tsx`, which this task may not
+    // touch. So this pins what the app actually does — the ceiling holds, one
+    // step later than it should — and the gap is written up in the task report.
+    await pickDate(page, "Date", daysFromToday(1));
+    await page.getByRole("button", { name: "Create transaction" }).click();
+
+    await expect(page.getByText("Date can't be in the future.")).toBeVisible();
+    await expect(page).toHaveURL(path("/transactions/new"));
+    expect(await countTransactions(userId)).toBe(0);
+  });
+
+  // 16. The same ceiling, past the form entirely.
+  test("a future date posted past the form is refused server-side", async ({ page }) => {
+    const email = uniqueEmail("future-date-bypass");
+    await registerUser(page, { email });
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Groceries");
+    const userId = await getUserIdByEmail(email);
+    const before = await countTransactions(userId);
+
+    // The Date field keeps the form's own default, today — so today's ISO
+    // string appears exactly once in the body (the payment date is null),
+    // and the swap lands on `date` and nothing else.
+    const tampered = await tamperServerActionBody(
+      page,
+      path("/transactions/new"),
+      todayIso(),
+      FUTURE_DATE,
+    );
+
+    await page.goto(path("/transactions/new"));
+    await amountField(page).fill("10.00");
+    await selectCombobox(page, "Category", "Groceries");
+    await page.getByRole("button", { name: "Create transaction" }).click();
+
+    await expect(page.locator("form").getByRole("alert")).toHaveText(INVALID_INPUT);
+    expect(tampered()).toBe(true);
+    expect(await countTransactions(userId)).toBe(before);
+  });
+
+  test("a payment date after the transaction date, posted past the form, is refused server-side", async ({
+    page,
+  }) => {
+    const email = uniqueEmail("payment-after-bypass");
+    await registerUser(page, { email });
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Groceries");
+    const userId = await getUserIdByEmail(email);
+    const before = await countTransactions(userId);
+
+    const transactionDate = previousMonthDay(10);
+    const paidOn = previousMonthDay(9);
+    // Still in the past, so `paymentDate.notInFuture` cannot be what refuses
+    // this — `paymentDateNotAfterDate` is the only rule left, which is the
+    // one under test.
+    const dayAfterTransaction = previousMonthDay(11);
+
+    const tampered = await tamperServerActionBody(
+      page,
+      path("/transactions/new"),
+      isoDate(paidOn),
+      isoDate(dayAfterTransaction),
+    );
+
+    await page.goto(path("/transactions/new"));
+    await amountField(page).fill("10.00");
+    await selectCombobox(page, "Category", "Groceries");
+    await pickDate(page, "Date", transactionDate);
+    await page.getByRole("switch", { name: "Already paid" }).click();
+    await pickDate(page, "Payment date", paidOn, { openOn: transactionDate });
+    await page.getByRole("button", { name: "Create transaction" }).click();
+
+    await expect(page.locator("form").getByRole("alert")).toHaveText(INVALID_INPUT);
+    expect(tampered()).toBe(true);
+    expect(await countTransactions(userId)).toBe(before);
+  });
+
+  test("a future payment date posted past the form is refused server-side", async ({ page }) => {
+    const email = uniqueEmail("future-payment-bypass");
+    await registerUser(page, { email });
+    await expect(page).toHaveURL(path("/dashboard"));
+    await createCategory(page, "Groceries");
+    const userId = await getUserIdByEmail(email);
+    const before = await countTransactions(userId);
+
+    const transactionDate = previousMonthDay(10);
+    const paidOn = previousMonthDay(9);
+
+    const tampered = await tamperServerActionBody(
+      page,
+      path("/transactions/new"),
+      isoDate(paidOn),
+      FUTURE_DATE,
+    );
+
+    await page.goto(path("/transactions/new"));
+    await amountField(page).fill("10.00");
+    await selectCombobox(page, "Category", "Groceries");
+    await pickDate(page, "Date", transactionDate);
+    await page.getByRole("switch", { name: "Already paid" }).click();
+    await pickDate(page, "Payment date", paidOn, { openOn: transactionDate });
+    await page.getByRole("button", { name: "Create transaction" }).click();
+
+    await expect(page.locator("form").getByRole("alert")).toHaveText(INVALID_INPUT);
+    expect(tampered()).toBe(true);
+    expect(await countTransactions(userId)).toBe(before);
   });
 });

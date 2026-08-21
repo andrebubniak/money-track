@@ -98,6 +98,21 @@ export async function insertTransaction(input: SeedTransaction): Promise<string>
   return id;
 }
 
+/**
+ * Live rows only — a soft-deleted row is not a row the user can see. The
+ * bypass scenarios in `transactions.spec.ts` assert on "nothing was
+ * written", and a `deactivated_at` row would satisfy a naive `COUNT(*)`
+ * exactly as a live one does.
+ */
+export async function countTransactions(userId: string): Promise<number> {
+  const rows = await dbQuery<{ count: number }>(
+    `SELECT COUNT(*)::int AS count FROM transactions
+      WHERE user_id = $1 AND deactivated_at IS NULL`,
+    [userId],
+  );
+  return rows[0].count;
+}
+
 export type SeedRecurringTransaction = {
   id?: string;
   userId: string;

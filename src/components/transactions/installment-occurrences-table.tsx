@@ -312,9 +312,21 @@ export function InstallmentOccurrencesTable({
   // Seeding the draft here rather than in an effect keeps the dialog's
   // first frame correct: `paidTargetId` and `paidDraft` are set in the same
   // event, so the picker never renders a stale day.
+  //
+  // An already-paid row opens on the day it was actually paid, not on the
+  // ceiling. A row paid on the 2nd but dated the 5th would otherwise reopen
+  // showing the 5th, and confirming would silently rewrite the stored day
+  // to a date the user never chose — a dialog must show the value it is
+  // about to replace. The seed is the earlier of the two — `YYYY-MM-DD`
+  // sorts lexicographically, so `<` is a correct date comparison here — so
+  // a stored value that somehow sits above the ceiling still cannot be
+  // re-confirmed as-is; an unpaid row has nothing stored and falls back to
+  // the ceiling.
   function openPaidDialog(occurrence: InstallmentOccurrence) {
-    const rowDate = values[occurrence.id]?.date ?? occurrence.date;
-    setPaidDraft(paymentDateCeiling(rowDate, today));
+    const row = values[occurrence.id] ?? occurrence;
+    const ceiling = paymentDateCeiling(row.date, today);
+
+    setPaidDraft(row.paymentDate && row.paymentDate < ceiling ? row.paymentDate : ceiling);
     setPaidTargetId(occurrence.id);
   }
 
@@ -394,7 +406,6 @@ export function InstallmentOccurrencesTable({
   // no longer on screen.
   const paidTarget = visibleOccurrences.find((occurrence) => occurrence.id === paidTargetId) ?? null;
   const paidTargetRow = paidTarget ? (values[paidTarget.id] ?? paidTarget) : null;
-  const paidMax = paidTargetRow ? paymentDateCeiling(paidTargetRow.date, today) : today;
 
   return (
     <div data-plan-id={planId} className="rounded-md border">
@@ -586,7 +597,7 @@ export function InstallmentOccurrencesTable({
             <DialogTitle>{tInstallments("markPaidTitle")}</DialogTitle>
           </DialogHeader>
 
-          {paidTarget && (
+          {paidTarget && paidTargetRow && (
             <DatePicker
               value={paidDraft}
               onValueChange={setPaidDraft}
@@ -594,7 +605,7 @@ export function InstallmentOccurrencesTable({
               // Capped at the earlier of today and this occurrence's own
               // date — see `paymentDateCeiling`. This is the fix for a
               // future-dated occurrence being unmarkable at all.
-              maxDate={paidMax}
+              maxDate={paymentDateCeiling(paidTargetRow.date, today)}
               triggerLabel={tInstallments("occurrencePaymentDateLabel", {
                 index: paidTarget.index,
               })}

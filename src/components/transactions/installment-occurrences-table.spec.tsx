@@ -240,6 +240,57 @@ describe("InstallmentOccurrencesTable", () => {
     expect(vi.mocked(updateTransaction).mock.calls[0][1].paymentDate).toBeNull();
   });
 
+  // The dialog must open showing the value it is about to replace. This
+  // fixture is the case that distinguishes the two seeding rules: paid on
+  // the 2nd, dated the 5th, so the stored day and the ceiling differ.
+  it("seeds the dialog with the stored payment date, not the ceiling", async () => {
+    const user = userEvent.setup();
+    render({
+      occurrences: [
+        { id: "tx-early", index: 1, date: "2026-01-05", amount: "89.00", paymentDate: "2026-01-02" },
+      ],
+      occurrencesCount: 1,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Payment 1 mark as paid" }));
+
+    expect(await screen.findByRole("button", { name: "Payment 1 payment date" })).toHaveTextContent(
+      "01/02/2026",
+    );
+  });
+
+  // The harm the rule above prevents: reopening a paid row and confirming
+  // without touching the picker must be a no-op, not a silent rewrite of a
+  // stored date the user never saw.
+  it("does not rewrite a stored payment date when the dialog is confirmed unchanged", async () => {
+    const user = userEvent.setup();
+    render({
+      occurrences: [
+        { id: "tx-early", index: 1, date: "2026-01-05", amount: "89.00", paymentDate: "2026-01-02" },
+      ],
+      occurrencesCount: 1,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Payment 1 mark as paid" }));
+    await user.click(await screen.findByRole("button", { name: "Mark as paid" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(vi.mocked(updateTransaction).mock.calls[0][1].paymentDate).toBe("2026-01-02");
+  });
+
+  // The other direction of the same rule: with nothing stored there is
+  // nothing to show, so the ceiling is the sensible default.
+  it("seeds the dialog with the ceiling when the occurrence is not paid", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Payment 2 mark as paid" }));
+
+    expect(await screen.findByRole("button", { name: "Payment 2 payment date" })).toHaveTextContent(
+      "02/05/2026",
+    );
+  });
+
   // An unpaid row has nothing to clear, so the dialog does not offer it.
   it("offers no unpaid button for an occurrence that is not paid", async () => {
     const user = userEvent.setup();

@@ -394,7 +394,7 @@
       "editTitle": "Ratenzahlung bearbeiten",
       "preview": "{count} Transaktionen, {first} bis {last}",
       "seriesTitle": "Alle Raten",
-      "seriesNote": "Beschreibung, Kategorie, Karte oder Typ zu ändern aktualisiert jede Zahlung unten.",
+      "seriesNote": "Beschreibung, Kategorie, Karte oder Typ zu ändern aktualisiert jede Rate unten.",
       "frozenNote": "Wiederholung, Startdatum und Anzahl der Raten lassen sich nicht ändern. Bitte eine neue Ratenzahlung anlegen.",
       "occurrencesTitle": "Raten",
       "occurrenceSave": "Speichern",

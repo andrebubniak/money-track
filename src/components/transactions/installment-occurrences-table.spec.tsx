@@ -67,6 +67,64 @@ const rerenderWithNewProps = (
     </NextIntlClientProvider>,
   );
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/**
+ * Drives one row's date picker the way a user does: open the trigger, page
+ * to the month, click the day. `DatePicker` opens on the value it currently
+ * holds, so the target month can be either side of it — the direction is
+ * read back off the caption rather than assumed, and the loop is bounded so
+ * a wrong assumption fails the test instead of hanging it.
+ *
+ * Days are clicked by their full accessible name — react-day-picker names a
+ * day button with the whole formatted date, and a bare "1" would also match
+ * the 11th and the 21st.
+ */
+async function setRowDate(
+  user: ReturnType<typeof userEvent.setup>,
+  index: number,
+  iso: string,
+) {
+  const [year, month, day] = iso.split("-").map(Number);
+  const targetCaption = `${MONTH_NAMES[month - 1]} ${year}`;
+
+  await user.click(screen.getByRole("button", { name: `Payment ${index} date` }));
+
+  for (let step = 0; step < 36; step += 1) {
+    const caption = document.querySelector(".rdp-caption_label")?.textContent?.trim() ?? "";
+    if (caption === targetCaption) break;
+
+    const [shownMonth, shownYear] = caption.split(" ");
+    const shown = Number(shownYear) * 12 + MONTH_NAMES.indexOf(shownMonth);
+    const target = year * 12 + (month - 1);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: target < shown ? "Go to the Previous Month" : "Go to the Next Month",
+      }),
+    );
+  }
+
+  await user.click(
+    await screen.findByRole("button", {
+      name: new RegExp(`${MONTH_NAMES[month - 1]} ${day}(st|nd|rd|th), ${year}`),
+    }),
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(updateTransaction).mockResolvedValue({ success: true });
@@ -432,5 +490,96 @@ describe("InstallmentOccurrencesTable", () => {
 
     await user.click(within(firstRowAfter).getByRole("button", { name: "Save" }));
     expect(vi.mocked(updateTransaction).mock.calls[0][1].amount).toBe("999.00");
+  });
+
+  // A plan's payments are a series: dragging one before the row above it
+  // leaves the whole plan out of order, so the table refuses to let any row
+  // be committed until the chain is whole again.
+  it("flags a row dated before the one above it and blocks every save", async () => {
+    const user = userEvent.setup();
+    render();
+
+    // Occurrence 2 is 2026-02-05; move it before occurrence 1's 2026-01-05.
+    await setRowDate(user, 2, "2025-12-01");
+
+    expect(screen.getByText(/Payments must stay in order/)).toBeInTheDocument();
+    // Every Save, not just the offending row's: a per-row block would let a
+    // user commit half a reshuffle and navigate away out of order.
+    for (const save of screen.getAllByRole("button", { name: "Save" })) {
+      expect(save).toBeDisabled();
+    }
+  });
+
+  it("clears the block once the order is restored", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await setRowDate(user, 2, "2025-12-01");
+    expect(screen.getByText(/Payments must stay in order/)).toBeInTheDocument();
+
+    await setRowDate(user, 2, "2026-02-05");
+
+    expect(screen.queryByText(/Payments must stay in order/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Save" })[0]).toBeEnabled();
+  });
+
+  // The other half of the same check, and the one the schema already
+  // rejects on save (`paymentDate.afterDate`): surfacing it in the table is
+  // what stops the user finding out only after clicking Save.
+  it("flags a payment date later than its own occurrence date", async () => {
+    render({
+      occurrences: occurrences.map((o) =>
+        o.id === "tx-1" ? { ...o, paymentDate: "2026-01-06" } : o,
+      ),
+    });
+
+    expect(screen.getByText(/Payments must stay in order/)).toBeInTheDocument();
+  });
+
+  // Anchored on the immediately previous row, never on the greatest date
+  // seen so far — that is what makes this agree exactly with the rule
+  // `updateTransaction` enforces. In [Mar, Jan, Feb] only the Jan row breaks
+  // it; Feb is still on or after the Jan above it.
+  it("flags only the row that falls behind its immediate predecessor", async () => {
+    render({
+      occurrences: [
+        { id: "tx-1", index: 1, date: "2026-03-05", amount: "89.00", paymentDate: null },
+        { id: "tx-2", index: 2, date: "2026-01-05", amount: "89.00", paymentDate: null },
+        { id: "tx-3", index: 3, date: "2026-02-05", amount: "89.00", paymentDate: null },
+      ],
+    });
+
+    expect(screen.getByRole("button", { name: "Payment 1 date" })).not.toHaveAttribute(
+      "aria-invalid",
+    );
+    expect(screen.getByRole("button", { name: "Payment 2 date" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Payment 3 date" })).not.toHaveAttribute(
+      "aria-invalid",
+    );
+  });
+
+  // "Previous" means the previous *visible* row: a locally deleted
+  // occurrence is hidden rather than removed from the prop, and must not go
+  // on anchoring the row below it.
+  it("ignores a deleted occurrence when deciding what the previous row is", async () => {
+    const user = userEvent.setup();
+    render({
+      occurrences: [
+        { id: "tx-1", index: 1, date: "2026-01-05", amount: "89.00", paymentDate: null },
+        { id: "tx-2", index: 2, date: "2026-06-05", amount: "89.00", paymentDate: null },
+        { id: "tx-3", index: 3, date: "2026-03-05", amount: "89.00", paymentDate: null },
+      ],
+    });
+
+    expect(screen.getByText(/Payments must stay in order/)).toBeInTheDocument();
+
+    const secondRow = screen.getAllByRole("row")[2];
+    await user.click(within(secondRow).getByRole("button", { name: "Delete payment" }));
+    await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+    expect(screen.queryByText(/Payments must stay in order/)).not.toBeInTheDocument();
   });
 });

@@ -32,6 +32,24 @@ async function parseValues(
   return createTransactionSchema(t, options).safeParse(values);
 }
 
+/**
+ * Unlike `invalidInputError` this names the rule that failed. Safe to
+ * surface: the client enforces the same rule from the values already on
+ * screen, so the message reveals nothing about rows the user cannot
+ * already see — and a generic "invalid input" here would be actively
+ * unhelpful, since nothing about the payload itself is malformed.
+ */
+async function ruleError(
+  key: "date.beforePrevious",
+  locale: string,
+): Promise<ActionResult> {
+  const t = await getTranslations({
+    locale: resolveLocale(locale),
+    namespace: "validation.transactions",
+  });
+  return { success: false, error: t(key) };
+}
+
 export async function createTransaction(
   values: TransactionValues,
   locale: string,
@@ -104,6 +122,37 @@ export async function updateTransaction(
 
   if (!(await ownsReferences(userId, parsed.data.categoryId, parsed.data.cardId))) {
     return invalidInputError(locale);
+  }
+
+  // A plan's occurrences must stay in order. Only the "not before the
+  // previous one" half is enforced: saving is per row, so also requiring
+  // "not after the next one" would deadlock a legitimate reshuffle —
+  // moving [Jan, Feb, Mar] to [Jan, Apr, May] has no valid one-row-at-a-time
+  // path. The client blocks the broken intermediate state from being
+  // reached; a forged request can only break the chain in the direction that
+  // has to stay open anyway.
+  //
+  // The `createdAt` tie-break matters: a plan generated on a daily frequency
+  // can hold several occurrences on the same date, and `date` alone would not
+  // give a stable predecessor.
+  if (transaction.recurringTransactionId) {
+    const previous = await prisma.transaction.findFirst({
+      where: {
+        recurringTransactionId: transaction.recurringTransactionId,
+        deactivatedAt: null,
+        id: { not: id },
+        OR: [
+          { date: { lt: transaction.date } },
+          { date: transaction.date, createdAt: { lt: transaction.createdAt } },
+        ],
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      select: { date: true },
+    });
+
+    if (previous && toUtcMidnight(parsed.data.date) < previous.date) {
+      return ruleError("date.beforePrevious", locale);
+    }
   }
 
   await prisma.transaction.update({

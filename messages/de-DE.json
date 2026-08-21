@@ -397,6 +397,7 @@
       "seriesNote": "Beschreibung, Kategorie, Karte oder Typ zu ändern aktualisiert jede Rate unten.",
       "frozenNote": "Wiederholung, Startdatum und Anzahl der Raten lassen sich nicht ändern. Bitte eine neue Ratenzahlung anlegen.",
       "occurrencesTitle": "Raten",
+      "datesOutOfOrder": "Raten müssen in der Reihenfolge bleiben — jede datiert auf oder nach der vorherigen Rate und bezahlt an ihrem Datum oder davor. Korrigieren Sie die markierten Zeilen, um zu speichern.",
       "occurrenceSave": "Speichern",
       "occurrenceSaving": "Wird gespeichert…",
       "occurrenceSaved": "Gespeichert",

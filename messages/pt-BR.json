@@ -397,6 +397,7 @@
       "seriesNote": "Alterar a descrição, categoria, cartão ou tipo atualiza todas as parcelas abaixo.",
       "frozenNote": "A frequência, a data de início e o número de parcelas não podem ser alterados. Crie um novo parcelamento.",
       "occurrencesTitle": "Parcelas",
+      "datesOutOfOrder": "As parcelas devem permanecer em ordem — cada uma com data igual ou posterior à da parcela anterior, e paga na data dela ou antes. Corrija as linhas destacadas para salvar.",
       "occurrenceSave": "Salvar",
       "occurrenceSaving": "Salvando…",
       "occurrenceSaved": "Salvo",

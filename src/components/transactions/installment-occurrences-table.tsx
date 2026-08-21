@@ -137,6 +137,32 @@ function paymentDateCeiling(occurrenceDate: string, today: string): string {
 }
 
 /**
+ * Derived from the current draft values on every render, never stored: a
+ * row is invalid when its date falls before the previous visible row's, or
+ * when its payment date is later than its own date. Anchoring on the
+ * immediately previous row — not the greatest date seen so far — is what
+ * makes this agree exactly with the rule `updateTransaction` enforces, so
+ * `[Mar, Jan, Feb]` flags only the Jan row.
+ *
+ * Both comparisons are plain string `<`/`>` on `YYYY-MM-DD`, which is a
+ * correct date comparison for that shape.
+ */
+function invalidRowIds(
+  rows: { id: string; date: string; paymentDate: string | null }[],
+): Set<string> {
+  const invalid = new Set<string>();
+  let previous: string | null = null;
+
+  for (const row of rows) {
+    if (previous !== null && row.date < previous) invalid.add(row.id);
+    if (row.paymentDate && row.paymentDate > row.date) invalid.add(row.id);
+    previous = row.date;
+  }
+
+  return invalid;
+}
+
+/**
  * One row per occurrence, each its own small form. `amount`, `date`, and
  * `paymentDate` are the only fields that vary row to row — the series'
  * category, card, type, and description ride along unchanged on every save,
@@ -407,8 +433,28 @@ export function InstallmentOccurrencesTable({
   const paidTarget = visibleOccurrences.find((occurrence) => occurrence.id === paidTargetId) ?? null;
   const paidTargetRow = paidTarget ? (values[paidTarget.id] ?? paidTarget) : null;
 
+  // Over the *visible* rows in `occurrence.index` order: a locally deleted
+  // occurrence is hidden rather than removed from the prop, and must not go
+  // on anchoring the row below it.
+  const invalidIds = invalidRowIds(
+    visibleOccurrences.map((occurrence) => ({
+      id: occurrence.id,
+      ...(values[occurrence.id] ?? {
+        date: occurrence.date,
+        paymentDate: occurrence.paymentDate,
+      }),
+    })),
+  );
+
   return (
     <div data-plan-id={planId} className="rounded-md border">
+      {invalidIds.size > 0 && (
+        <Alert variant="destructive" className="m-4 mb-0">
+          <CircleAlert aria-hidden="true" />
+          <AlertDescription>{tInstallments("datesOutOfOrder")}</AlertDescription>
+        </Alert>
+      )}
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -452,6 +498,7 @@ export function InstallmentOccurrencesTable({
                     value={row.date}
                     onValueChange={(next) => updateRow(occurrence.id, { date: next })}
                     dateFormat={dateFormat}
+                    invalid={invalidIds.has(occurrence.id)}
                     // One picker per row: its own `aria-label` always wins
                     // over an external `<Label htmlFor>`, so every row needs
                     // a distinct name or a screen reader announces every
@@ -495,7 +542,10 @@ export function InstallmentOccurrencesTable({
                       type="button"
                       size="sm"
                       onClick={() => handleSave(occurrence)}
-                      disabled={rowStatus === "saving"}
+                      // Every Save disables, not just the offending row's: a
+                      // per-row block would let a user commit half a reshuffle
+                      // and navigate away with the series still out of order.
+                      disabled={rowStatus === "saving" || invalidIds.size > 0}
                     >
                       {rowStatus === "saving"
                         ? tInstallments("occurrenceSaving")

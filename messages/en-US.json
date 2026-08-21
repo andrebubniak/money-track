@@ -397,6 +397,7 @@
       "seriesNote": "Changing the description, category, card, or type updates every payment below.",
       "frozenNote": "How often it repeats, when it starts, and how many payments there are can't be changed. Create a new plan instead.",
       "occurrencesTitle": "Payments",
+      "datesOutOfOrder": "Payments must stay in order — each one dated on or after the payment before it, and paid on or before its own date. Fix the highlighted rows to save.",
       "occurrenceSave": "Save",
       "occurrenceSaving": "Saving…",
       "occurrenceSaved": "Saved",

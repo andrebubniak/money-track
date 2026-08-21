@@ -237,6 +237,94 @@ describe("updateTransaction", () => {
       expect(prisma.transaction.update).toHaveBeenCalled();
     });
   });
+
+  // A plan's occurrences must stay in order. Only the "not before the
+  // previous one" half is enforced here — see the action's own note for why
+  // the symmetric rule would deadlock a legitimate reshuffle.
+  describe("a plan's occurrences stay in order", () => {
+    const OCCURRENCE = {
+      id: "tx-2",
+      recurringTransactionId: "rec-1",
+      date: new Date("2026-02-01T00:00:00.000Z"),
+      createdAt: new Date("2026-01-10T09:00:00.000Z"),
+    };
+
+    /**
+     * `findFirst` serves two different lookups in this action, so the mock
+     * answers by what is being asked for rather than by call order — a queue
+     * of `mockResolvedValueOnce`s would silently spill into the next test
+     * whenever the second lookup is skipped.
+     */
+    function mockPlan(previousDate: Date | null) {
+      vi.mocked(prisma.transaction.findFirst).mockImplementation((args) =>
+        // The ownership lookup is the one scoped to the session user.
+        "userId" in ((args?.where ?? {}) as Record<string, unknown>)
+          ? (Promise.resolve(OCCURRENCE) as never)
+          : (Promise.resolve(previousDate && { date: previousDate }) as never),
+      );
+    }
+
+    it("rejects an occurrence dated before its previous sibling", async () => {
+      mockPlan(new Date("2026-02-01T00:00:00.000Z"));
+
+      expect(
+        await updateTransaction("tx-2", { ...validValues, date: "2026-01-01" }, LOCALE),
+      ).toEqual({ success: false, error: "date.beforePrevious" });
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+    });
+
+    // The rule is ">= the previous one", not "> it": a daily plan legitimately
+    // holds several occurrences on the same day.
+    it("accepts an occurrence dated on the same day as its previous sibling", async () => {
+      mockPlan(new Date("2026-01-01T00:00:00.000Z"));
+
+      expect(
+        await updateTransaction("tx-2", { ...validValues, date: "2026-01-01" }, LOCALE),
+      ).toEqual({ success: true });
+      expect(prisma.transaction.update).toHaveBeenCalled();
+    });
+
+    it("accepts the first occurrence of a plan, which has no previous sibling", async () => {
+      mockPlan(null);
+
+      expect(
+        await updateTransaction("tx-2", { ...validValues, date: "2020-01-01" }, LOCALE),
+      ).toEqual({ success: true });
+    });
+
+    // The `createdAt` tie-break is what makes the predecessor stable: a daily
+    // plan can hold several occurrences on the same date, and `date` alone
+    // would pick an arbitrary one of them.
+    it("looks the previous sibling up within the live plan, breaking a same-date tie on createdAt", async () => {
+      mockPlan(null);
+
+      await updateTransaction("tx-2", validValues, LOCALE);
+
+      expect(prisma.transaction.findFirst).toHaveBeenCalledWith({
+        where: {
+          recurringTransactionId: "rec-1",
+          deactivatedAt: null,
+          id: { not: "tx-2" },
+          OR: [
+            { date: { lt: OCCURRENCE.date } },
+            { date: OCCURRENCE.date, createdAt: { lt: OCCURRENCE.createdAt } },
+          ],
+        },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        select: { date: true },
+      });
+    });
+
+    it("does not look for a previous sibling on a one-off", async () => {
+      vi.mocked(prisma.transaction.findFirst).mockResolvedValue({
+        id: "tx-1",
+        recurringTransactionId: null,
+      } as never);
+
+      expect(await updateTransaction("tx-1", validValues, LOCALE)).toEqual({ success: true });
+      expect(prisma.transaction.findFirst).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("deleteTransaction", () => {

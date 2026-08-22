@@ -171,6 +171,31 @@ describe("MoneyInput", () => {
     expect(input).toHaveValue("0.00");
   });
 
+  // Typing over a full selection is a *replacement*, not a deletion: the
+  // digit string gets shorter, but the user is entering a value rather than
+  // clearing one. Inferring "cleared" from that shortening blanked the field
+  // and answered with `amount.invalid` for a field they had just filled in.
+  // `{selectall}` does not drive a selection in this harness —
+  // `initialSelectionStart`/`initialSelectionEnd` do.
+  it("enters a zero typed over a full selection, rather than clearing", async () => {
+    const user = userEvent.setup();
+    const { onValueChange, input } = setup("1234.56");
+
+    await user.type(input, "0", { initialSelectionStart: 0, initialSelectionEnd: 8 });
+
+    expect(onValueChange).toHaveBeenLastCalledWith("0.00");
+    expect(input).toHaveValue("0.00");
+  });
+
+  it("enters a value typed over a full selection", async () => {
+    const user = userEvent.setup();
+    const { input } = setup("1234.56");
+
+    await user.type(input, "75", { initialSelectionStart: 0, initialSelectionEnd: 8 });
+
+    expect(input).toHaveValue("0.75");
+  });
+
   it("caps input at the Decimal(12,2) ceiling", async () => {
     const user = userEvent.setup();
     const { onValueChange, input } = setup();

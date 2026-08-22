@@ -113,12 +113,16 @@ export function MoneyInput({
         // `"00"`. That fixed point left the user on `0.00`, and on its
         // `amount.tooSmall` error, with no way out short of select-all.
         //
-        // Only a *shrinking* digit string is read as a clear. Typing `"0"`
-        // into an empty field grows it and must still produce `"0.00"`, so
-        // that the value the user actually entered is what gets validated —
-        // swallowing the keystroke and reporting `amount.invalid` instead
-        // would answer a question they did not ask.
-        const cleared = digits.length < displayedDigits.length && !digits.replace(/^0+/, "");
+        // The browser's own `inputType` is what says a deletion happened —
+        // `deleteContentBackward`, `deleteContentForward`, `deleteByCut`. Do
+        // not infer it from the digit string getting shorter: *replacing* a
+        // selection shortens it too, so selecting `1,234.56` and typing `0`
+        // would read as a clear and blank the field, when it has to enter a
+        // zero and let `amount.tooSmall` say so. `?? ""` covers a synthetic
+        // event that carries no `inputType`: nothing starts with `delete`,
+        // so the fixed point comes back rather than the wrong answer.
+        const inputType = String((event.nativeEvent as InputEvent).inputType ?? "");
+        const cleared = inputType.startsWith("delete") && !digits.replace(/^0+/, "");
         onValueChange(cleared ? "" : toCanonical(trimLeadingZeros(digits)));
       }}
       aria-invalid={invalid ? true : undefined}

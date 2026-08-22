@@ -165,6 +165,21 @@ describe("TransactionForm", () => {
     expect(screen.getByLabelText(/Category/)).toHaveValue("Food");
   });
 
+  it("caps the transaction date at today", async () => {
+    const user = userEvent.setup();
+    // A one-off records something that has already happened, so the picker
+    // must not offer a day the schema will only refuse on submit. The
+    // recurring and installment start-date pickers cap themselves the same
+    // way; `today` here is "2026-08-19", and the default `date` is in the
+    // same month, so both day buttons are on screen together.
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Date" }));
+
+    expect(screen.getByRole("button", { name: /August 19th, 2026/ })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /August 20th, 2026/ })).toBeDisabled();
+  });
+
   it("hides the payment date until the switch is on", () => {
     render();
 

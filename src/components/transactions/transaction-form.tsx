@@ -177,11 +177,17 @@ export function TransactionForm({
 
       <div className="col-span-12 flex flex-col gap-2 lg:col-span-4">
         <Label htmlFor="date">{t("dateLabel")}</Label>
+        {/* A one-off records something that has already happened, so the
+            picker stops at today rather than offering a day the schema would
+            only refuse on submit — the same ceiling `createTransactionSchema`
+            applies to `date`, and the same one the start-date pickers on the
+            recurring and installment forms use. */}
         <DatePicker
           id="date"
           value={date}
           onValueChange={(next) => setValue("date", next, { shouldValidate: true })}
           dateFormat={dateFormat}
+          maxDate={today}
           triggerLabel={t("dateLabel")}
           invalid={Boolean(errors.date)}
         />

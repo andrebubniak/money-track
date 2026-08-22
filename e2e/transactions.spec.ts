@@ -440,10 +440,15 @@ const INVALID_INPUT =
  * encoding, real session cookie — and mutates one value in flight, exactly
  * what a client that had been patched to skip its own validation would send.
  *
- * `find` and `replace` must be the same length. The flight body is
- * length-prefixed in places, so a substitution that changes the total length
- * can desync the parse and fail for the wrong reason — every caller here
- * swaps one `YYYY-MM-DD` for another, or one cuid for another.
+ * `find` and `replace` must be the same length, and this helper throws
+ * otherwise. Not because the encoding demands it — the body goes out as
+ * `text/plain;charset=UTF-8` with no length prefixes and no multipart
+ * framing, so a longer replacement would in fact parse fine. What the rule
+ * buys is that every swap is a same-shape value for a same-shape value: one
+ * `YYYY-MM-DD` for another, one cuid for another. That keeps each caller's
+ * "this string occurs exactly once in the payload" reasoning trivially true,
+ * which is the property the assertions actually rest on, and stops a swap
+ * from quietly widening into something the payload never contained.
  *
  * The returned `applied()` is not decoration. If the value never appears in
  * the body — a different encoding, a renamed field — the request passes
@@ -1329,33 +1334,39 @@ test.describe("transactions", () => {
     );
   });
 
-  // 15. The transaction-date ceiling, enforced by the schema on submit.
-  test("a future date chosen on the form is refused before anything is written", async ({ page }) => {
-    const email = uniqueEmail("future-date-form");
-    await registerUser(page, { email });
+  // 15. The transaction-date ceiling, enforced by the picker itself.
+  test("the Date picker cannot reach a day after today", async ({ page }) => {
+    await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
     await createCategory(page, "Groceries");
-    const userId = await getUserIdByEmail(email);
 
     await page.goto(path("/transactions/new"));
-    await amountField(page).fill("10.00");
-    await selectCombobox(page, "Category", "Groceries");
-    // Tomorrow is *pickable* here — `pickDate` even pages forward a month to
-    // reach it on the last day of a month. Unlike the recurring and
-    // installment start-date pickers (both `maxDate={today}`) and the
-    // payment-date picker above, the one-off Date picker is given no
-    // `maxDate`, so the calendar offers a day the schema then refuses. That
-    // is a real inconsistency in the shipped UI, and not something this spec
-    // is free to paper over: asserting the day is disabled would fail, and
-    // disabling it belongs in `transaction-form.tsx`, which this task may not
-    // touch. So this pins what the app actually does — the ceiling holds, one
-    // step later than it should — and the gap is written up in the task report.
-    await pickDate(page, "Date", daysFromToday(1));
-    await page.getByRole("button", { name: "Create transaction" }).click();
+    await page.getByRole("button", { name: "Date", exact: true }).click();
 
-    await expect(page.getByText("Date can't be in the future.")).toBeVisible();
-    await expect(page).toHaveURL(path("/transactions/new"));
-    expect(await countTransactions(userId)).toBe(0);
+    await expect(dayButton(page, today())).toBeEnabled();
+
+    // A one-off records something that has already happened, so `maxDate` is
+    // today — the same ceiling `createTransactionSchema` puts on `date`.
+    const tomorrow = daysFromToday(1);
+    if (tomorrow.getMonth() === today().getMonth()) {
+      await expect(dayButton(page, tomorrow)).toBeDisabled();
+    } else {
+      // On the last day of a month tomorrow falls in the next one, which
+      // `endMonth` makes unreachable — there is no button to disable.
+      await expect(dayButton(page, tomorrow)).toHaveCount(0);
+    }
+
+    // Unreachable, not merely unselectable, exactly as for the payment-date
+    // picker above: `maxDate` feeds `endMonth` as well as `disabled`.
+    await expect(page.getByRole("button", { name: "Go to the Next Month" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+
+    // Nothing here submits, so there is no row count worth asserting: with
+    // the picker capped there is no longer any way to *choose* a future date
+    // on this form. The submit-time half of the same rule — a future date
+    // that reaches the action anyway — is the scenario immediately below.
   });
 
   // 16. The same ceiling, past the form entirely.

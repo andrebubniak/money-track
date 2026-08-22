@@ -149,7 +149,7 @@ describe("InstallmentOccurrencesTable", () => {
     render();
 
     const secondRow = screen.getAllByRole("row")[2];
-    const amount = within(secondRow).getByRole("textbox", { name: "Payment 2 amount" });
+    const amount = within(secondRow).getByRole("textbox", { name: "Payment 2 value" });
     // Keystroke by keystroke, which the masked field handles: it derives its
     // display from a digit string, so there is no free-form "." or trailing
     // "0" for a re-render to drop mid-edit — the hazard the old, uncontrolled
@@ -168,7 +168,7 @@ describe("InstallmentOccurrencesTable", () => {
   it("masks each amount with the user's number format", () => {
     render({ numberFormat: "DOT_COMMA" });
 
-    expect(screen.getByRole("textbox", { name: "Payment 1 amount" })).toHaveValue("89,00");
+    expect(screen.getByRole("textbox", { name: "Payment 1 value" })).toHaveValue("89,00");
   });
 
   // Description classifies the whole plan, so it is edited once in the
@@ -423,7 +423,7 @@ describe("InstallmentOccurrencesTable", () => {
   it("focuses the occurrence named by the query param", () => {
     render({ focusOccurrenceId: "tx-3" });
 
-    expect(screen.getByRole("textbox", { name: "Payment 3 amount" })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Payment 3 value" })).toHaveFocus();
   });
 
   // In this design a ref only ever exists for an id that came from
@@ -448,7 +448,7 @@ describe("InstallmentOccurrencesTable", () => {
     const { rerender } = render();
 
     const secondRow = screen.getAllByRole("row")[2];
-    expect(within(secondRow).getByRole("textbox", { name: "Payment 2 amount" })).toHaveValue(
+    expect(within(secondRow).getByRole("textbox", { name: "Payment 2 value" })).toHaveValue(
       "89.00",
     );
     expect(within(secondRow).getAllByRole("cell")[3]).toHaveTextContent("Not paid");
@@ -461,7 +461,7 @@ describe("InstallmentOccurrencesTable", () => {
     rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
 
     const secondRowAfter = screen.getAllByRole("row")[2];
-    expect(within(secondRowAfter).getByRole("textbox", { name: "Payment 2 amount" })).toHaveValue(
+    expect(within(secondRowAfter).getByRole("textbox", { name: "Payment 2 value" })).toHaveValue(
       "150.00",
     );
     expect(within(secondRowAfter).getAllByRole("cell")[3]).toHaveTextContent("02/05/2026");
@@ -474,7 +474,7 @@ describe("InstallmentOccurrencesTable", () => {
     const { rerender } = render();
 
     const firstRow = screen.getAllByRole("row")[1];
-    fireEvent.change(within(firstRow).getByRole("textbox", { name: "Payment 1 amount" }), {
+    fireEvent.change(within(firstRow).getByRole("textbox", { name: "Payment 1 value" }), {
       target: { value: "999.00" },
     });
 
@@ -484,7 +484,7 @@ describe("InstallmentOccurrencesTable", () => {
     rerenderWithNewProps(rerender, { occurrences: updatedOccurrences });
 
     const firstRowAfter = screen.getAllByRole("row")[1];
-    expect(within(firstRowAfter).getByRole("textbox", { name: "Payment 1 amount" })).toHaveValue(
+    expect(within(firstRowAfter).getByRole("textbox", { name: "Payment 1 value" })).toHaveValue(
       "999.00",
     );
 

@@ -266,7 +266,7 @@
         "invalid": "Digite uma data válida.",
         "outOfRange": "A data deve estar entre {min} e {max}.",
         "notInFuture": "A data não pode ser futura.",
-        "beforePrevious": "Este pagamento não pode ter data anterior à do pagamento anterior."
+        "beforePrevious": "Esta parcela não pode ter data anterior à da parcela anterior."
       },
       "paymentDate": {
         "invalid": "Digite uma data de pagamento válida.",

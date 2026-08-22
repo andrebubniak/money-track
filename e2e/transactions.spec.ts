@@ -683,7 +683,7 @@ test.describe("transactions", () => {
 
     // Occurrence-level edit: only the row whose amount was changed changes.
     await page.goto(path(`/transactions/installments/${planId}/edit`));
-    const amountInputs = page.getByRole("textbox", { name: /^Payment 1 amount$/ });
+    const amountInputs = page.getByRole("textbox", { name: /^Payment 1 value$/ });
     await expect(amountInputs).toBeVisible();
 
     // This used to need a wait for Base UI's `Input` to re-apply its

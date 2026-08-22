@@ -251,9 +251,9 @@
     },
     "transactions": {
       "amount": {
-        "invalid": "Enter an amount using digits, with at most two decimal places.",
-        "tooSmall": "Amount must be greater than zero.",
-        "tooLarge": "Amount must be at most {max}."
+        "invalid": "Enter a value using digits, with at most two decimal places.",
+        "tooSmall": "Value must be greater than zero.",
+        "tooLarge": "Value must be at most {max}."
       },
       "category": { "required": "Choose a category." },
       "card": {
@@ -403,7 +403,7 @@
       "occurrenceSaved": "Saved",
       "occurrenceDelete": "Delete payment",
       "occurrenceDateLabel": "Payment {index} date",
-      "occurrenceAmountLabel": "Payment {index} amount",
+      "occurrenceAmountLabel": "Payment {index} value",
       "occurrenceMarkPaidLabel": "Payment {index} mark as paid",
       "occurrencePaymentDateLabel": "Payment {index} payment date",
       "markPaid": "Mark as paid",

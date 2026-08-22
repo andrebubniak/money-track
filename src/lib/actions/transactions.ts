@@ -132,9 +132,16 @@ export async function updateTransaction(
   // reached; a forged request can only break the chain in the direction that
   // has to stay open anyway.
   //
-  // The `createdAt` tie-break matters: a plan generated on a daily frequency
-  // can hold several occurrences on the same date, and `date` alone would not
-  // give a stable predecessor.
+  // The `id` tie-break matters: a plan generated on a daily frequency can
+  // hold several occurrences on the same date, and `date` alone would not
+  // give a stable predecessor. It cannot be `createdAt`: that column defaults
+  // to `CURRENT_TIMESTAMP`, which Postgres evaluates once at *transaction
+  // start*, so every row of the single `createMany` that generates a plan
+  // carries the same timestamp to the microsecond — two same-date siblings
+  // would each fail to be the other's predecessor and neither would anchor
+  // the rule. `id` is a cuid, distinct per row by construction, and it is the
+  // tie-break `list-query.ts` (`ORDER BY t.date, t.id`) and the occurrences
+  // editor already order by, so all three agree on which row is which.
   if (transaction.recurringTransactionId) {
     const previous = await prisma.transaction.findFirst({
       where: {
@@ -143,10 +150,10 @@ export async function updateTransaction(
         id: { not: id },
         OR: [
           { date: { lt: transaction.date } },
-          { date: transaction.date, createdAt: { lt: transaction.createdAt } },
+          { date: transaction.date, id: { lt: transaction.id } },
         ],
       },
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ date: "desc" }, { id: "desc" }],
       select: { date: true },
     });
 

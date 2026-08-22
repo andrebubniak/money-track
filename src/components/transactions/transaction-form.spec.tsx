@@ -104,7 +104,7 @@ describe("TransactionForm", () => {
     await user.type(amountInput, "0");
     await submit(user);
 
-    expect(await screen.findByText("Amount must be greater than zero.")).toBeInTheDocument();
+    expect(await screen.findByText("Value must be greater than zero.")).toBeInTheDocument();
     expect(createTransaction).not.toHaveBeenCalled();
   });
 

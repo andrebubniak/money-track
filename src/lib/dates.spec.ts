@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDaysUtc, addMonthsUtc, toIsoDate, toUtcMidnight } from "@/lib/dates";
+import { addDaysUtc, addMonthsUtc, paymentDateCeiling, toIsoDate, toUtcMidnight } from "@/lib/dates";
 
 describe("toUtcMidnight", () => {
   it("parses a YYYY-MM-DD string as that day at UTC midnight", () => {
@@ -51,5 +51,22 @@ describe("addMonthsUtc", () => {
 
   it("rolls the year over", () => {
     expect(toIsoDate(addMonthsUtc(toUtcMidnight("2026-11-30"), 3))).toBe("2027-02-28");
+  });
+});
+
+describe("paymentDateCeiling", () => {
+  // The half that matters: a plan's occurrences are generated months ahead,
+  // so a ceiling of the occurrence's own date would put every unpaid row of a
+  // fresh plan in the future and fail `paymentDate.notInFuture`.
+  it("caps a future-dated transaction at today", () => {
+    expect(paymentDateCeiling("2026-12-01", "2026-08-21")).toBe("2026-08-21");
+  });
+
+  it("caps a past-dated transaction at its own date", () => {
+    expect(paymentDateCeiling("2026-01-05", "2026-08-21")).toBe("2026-01-05");
+  });
+
+  it("returns today when the two are the same day", () => {
+    expect(paymentDateCeiling("2026-08-21", "2026-08-21")).toBe("2026-08-21");
   });
 });

@@ -44,10 +44,15 @@ export default async function EditInstallmentPlanPage({
       where: { id: session.user.id },
       select: { dateFormat: true, numberFormat: true },
     }),
-    // Only the plan's live rows — a soft-deleted occurrence stays gone.
+    // Only the plan's live rows — a soft-deleted occurrence stays gone. The
+    // `id` tie-break is not decoration: a daily plan can hold several
+    // occurrences on the same date, and it is the same one `list-query.ts`
+    // (`ORDER BY t.date, t.id`) and `updateTransaction`'s predecessor lookup
+    // use, so the order the rows are edited in is the order the rule that
+    // validates them reads. `createdAt` cannot serve — see that action.
     prisma.transaction.findMany({
       where: { recurringTransactionId: plan.id, deactivatedAt: null },
-      orderBy: { date: "asc" },
+      orderBy: [{ date: "asc" }, { id: "asc" }],
     }),
     // Every row's stable `n`/`N` position, live or soft-deleted — the same
     // numbering the list itself uses, so deleting one occurrence here can't

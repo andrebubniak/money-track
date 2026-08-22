@@ -266,7 +266,7 @@
         "invalid": "Bitte ein gültiges Datum eingeben.",
         "outOfRange": "Das Datum muss zwischen {min} und {max} liegen.",
         "notInFuture": "Das Datum darf nicht in der Zukunft liegen.",
-        "beforePrevious": "Diese Zahlung darf nicht vor der vorherigen Zahlung datiert sein."
+        "beforePrevious": "Diese Rate darf nicht vor der vorherigen Rate datiert sein."
       },
       "paymentDate": {
         "invalid": "Bitte ein gültiges Zahlungsdatum eingeben.",
@@ -394,7 +394,7 @@
       "editTitle": "Ratenzahlung bearbeiten",
       "preview": "{count} Transaktionen, {first} bis {last}",
       "seriesTitle": "Alle Raten",
-      "seriesNote": "Beschreibung, Kategorie, Karte oder Typ zu ändern aktualisiert jede Rate unten.",
+      "seriesNote": "Beschreibung, Kategorie, Karte oder Art zu ändern aktualisiert jede Rate unten.",
       "frozenNote": "Wiederholung, Startdatum und Anzahl der Raten lassen sich nicht ändern. Bitte eine neue Ratenzahlung anlegen.",
       "occurrencesTitle": "Raten",
       "datesOutOfOrder": "Raten müssen in der Reihenfolge bleiben — jede datiert auf oder nach der vorherigen Rate und bezahlt an ihrem Datum oder davor. Korrigieren Sie die markierten Zeilen, um zu speichern.",

@@ -31,7 +31,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteTransaction, updateTransaction } from "@/lib/actions/transactions";
-import { toUtcMidnight } from "@/lib/dates";
+import { paymentDateCeiling, toUtcMidnight } from "@/lib/dates";
 import { formatDate } from "@/lib/format";
 import type { InstallmentSeriesValues } from "@/lib/validations/installment";
 import {
@@ -112,28 +112,6 @@ function occurrenceDataEqual(a: InstallmentOccurrence, b: InstallmentOccurrence)
 
 function toServerSnapshot(occurrences: InstallmentOccurrence[]): Record<string, InstallmentOccurrence> {
   return Object.fromEntries(occurrences.map((occurrence) => [occurrence.id, occurrence]));
-}
-
-/**
- * The latest day a payment may be dated: the *earlier* of today and the
- * occurrence's own date. A payment cannot postdate the occurrence it
- * settles, and `createTransactionSchema` caps `paymentDate` at today
- * regardless of how far into the future `date` itself is allowed to run.
- *
- * That second half is the whole reason this exists. A plan's occurrences
- * are generated months ahead, so the old checkbox — which marked a row paid
- * by copying the row's own `date` into `paymentDate` — produced a
- * future-dated payment on every unpaid row of a fresh plan (11 of 12 in a
- * yearly one) and failed `paymentDate.notInFuture` before the save ever
- * left the browser. Taking the earlier of the two is always satisfiable.
- *
- * The cap belongs here, on `paymentDate`, and *never* on `date`: a
- * future-dated occurrence is exactly what a plan is made of, and the row's
- * own schema deliberately widens `date`'s ceiling to `MAX_TRANSACTION_DATE`
- * for that reason (see `schema` below, and `transactions.spec.ts`).
- */
-function paymentDateCeiling(occurrenceDate: string, today: string): string {
-  return occurrenceDate < today ? occurrenceDate : today;
 }
 
 /**
@@ -433,9 +411,14 @@ export function InstallmentOccurrencesTable({
   const paidTarget = visibleOccurrences.find((occurrence) => occurrence.id === paidTargetId) ?? null;
   const paidTargetRow = paidTarget ? (values[paidTarget.id] ?? paidTarget) : null;
 
-  // Over the *visible* rows in `occurrence.index` order: a locally deleted
-  // occurrence is hidden rather than removed from the prop, and must not go
-  // on anchoring the row below it.
+  // Over the *visible* rows, in the order the page delivers them — `date`,
+  // then `id` as the tie-break — which is the same order
+  // `updateTransaction` resolves a predecessor in, so a row this flags is a
+  // row the server would reject. Not `occurrence.index` order: `index` is
+  // the stable `n`/`N` label a row keeps for its lifetime, and reordering
+  // dates deliberately leaves it behind. A locally deleted occurrence is
+  // hidden rather than removed from the prop, and must not go on anchoring
+  // the row below it.
   const invalidIds = invalidRowIds(
     visibleOccurrences.map((occurrence) => ({
       id: occurrence.id,
@@ -668,7 +651,13 @@ export function InstallmentOccurrencesTable({
                 {tInstallments("markPaidClear")}
               </Button>
             )}
-            <Button type="button" onClick={() => commitPaid(paidDraft)}>
+            {/* `|| null`, not `paidDraft`: an empty draft is unreachable
+                today (the dialog seeds a date and its picker cannot clear
+                one), but `""` would persist as a row that renders the "not
+                paid" badge while claiming to carry a payment date — the
+                exact unpaid/empty conflation `paymentDate: string | null`
+                exists to keep out. */}
+            <Button type="button" onClick={() => commitPaid(paidDraft || null)}>
               {tInstallments("markPaidConfirm")}
             </Button>
           </DialogFooter>

@@ -96,15 +96,30 @@ export function MoneyInput({
   className,
   ...props
 }: MoneyInputProps) {
+  const displayedDigits = toDigits(value);
+
   return (
     <Input
       type="text"
       inputMode="decimal"
       autoComplete="off"
-      value={formatDigits(toDigits(value), numberFormat)}
+      value={formatDigits(displayedDigits, numberFormat)}
       onChange={(event) => {
         const digits = event.target.value.replace(/\D/g, "").slice(0, MAX_MONEY_DIGITS);
-        onValueChange(toCanonical(trimLeadingZeros(digits)));
+        // Backspace has to be able to empty the field. The display always
+        // carries at least three digits ("0.00"), so deleting the last
+        // significant one leaves the digit string `"00"`, never `""` — and
+        // `"00"` canonicalises to `"0.00"`, which derives straight back to
+        // `"00"`. That fixed point left the user on `0.00`, and on its
+        // `amount.tooSmall` error, with no way out short of select-all.
+        //
+        // Only a *shrinking* digit string is read as a clear. Typing `"0"`
+        // into an empty field grows it and must still produce `"0.00"`, so
+        // that the value the user actually entered is what gets validated —
+        // swallowing the keystroke and reporting `amount.invalid` instead
+        // would answer a question they did not ask.
+        const cleared = digits.length < displayedDigits.length && !digits.replace(/^0+/, "");
+        onValueChange(cleared ? "" : toCanonical(trimLeadingZeros(digits)));
       }}
       aria-invalid={invalid ? true : undefined}
       className={cn("lg:h-11 lg:text-base", className)}

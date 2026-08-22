@@ -128,6 +128,49 @@ describe("MoneyInput", () => {
     expect((input as HTMLInputElement).value).not.toContain("-");
   });
 
+  /**
+   * Backspace has to be able to empty the field. The display always carries
+   * at least three digits, so deleting the last significant one leaves the
+   * digit string `"00"`, never `""` — and `"00"` canonicalises to `"0.00"`,
+   * which derives straight back to `"00"`. That fixed point used to leave the
+   * user staring at `0.00` and an `amount.tooSmall` error with no way out
+   * short of select-all.
+   */
+  it("empties the field when the last significant digit is deleted", async () => {
+    const user = userEvent.setup();
+    const { onValueChange, input } = setup("0.05");
+
+    await user.type(input, "{backspace}");
+
+    expect(onValueChange).toHaveBeenLastCalledWith("");
+    expect(input).toHaveValue("");
+  });
+
+  it("keeps deleting digits one at a time on the way down", async () => {
+    const user = userEvent.setup();
+    const { input } = setup("1234.56");
+
+    await user.type(input, "{backspace}");
+    expect(input).toHaveValue("123.45");
+
+    await user.type(input, "{backspace}{backspace}{backspace}{backspace}{backspace}");
+    expect(input).toHaveValue("");
+  });
+
+  // The other half of the Backspace fix: an all-zero digit string only means
+  // "cleared" when it got there by deletion. Typing a zero must still enter a
+  // zero, so the schema answers with `amount.tooSmall` rather than with
+  // `amount.invalid` for a field the user did not leave empty.
+  it("still accepts a typed zero", async () => {
+    const user = userEvent.setup();
+    const { onValueChange, input } = setup();
+
+    await user.type(input, "0");
+
+    expect(onValueChange).toHaveBeenLastCalledWith("0.00");
+    expect(input).toHaveValue("0.00");
+  });
+
   it("caps input at the Decimal(12,2) ceiling", async () => {
     const user = userEvent.setup();
     const { onValueChange, input } = setup();

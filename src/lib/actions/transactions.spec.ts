@@ -246,7 +246,6 @@ describe("updateTransaction", () => {
       id: "tx-2",
       recurringTransactionId: "rec-1",
       date: new Date("2026-02-01T00:00:00.000Z"),
-      createdAt: new Date("2026-01-10T09:00:00.000Z"),
     };
 
     /**
@@ -292,10 +291,12 @@ describe("updateTransaction", () => {
       ).toEqual({ success: true });
     });
 
-    // The `createdAt` tie-break is what makes the predecessor stable: a daily
-    // plan can hold several occurrences on the same date, and `date` alone
-    // would pick an arbitrary one of them.
-    it("looks the previous sibling up within the live plan, breaking a same-date tie on createdAt", async () => {
+    // The `id` tie-break is what makes the predecessor stable: a daily plan
+    // can hold several occurrences on the same date, and `date` alone would
+    // pick an arbitrary one of them. It is `id` and not `createdAt` because
+    // every row of the `createMany` that generates a plan shares one
+    // transaction-start timestamp — see the action's own note.
+    it("looks the previous sibling up within the live plan, breaking a same-date tie on id", async () => {
       mockPlan(null);
 
       await updateTransaction("tx-2", validValues, LOCALE);
@@ -307,10 +308,10 @@ describe("updateTransaction", () => {
           id: { not: "tx-2" },
           OR: [
             { date: { lt: OCCURRENCE.date } },
-            { date: OCCURRENCE.date, createdAt: { lt: OCCURRENCE.createdAt } },
+            { date: OCCURRENCE.date, id: { lt: OCCURRENCE.id } },
           ],
         },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        orderBy: [{ date: "desc" }, { id: "desc" }],
         select: { date: true },
       });
     });

@@ -21,6 +21,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { useRouter } from "@/i18n/navigation";
 import { createTransaction, updateTransaction } from "@/lib/actions/transactions";
+import { paymentDateCeiling } from "@/lib/dates";
 import type { ComboboxOption } from "@/lib/options";
 import {
   createTransactionSchema,
@@ -92,11 +93,11 @@ export function TransactionForm({
   const cardId = useWatch({ control, name: "cardId" });
   const paymentDate = useWatch({ control, name: "paymentDate" });
 
-  // A payment cannot postdate its transaction, and cannot be in the future.
-  // For a one-off `date` is itself capped at today, so this is normally just
-  // `date` — seeding the switch with it is always valid and never guesses a
-  // day the user did not choose.
-  const maxPaymentDate = date < today ? date : today;
+  // A payment cannot postdate its transaction, and cannot be in the future —
+  // see `paymentDateCeiling`. For a one-off `date` is itself capped at today,
+  // so this is normally just `date`: seeding the switch with it is always
+  // valid and never guesses a day the user did not choose.
+  const maxPaymentDate = paymentDateCeiling(date, today);
 
   // Switching to Income must clear the card, not just hide it: a hidden
   // field still submits its value, and the schema rejects income carrying a

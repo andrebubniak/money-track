@@ -117,6 +117,24 @@ export function InstallmentSeriesForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Frozen at mount, and deliberately never re-read from the prop.
+  //
+  // The description input is uncontrolled — `register()` owns its value — so
+  // `defaultValue` is only ever consulted on the first render. This page,
+  // unlike every other form in the app, stays mounted across its own save:
+  // `onSubmit` calls `router.refresh()` instead of navigating away, so the
+  // server re-renders and hands this component a *new*
+  // `defaultValues.description` (the value just saved). Passing that changed
+  // string straight through makes Base UI log "A component is changing the
+  // default value state of an uncontrolled FieldControl after being
+  // initialized" — a real warning about a prop that, by then, can no longer
+  // affect what is on screen.
+  //
+  // `useForm`'s own `defaultValues` are equally frozen at mount, so pinning
+  // this keeps the two agreeing rather than letting the DOM attribute drift
+  // away from the value react-hook-form is actually submitting.
+  const [initialDescription] = useState(defaultValues.description ?? "");
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -280,8 +298,9 @@ export function InstallmentSeriesForm({
             // `register` sets the value imperatively once mounted, so without
             // this the server-rendered HTML ships an empty input and the
             // plan's existing description only appears after hydration —
-            // `.claude/rules/ui.md`.
-            defaultValue={defaultValues.description ?? ""}
+            // `.claude/rules/ui.md`. Read from `initialDescription`, not the
+            // prop: see its declaration above.
+            defaultValue={initialDescription}
             {...register("description")}
           />
           {errors.description && (

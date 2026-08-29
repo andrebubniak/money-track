@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -67,6 +68,46 @@ describe("InstallmentSeriesForm", () => {
     render();
 
     expect(screen.getByRole("textbox", { name: "Description" })).toHaveValue("Gym");
+  });
+
+  // This page stays mounted across its own save — `onSubmit` calls
+  // `router.refresh()` rather than navigating — so the server re-renders and
+  // hands the form a *new* `defaultValues.description`: the value just
+  // saved. The input is uncontrolled, so by then a changed `defaultValue`
+  // cannot affect what is on screen; passing it through only makes Base UI
+  // log "changing the default value state of an uncontrolled FieldControl
+  // after being initialized". The DOM `value` attribute is what
+  // `defaultValue` writes, so asserting on it pins exactly the prop that
+  // must not move.
+  it("keeps the description's mount-time defaultValue when a refreshed plan arrives", async () => {
+    const user = userEvent.setup();
+
+    function Harness() {
+      const [description, setDescription] = useState("Gym");
+      return (
+        <>
+          <button type="button" onClick={() => setDescription("Gym membership")}>
+            refresh
+          </button>
+          <InstallmentSeriesForm
+            planId="plan-1"
+            defaultValues={{ ...values, description }}
+            selectedCategory={{ id: "cat-1", name: "Food" }}
+            selectedCard={{ id: "card-1", name: "Personal Visa" }}
+            occurrencesCount={12}
+            liveOccurrencesCount={12}
+            frequency="MONTHLY"
+            startDate="2026-01-05"
+            dateFormat="MDY"
+          />
+        </>
+      );
+    }
+
+    renderWithIntl(<Harness />);
+    await user.click(screen.getByRole("button", { name: "refresh" }));
+
+    expect(screen.getByRole("textbox", { name: "Description" })).toHaveAttribute("value", "Gym");
   });
 
   it("submits the description as a series field", async () => {

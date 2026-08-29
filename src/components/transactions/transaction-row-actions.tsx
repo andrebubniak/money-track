@@ -44,9 +44,14 @@ type TransactionRowActionsProps = {
  * `single` row edits/deletes itself; a `recurring` row edits/deletes the
  * recurrence definition; an `installment` row has no edit page of its own —
  * its Edit opens the parent plan (`row.planId`) pointed at the occurrence —
- * and its Delete removes only that occurrence via `deleteTransaction`, never
- * the plan (deleting the whole plan is a separate action on the plan's own
- * edit page, where the occurrence count is on screen).
+ * and it offers **no Delete at all**.
+ *
+ * An occurrence is deleted from the plan's own edit page instead, in
+ * `InstallmentOccurrencesTable`, where every sibling row and the plan's
+ * `n/N` total are on screen. Removing one instalment from the flat list —
+ * where the surrounding rows are unrelated transactions — gives the user no
+ * way to see what it belonged to or what it leaves behind, and the row
+ * numbering it silently changes is only legible on the plan's page.
  */
 export function TransactionRowActions({ row }: TransactionRowActionsProps) {
   const t = useTranslations("transactions");
@@ -64,6 +69,10 @@ export function TransactionRowActions({ row }: TransactionRowActionsProps) {
         ? `/transactions/installments/${row.planId}/edit?occurrence=${row.id}`
         : `/transactions/${row.id}/edit`;
 
+  // See the header comment: an occurrence is deleted from its plan's page,
+  // never from the flat list.
+  const canDelete = row.kind !== "installment";
+
   const dialogCopy =
     row.kind === "recurring"
       ? { title: t("deleteDialog.recurringTitle"), description: t("deleteDialog.recurringDescription") }
@@ -72,8 +81,6 @@ export function TransactionRowActions({ row }: TransactionRowActionsProps) {
   function handleConfirmDelete() {
     setError(null);
     startTransition(async () => {
-      // An installment row deletes that occurrence only — the plan itself is
-      // deleted from its own edit page, where the count is on screen.
       const result =
         row.kind === "recurring"
           ? await deleteRecurringTransaction(row.id, locale)
@@ -118,35 +125,39 @@ export function TransactionRowActions({ row }: TransactionRowActionsProps) {
             <SquarePen aria-hidden="true" className="size-6" />
             {t("actions.edit")}
           </DropdownMenuLinkItem>
-          <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
-            <Trash2 aria-hidden="true" className="size-6" />
-            {t("actions.delete")}
-          </DropdownMenuItem>
+          {canDelete && (
+            <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 aria-hidden="true" className="size-6" />
+              {t("actions.delete")}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <AlertDialog open={deleteOpen} onOpenChange={handleDeleteOpenChange}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{dialogCopy.title}</AlertDialogTitle>
-            <AlertDialogDescription>{dialogCopy.description}</AlertDialogDescription>
-          </AlertDialogHeader>
+      {canDelete && (
+        <AlertDialog open={deleteOpen} onOpenChange={handleDeleteOpenChange}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{dialogCopy.title}</AlertDialogTitle>
+              <AlertDialogDescription>{dialogCopy.description}</AlertDialogDescription>
+            </AlertDialogHeader>
 
-          {error && (
-            <Alert variant="destructive">
-              <CircleAlert aria-hidden="true" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+            {error && (
+              <Alert variant="destructive">
+                <CircleAlert aria-hidden="true" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>{t("deleteDialog.cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleConfirmDelete} disabled={isPending}>
-              {isPending ? t("deleteDialog.confirming") : t("deleteDialog.confirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isPending}>{t("deleteDialog.cancel")}</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={handleConfirmDelete} disabled={isPending}>
+                {isPending ? t("deleteDialog.confirming") : t("deleteDialog.confirm")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   );
 }

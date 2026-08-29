@@ -90,15 +90,13 @@ describe("TransactionRowActions", () => {
     expect(deleteRecurringTransaction).toHaveBeenCalledWith("rec-1", "en-US");
   });
 
-  // Deleting one instalment must not take the plan with it.
-  it("deletes only the occurrence for an installment row", async () => {
-    const user = await openMenu(row({ kind: "installment", id: "tx-9", planId: "plan-1" }));
+  // An occurrence is deleted from its plan's edit page, where its siblings
+  // and the plan's total are on screen — never from the flat list.
+  it("offers no delete for an installment row", async () => {
+    await openMenu(row({ kind: "installment", id: "tx-9", planId: "plan-1" }));
 
-    await user.click(await screen.findByRole("menuitem", { name: /Delete/ }));
-    await user.click(await screen.findByRole("button", { name: "Delete" }));
-
-    expect(deleteTransaction).toHaveBeenCalledWith("tx-9", "en-US");
-    expect(deleteRecurringTransaction).not.toHaveBeenCalled();
+    expect(await screen.findByRole("menuitem", { name: /Edit/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Delete/ })).not.toBeInTheDocument();
   });
 
   it("shows the action's error and keeps the dialog open", async () => {

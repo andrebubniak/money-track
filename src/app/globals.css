@@ -27,6 +27,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -66,6 +68,10 @@
   --accent: oklch(0.94 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Income amounts. `--destructive` would read an ordinary expense as an
+     error, and the palette had no green before this. */
+  --success: oklch(0.55 0.13 150);
+  --success-foreground: oklch(0.98 0 0);
   --info: oklch(0.546 0.215 262.881);
   --info-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
@@ -103,6 +109,8 @@
   --accent: oklch(0.32 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.72 0.15 150);
+  --success-foreground: oklch(0.18 0 0);
   --info: oklch(0.704 0.165 254.624);
   --info-foreground: oklch(0.145 0 0);
   --border: oklch(1 0 0 / 10%);

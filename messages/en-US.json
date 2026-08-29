@@ -66,7 +66,8 @@
     "signedInAs": "Signed in ({name})",
     "placeholder": "Placeholder page. This route becomes the real spending dashboard described in the PRD.",
     "categoriesNavLabel": "Categories",
-    "cardsNavLabel": "Cards"
+    "cardsNavLabel": "Cards",
+    "transactionsNavLabel": "Transactions"
   },
   "categories": {
     "title": "Categories",
@@ -247,6 +248,36 @@
       "type": {
         "invalid": "Choose a card type."
       }
+    },
+    "transactions": {
+      "amount": {
+        "invalid": "Enter a value using digits, with at most two decimal places.",
+        "tooSmall": "Value must be greater than zero.",
+        "tooLarge": "Value must be at most {max}."
+      },
+      "category": { "required": "Choose a category." },
+      "card": {
+        "notForIncome": "Income can't be assigned to a card.",
+        "invalid": "Choose a card from your list."
+      },
+      "description": { "tooLong": "Description must be at most {max} characters." },
+      "type": { "invalid": "Choose income or expense." },
+      "date": {
+        "invalid": "Enter a valid date.",
+        "outOfRange": "Date must be between {min} and {max}.",
+        "notInFuture": "Date can't be in the future.",
+        "beforePrevious": "This payment can't be dated before the one before it."
+      },
+      "paymentDate": {
+        "invalid": "Enter a valid payment date.",
+        "notInFuture": "Payment date can't be in the future.",
+        "afterDate": "Payment date can't be after the transaction date."
+      },
+      "frequency": { "invalid": "Choose how often this repeats." },
+      "occurrences": {
+        "invalid": "Enter a whole number of payments, starting at one.",
+        "tooMany": "You can create at most {max} payments at once."
+      }
     }
   },
   "errors": {
@@ -260,6 +291,137 @@
       "PASSWORD_TOO_LONG": "Password is too long.",
       "INVALID_EMAIL": "Enter a valid email address.",
       "fallback": "Something went wrong. Please try again."
+    }
+  },
+  "transactions": {
+    "title": "Transactions",
+    "description": "Everything you've earned and spent.",
+    "notFound": "This transaction doesn't exist or you don't have access to it.",
+    "invalidInput": "There was a problem with the information you submitted. Please check the fields and try again.",
+    "actions": {
+      "new": "New transaction",
+      "newSingle": "One-off transaction",
+      "newSingleHint": "A single payment or deposit.",
+      "newRecurring": "Recurring transaction",
+      "newRecurringHint": "Repeats indefinitely until you delete it.",
+      "newInstallments": "Installments",
+      "newInstallmentsHint": "A fixed number of payments, created up front.",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "category": "Category",
+      "card": "Card",
+      "type": "Type",
+      "amount": "Value",
+      "paymentDate": "Payment date",
+      "actions": "Actions",
+      "none": "—",
+      "notPaid": "Not paid",
+      "typeIncome": "Income",
+      "typeExpense": "Expense",
+      "started": "Started {date}",
+      "series": "{index} of {total}",
+      "sortBy": "Sort by {column}",
+      "empty": "You don't have any transactions yet.",
+      "emptyCta": "New transaction",
+      "emptyFiltered": "No transactions match these filters.",
+      "emptyFilteredCta": "Clear filters"
+    },
+    "filters": {
+      "title": "Filters",
+      "active": "{count} active",
+      "category": "Category",
+      "card": "Card",
+      "type": "Type",
+      "show": "Show",
+      "from": "From",
+      "to": "To",
+      "any": "All",
+      "showAll": "All",
+      "showSingle": "One-off only",
+      "showRecurring": "Recurring only",
+      "showInstallments": "Installments only",
+      "apply": "Apply",
+      "clear": "Clear"
+    },
+    "frequency": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "BIWEEKLY": "Every two weeks",
+      "MONTHLY": "Monthly",
+      "QUARTERLY": "Quarterly",
+      "SEMIANNUAL": "Twice a year",
+      "YEARLY": "Yearly"
+    },
+    "form": {
+      "typeLabel": "Type",
+      "typeIncome": "Income",
+      "typeExpense": "Expense",
+      "amountLabel": "Value",
+      "amountPlaceholder": "0.00",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Search categories",
+      "cardLabel": "Card",
+      "cardPlaceholder": "Search cards",
+      "dateLabel": "Date",
+      "startDateLabel": "Start date",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "e.g. Weekly groceries",
+      "paidLabel": "Already paid",
+      "paymentDateLabel": "Payment date",
+      "frequencyLabel": "Repeats",
+      "occurrencesLabel": "Number of payments",
+      "submitCreate": "Create transaction",
+      "submitCreating": "Creating…",
+      "submitEdit": "Save changes",
+      "submitSaving": "Saving…"
+    },
+    "single": {
+      "newTitle": "New transaction",
+      "editTitle": "Edit transaction",
+      "back": "Back to transactions"
+    },
+    "recurring": {
+      "newTitle": "New recurring transaction",
+      "editTitle": "Edit recurring transaction",
+      "note": "This defines the recurrence. Its transactions aren't created yet — that arrives with automatic generation."
+    },
+    "installments": {
+      "newTitle": "New installments",
+      "editTitle": "Edit installments",
+      "preview": "{count} transactions, {first} to {last}",
+      "seriesTitle": "All payments",
+      "seriesNote": "Changing the description, category, card, or type updates every payment below.",
+      "frozenNote": "How often it repeats, when it starts, and how many payments there are can't be changed. Create a new plan instead.",
+      "occurrencesTitle": "Payments",
+      "datesOutOfOrder": "Payments must stay in order — each one dated on or after the payment before it, and paid on or before its own date. Fix the highlighted rows to save.",
+      "occurrenceSave": "Save",
+      "occurrenceSaving": "Saving…",
+      "occurrenceSaved": "Saved",
+      "occurrenceDelete": "Delete payment",
+      "occurrenceDateLabel": "Payment {index} date",
+      "occurrenceAmountLabel": "Payment {index} value",
+      "occurrenceMarkPaidLabel": "Payment {index} mark as paid",
+      "occurrencePaymentDateLabel": "Payment {index} payment date",
+      "markPaid": "Mark as paid",
+      "markPaidTitle": "When was this paid?",
+      "markPaidConfirm": "Mark as paid",
+      "markPaidClear": "Mark as unpaid",
+      "deletePlan": "Delete plan"
+    },
+    "deleteDialog": {
+      "title": "Delete this transaction?",
+      "description": "This will remove the transaction from your list. This can't be undone.",
+      "recurringTitle": "Delete this recurring transaction?",
+      "recurringDescription": "This will stop the recurrence. This can't be undone.",
+      "installmentsTitle": "Delete these installments?",
+      "installmentsDescription": "This will remove the plan and all {count} of its payments. This can't be undone.",
+      "confirm": "Delete",
+      "confirming": "Deleting…",
+      "cancel": "Cancel"
     }
   },
   "ui": {
@@ -277,6 +439,23 @@
     },
     "dialog": {
       "close": "Close"
+    },
+    "asyncCombobox": {
+      "loading": "Loading…",
+      "loadingMore": "Loading more…",
+      "empty": "No results.",
+      "error": "Couldn't load options. Try again."
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page}",
+      "status": "Page {page} of {total}"
+    },
+    "datePicker": {
+      "open": "Choose a date",
+      "placeholder": "Pick a date"
     }
   }
 }

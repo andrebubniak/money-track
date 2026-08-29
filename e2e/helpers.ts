@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 export const TEST_PASSWORD = "Hunter2hunter2";
 
@@ -43,4 +43,30 @@ export async function registerUser(
   await page.getByRole("button", { name: "Create account" }).click();
 
   return user;
+}
+
+/**
+ * Creates a category through the real form and waits for the redirect back
+ * to the list — every transactions scenario needs at least one category to
+ * reference, and neither `cards.spec.ts` nor `categories.spec.ts` exports a
+ * reusable helper for it (they only ever create one inline, once per test).
+ */
+export async function createCategory(page: Page, name: string): Promise<void> {
+  await page.goto(path("/categories/new"));
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill(name);
+  await page.getByRole("button", { name: "Create category" }).click();
+  await expect(page).toHaveURL(path("/categories"));
+}
+
+/** Same as `createCategory`, for cards. */
+export async function createCard(
+  page: Page,
+  name: string,
+  type: "Debit" | "Credit" = "Debit",
+): Promise<void> {
+  await page.goto(path("/cards/new"));
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill(name);
+  await page.getByRole("radio", { name: type }).click();
+  await page.getByRole("button", { name: "Create card" }).click();
+  await expect(page).toHaveURL(path("/cards"));
 }

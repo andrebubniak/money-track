@@ -16,6 +16,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // Pinned to a non-UTC, DST-free offset (UTC-3) so date-boundary bugs —
+    // a UTC-midnight `Date` read through local `Date` parts landing on the
+    // wrong day/month — fail here regardless of the host machine's or CI
+    // runner's own timezone. See date-picker.spec.tsx's round-trip test.
+    env: { TZ: "America/Sao_Paulo" },
     setupFiles: ["./vitest.setup.ts"],
     // Only co-located specs under src. e2e/ belongs to Playwright, and if
     // Vitest picks those files up it will fail on Playwright's imports.

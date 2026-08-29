@@ -89,7 +89,7 @@ export function CardRowActions({ cardId }: CardRowActionsProps) {
         <DropdownMenuContent align="end">
           <DropdownMenuLinkItem
             variant="info"
-            render={<Link href={`/dashboard/cards/${cardId}/edit`} />}
+            render={<Link href={`/cards/${cardId}/edit`} />}
           >
             <SquarePen aria-hidden="true" className="size-6" />
             {t("actions.edit")}

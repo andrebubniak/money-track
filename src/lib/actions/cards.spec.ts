@@ -97,7 +97,7 @@ describe("createCard", () => {
     expect(prisma.card.create).toHaveBeenCalledWith({
       data: { userId: "user-1", name: "Personal Visa", type: "CREDIT" },
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/dashboard/cards", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/cards", "page");
   });
 
   it("only counts active cards against the cap — the count query excludes soft-deleted rows", async () => {
@@ -188,7 +188,7 @@ describe("updateCard", () => {
       where: { id: "card-1" },
       data: { name: "Business Card", type: "DEBIT" },
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/dashboard/cards", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/cards", "page");
   });
 });
 
@@ -235,7 +235,7 @@ describe("deleteCard", () => {
       where: { id: "card-1" },
       data: { deactivatedAt: expect.any(Date) },
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/dashboard/cards", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[locale]/cards", "page");
   });
 
   it("no-ops with a not-found-shaped error for a non-owned id", async () => {

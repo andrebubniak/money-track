@@ -108,7 +108,7 @@ describe("CardForm", () => {
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create card/i }));
 
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard/cards"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/cards"));
     expect(refresh).toHaveBeenCalled();
   });
 

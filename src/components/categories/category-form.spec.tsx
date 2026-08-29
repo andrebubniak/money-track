@@ -120,7 +120,7 @@ describe("CategoryForm", () => {
     await fillValidForm(user);
     await user.click(screen.getByRole("button", { name: /create category/i }));
 
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard/categories"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/categories"));
     expect(refresh).toHaveBeenCalled();
   });
 

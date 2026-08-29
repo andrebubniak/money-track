@@ -77,7 +77,7 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
 
     // `replace`, not `push`: the form must not stay in the history stack, or
     // Back returns the user to a form they have finished with.
-    router.replace("/dashboard/categories");
+    router.replace("/categories");
     router.refresh();
   }
 

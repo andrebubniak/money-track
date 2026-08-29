@@ -66,7 +66,8 @@
     "signedInAs": "Angemeldet ({name})",
     "placeholder": "Platzhalterseite. Aus dieser Route wird das im PRD beschriebene Ausgaben-Dashboard.",
     "categoriesNavLabel": "Kategorien",
-    "cardsNavLabel": "Karten"
+    "cardsNavLabel": "Karten",
+    "transactionsNavLabel": "Transaktionen"
   },
   "categories": {
     "title": "Kategorien",
@@ -247,6 +248,36 @@
       "type": {
         "invalid": "Wähle einen Kartentyp."
       }
+    },
+    "transactions": {
+      "amount": {
+        "invalid": "Bitte einen Betrag mit Ziffern und höchstens zwei Nachkommastellen eingeben.",
+        "tooSmall": "Der Betrag muss größer als null sein.",
+        "tooLarge": "Der Betrag darf höchstens {max} sein."
+      },
+      "category": { "required": "Bitte eine Kategorie wählen." },
+      "card": {
+        "notForIncome": "Einnahmen können keiner Karte zugeordnet werden.",
+        "invalid": "Bitte eine Karte aus deiner Liste wählen."
+      },
+      "description": { "tooLong": "Die Beschreibung darf höchstens {max} Zeichen lang sein." },
+      "type": { "invalid": "Bitte Einnahme oder Ausgabe wählen." },
+      "date": {
+        "invalid": "Bitte ein gültiges Datum eingeben.",
+        "outOfRange": "Das Datum muss zwischen {min} und {max} liegen.",
+        "notInFuture": "Das Datum darf nicht in der Zukunft liegen.",
+        "beforePrevious": "Diese Rate darf nicht vor der vorherigen Rate datiert sein."
+      },
+      "paymentDate": {
+        "invalid": "Bitte ein gültiges Zahlungsdatum eingeben.",
+        "notInFuture": "Das Zahlungsdatum darf nicht in der Zukunft liegen.",
+        "afterDate": "Das Zahlungsdatum darf nicht nach dem Transaktionsdatum liegen."
+      },
+      "frequency": { "invalid": "Bitte wählen, wie oft sich das wiederholt." },
+      "occurrences": {
+        "invalid": "Bitte eine ganze Anzahl von Raten ab eins eingeben.",
+        "tooMany": "Es können höchstens {max} Raten auf einmal erstellt werden."
+      }
     }
   },
   "errors": {
@@ -260,6 +291,137 @@
       "PASSWORD_TOO_LONG": "Das Passwort ist zu lang.",
       "INVALID_EMAIL": "Gib eine gültige E-Mail-Adresse ein.",
       "fallback": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
+  },
+  "transactions": {
+    "title": "Transaktionen",
+    "description": "Alles, was du eingenommen und ausgegeben hast.",
+    "notFound": "Diese Transaktion existiert nicht oder du hast keinen Zugriff darauf.",
+    "invalidInput": "Mit den übermittelten Angaben stimmt etwas nicht. Bitte die Felder prüfen und erneut versuchen.",
+    "actions": {
+      "new": "Neue Transaktion",
+      "newSingle": "Einmalige Transaktion",
+      "newSingleHint": "Eine einzelne Zahlung oder Einnahme.",
+      "newRecurring": "Wiederkehrende Transaktion",
+      "newRecurringHint": "Wiederholt sich unbegrenzt, bis du sie löschst.",
+      "newInstallments": "Ratenzahlung",
+      "newInstallmentsHint": "Eine feste Anzahl von Raten, im Voraus angelegt.",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "table": {
+      "date": "Datum",
+      "description": "Beschreibung",
+      "category": "Kategorie",
+      "card": "Karte",
+      "type": "Art",
+      "amount": "Betrag",
+      "paymentDate": "Zahlungsdatum",
+      "actions": "Aktionen",
+      "none": "—",
+      "notPaid": "Nicht bezahlt",
+      "typeIncome": "Einnahme",
+      "typeExpense": "Ausgabe",
+      "started": "Beginn am {date}",
+      "series": "{index} von {total}",
+      "sortBy": "Nach {column} sortieren",
+      "empty": "Du hast noch keine Transaktionen.",
+      "emptyCta": "Neue Transaktion",
+      "emptyFiltered": "Keine Transaktionen entsprechen diesen Filtern.",
+      "emptyFilteredCta": "Filter zurücksetzen"
+    },
+    "filters": {
+      "title": "Filter",
+      "active": "{count} aktiv",
+      "category": "Kategorie",
+      "card": "Karte",
+      "type": "Art",
+      "show": "Anzeigen",
+      "from": "Von",
+      "to": "Bis",
+      "any": "Alle",
+      "showAll": "Alle",
+      "showSingle": "Nur einmalige",
+      "showRecurring": "Nur wiederkehrende",
+      "showInstallments": "Nur Ratenzahlungen",
+      "apply": "Anwenden",
+      "clear": "Zurücksetzen"
+    },
+    "frequency": {
+      "DAILY": "Täglich",
+      "WEEKLY": "Wöchentlich",
+      "BIWEEKLY": "Alle zwei Wochen",
+      "MONTHLY": "Monatlich",
+      "QUARTERLY": "Vierteljährlich",
+      "SEMIANNUAL": "Halbjährlich",
+      "YEARLY": "Jährlich"
+    },
+    "form": {
+      "typeLabel": "Art",
+      "typeIncome": "Einnahme",
+      "typeExpense": "Ausgabe",
+      "amountLabel": "Betrag",
+      "amountPlaceholder": "0,00",
+      "categoryLabel": "Kategorie",
+      "categoryPlaceholder": "Kategorien suchen",
+      "cardLabel": "Karte",
+      "cardPlaceholder": "Karten suchen",
+      "dateLabel": "Datum",
+      "startDateLabel": "Startdatum",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "z. B. Wocheneinkauf",
+      "paidLabel": "Bereits bezahlt",
+      "paymentDateLabel": "Zahlungsdatum",
+      "frequencyLabel": "Wiederholt sich",
+      "occurrencesLabel": "Anzahl der Raten",
+      "submitCreate": "Transaktion anlegen",
+      "submitCreating": "Wird angelegt…",
+      "submitEdit": "Änderungen speichern",
+      "submitSaving": "Wird gespeichert…"
+    },
+    "single": {
+      "newTitle": "Neue Transaktion",
+      "editTitle": "Transaktion bearbeiten",
+      "back": "Zurück zu den Transaktionen"
+    },
+    "recurring": {
+      "newTitle": "Neue wiederkehrende Transaktion",
+      "editTitle": "Wiederkehrende Transaktion bearbeiten",
+      "note": "Dies legt nur die Wiederholung fest. Ihre Transaktionen werden noch nicht erzeugt — das kommt mit der automatischen Erzeugung."
+    },
+    "installments": {
+      "newTitle": "Neue Ratenzahlung",
+      "editTitle": "Ratenzahlung bearbeiten",
+      "preview": "{count} Transaktionen, {first} bis {last}",
+      "seriesTitle": "Alle Raten",
+      "seriesNote": "Beschreibung, Kategorie, Karte oder Art zu ändern aktualisiert jede Rate unten.",
+      "frozenNote": "Wiederholung, Startdatum und Anzahl der Raten lassen sich nicht ändern. Bitte eine neue Ratenzahlung anlegen.",
+      "occurrencesTitle": "Raten",
+      "datesOutOfOrder": "Raten müssen in der Reihenfolge bleiben — jede datiert auf oder nach der vorherigen Rate und bezahlt an ihrem Datum oder davor. Korrigieren Sie die markierten Zeilen, um zu speichern.",
+      "occurrenceSave": "Speichern",
+      "occurrenceSaving": "Wird gespeichert…",
+      "occurrenceSaved": "Gespeichert",
+      "occurrenceDelete": "Rate löschen",
+      "occurrenceDateLabel": "Rate {index} Datum",
+      "occurrenceAmountLabel": "Rate {index} Betrag",
+      "occurrenceMarkPaidLabel": "Rate {index} als bezahlt markieren",
+      "occurrencePaymentDateLabel": "Rate {index} Zahlungsdatum",
+      "markPaid": "Als bezahlt markieren",
+      "markPaidTitle": "Wann wurde das bezahlt?",
+      "markPaidConfirm": "Als bezahlt markieren",
+      "markPaidClear": "Als unbezahlt markieren",
+      "deletePlan": "Ratenzahlung löschen"
+    },
+    "deleteDialog": {
+      "title": "Diese Transaktion löschen?",
+      "description": "Die Transaktion wird aus deiner Liste entfernt. Das lässt sich nicht rückgängig machen.",
+      "recurringTitle": "Diese wiederkehrende Transaktion löschen?",
+      "recurringDescription": "Die Wiederholung wird beendet. Das lässt sich nicht rückgängig machen.",
+      "installmentsTitle": "Diese Ratenzahlung löschen?",
+      "installmentsDescription": "Der Plan und alle {count} Raten werden entfernt. Das lässt sich nicht rückgängig machen.",
+      "confirm": "Löschen",
+      "confirming": "Wird gelöscht…",
+      "cancel": "Abbrechen"
     }
   },
   "ui": {
@@ -277,6 +439,23 @@
     },
     "dialog": {
       "close": "Schließen"
+    },
+    "asyncCombobox": {
+      "loading": "Wird geladen…",
+      "loadingMore": "Mehr wird geladen…",
+      "empty": "Keine Ergebnisse.",
+      "error": "Optionen konnten nicht geladen werden. Bitte erneut versuchen."
+    },
+    "pagination": {
+      "label": "Seitennummerierung",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "page": "Seite {page}",
+      "status": "Seite {page} von {total}"
+    },
+    "datePicker": {
+      "open": "Datum auswählen",
+      "placeholder": "Datum wählen"
     }
   }
 }

@@ -81,7 +81,7 @@ export function CardForm({ mode, cardId, defaultValues }: CardFormProps) {
 
     // `replace`, not `push`: the form must not stay in the history stack, or
     // Back returns the user to a form they have finished with.
-    router.replace("/dashboard/cards");
+    router.replace("/cards");
     router.refresh();
   }
 

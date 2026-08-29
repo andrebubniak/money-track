@@ -23,7 +23,7 @@ test.describe("cards", () => {
     // race ahead of the session cookie existing and bounce to /login.
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/cards"));
+    await page.goto(path("/cards"));
 
     await expect(page.getByText("You don't have any cards yet.")).toBeVisible();
   });
@@ -32,12 +32,12 @@ test.describe("cards", () => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/cards/new"));
+    await page.goto(path("/cards/new"));
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Personal Visa");
     await page.getByRole("radio", { name: "Credit" }).click();
     await page.getByRole("button", { name: "Create card" }).click();
 
-    await expect(page).toHaveURL(path("/dashboard/cards"));
+    await expect(page).toHaveURL(path("/cards"));
 
     const names = await cardNameColumn(page, 1);
     expect(names).toEqual(["Personal Visa"]);
@@ -48,16 +48,16 @@ test.describe("cards", () => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/cards/new"));
+    await page.goto(path("/cards/new"));
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Personal Visa");
     await page.getByRole("radio", { name: "Debit" }).click();
     await page.getByRole("button", { name: "Create card" }).click();
-    await expect(page).toHaveURL(path("/dashboard/cards"));
+    await expect(page).toHaveURL(path("/cards"));
 
     // Actions live behind the row's ellipsis-vertical menu, not a direct link.
     await cardRow(page, "Personal Visa").getByRole("button", { name: "Actions" }).click();
     await page.getByRole("menuitem", { name: "Edit" }).click();
-    await expect(page).toHaveURL(/\/dashboard\/cards\/.+\/edit$/);
+    await expect(page).toHaveURL(/\/cards\/.+\/edit$/);
 
     const nameField = page.getByRole("textbox", { name: "Name", exact: true });
     await expect(nameField).toHaveValue("Personal Visa");
@@ -67,7 +67,7 @@ test.describe("cards", () => {
     await page.getByRole("radio", { name: "Credit" }).click();
     await page.getByRole("button", { name: "Save changes" }).click();
 
-    await expect(page).toHaveURL(path("/dashboard/cards"));
+    await expect(page).toHaveURL(path("/cards"));
     await expect(cardRow(page, "Business Visa")).toContainText("Credit");
 
     // Proves the server actually persisted the write, not just that the
@@ -80,17 +80,17 @@ test.describe("cards", () => {
     await registerUser(page);
     await expect(page).toHaveURL(path("/dashboard"));
 
-    await page.goto(path("/dashboard/cards/new"));
+    await page.goto(path("/cards/new"));
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Card One");
     await page.getByRole("radio", { name: "Debit" }).click();
     await page.getByRole("button", { name: "Create card" }).click();
-    await expect(page).toHaveURL(path("/dashboard/cards"));
+    await expect(page).toHaveURL(path("/cards"));
 
-    await page.goto(path("/dashboard/cards/new"));
+    await page.goto(path("/cards/new"));
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Card Two");
     await page.getByRole("radio", { name: "Credit" }).click();
     await page.getByRole("button", { name: "Create card" }).click();
-    await expect(page).toHaveURL(path("/dashboard/cards"));
+    await expect(page).toHaveURL(path("/cards"));
 
     await cardNameColumn(page, 2);
 
@@ -118,24 +118,24 @@ test.describe("cards", () => {
 
     // No presets for cards (unlike categories' 11) — create all 50 from zero.
     for (let i = 1; i <= 50; i++) {
-      await page.goto(path("/dashboard/cards/new"));
+      await page.goto(path("/cards/new"));
       await page.getByRole("textbox", { name: "Name", exact: true }).fill(`Cap card ${i}`);
       await page.getByRole("radio", { name: "Debit" }).click();
       await page.getByRole("button", { name: "Create card" }).click();
-      await expect(page).toHaveURL(path("/dashboard/cards"));
+      await expect(page).toHaveURL(path("/cards"));
     }
 
     await cardNameColumn(page, 50);
 
     // The list page's own gate: disabled, not hidden, with the limit copy —
-    // see the `atLimit` branch in dashboard/cards/page.tsx.
+    // see the `atLimit` branch in cards/page.tsx.
     await expect(page.getByRole("button", { name: "New card" })).toBeDisabled();
     await expect(page.getByRole("link", { name: "New card" })).toHaveCount(0);
     await expect(page.getByText("You've reached the limit of 50 cards.")).toBeVisible();
 
     // The list page's gate is only a convenience; `createCard` re-checks the
     // cap server-side regardless of how the form was reached.
-    await page.goto(path("/dashboard/cards/new"));
+    await page.goto(path("/cards/new"));
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Card number 51");
     await page.getByRole("radio", { name: "Credit" }).click();
     await page.getByRole("button", { name: "Create card" }).click();
@@ -143,9 +143,9 @@ test.describe("cards", () => {
     await expect(page.locator("form").getByRole("alert")).toHaveText(
       "You've reached the limit of 50 cards.",
     );
-    await expect(page).toHaveURL(path("/dashboard/cards/new"));
+    await expect(page).toHaveURL(path("/cards/new"));
 
-    await page.goto(path("/dashboard/cards"));
+    await page.goto(path("/cards"));
     await cardNameColumn(page, 50);
   });
 });

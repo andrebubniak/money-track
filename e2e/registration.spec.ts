@@ -8,7 +8,7 @@ test.describe("registration", () => {
 
     await expect(page).toHaveURL(path("/dashboard"));
     // Scoped to the heading role, not getByText: the dashboard heading is now
-    // a real <h1> (see src/app/dashboard/page.tsx), and Next's app-router
+    // a real <h1> (see src/app/[locale]/(app)/dashboard/page.tsx), and Next's app-router
     // announcer (node_modules/next/dist/client/components/app-router-announcer.js)
     // mirrors that exact text into its own role="alert" node on client-side
     // navigation. An unscoped getByText would match both.

@@ -443,8 +443,10 @@
     "asyncCombobox": {
       "loading": "Wird geladen…",
       "loadingMore": "Mehr wird geladen…",
-      "empty": "Keine Ergebnisse.",
-      "error": "Optionen konnten nicht geladen werden. Bitte erneut versuchen."
+      "empty": "Keine Ergebnisse gefunden.",
+      "error": "Optionen konnten nicht geladen werden. Bitte erneut versuchen.",
+      "search": "Suchen…",
+      "clear": "Auswahl löschen"
     },
     "pagination": {
       "label": "Seitennummerierung",

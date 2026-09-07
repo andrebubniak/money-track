@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { useRouter } from "@/i18n/navigation";
 import { createTransaction, updateTransaction } from "@/lib/actions/transactions";
 import { paymentDateCeiling } from "@/lib/dates";
-import type { ComboboxOption } from "@/lib/options";
+import { comboboxOptionAccessors, type ComboboxOption } from "@/lib/options";
 import {
   createTransactionSchema,
   TRANSACTION_TYPES,
@@ -199,7 +199,8 @@ export function TransactionForm({
         <Label htmlFor="categoryId" required>
           {t("categoryLabel")}
         </Label>
-        <AsyncCombobox
+        <AsyncCombobox<ComboboxOption>
+          {...comboboxOptionAccessors}
           id="categoryId"
           endpoint="/api/categories/options"
           value={categoryId}
@@ -216,13 +217,15 @@ export function TransactionForm({
       {type === "EXPENSE" && (
         <div className="col-span-12 flex flex-col gap-2 lg:col-span-6">
           <Label htmlFor="cardId">{t("cardLabel")}</Label>
-          <AsyncCombobox
+          <AsyncCombobox<ComboboxOption>
+            {...comboboxOptionAccessors}
             id="cardId"
             endpoint="/api/cards/options"
             value={cardId ?? null}
             onValueChange={(next) => setValue("cardId", next, { shouldValidate: true })}
             selectedOption={selectedCard}
             placeholder={t("cardPlaceholder")}
+            clearable
             invalid={Boolean(errors.cardId)}
           />
           {errors.cardId && <p className="text-sm text-destructive">{errors.cardId.message}</p>}

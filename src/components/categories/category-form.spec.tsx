@@ -5,12 +5,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithIntl } from "@/test-utils/intl";
 import type { CategoryValues } from "@/lib/validations/category";
 
-const { createCategory, updateCategory, replace, refresh } = vi.hoisted(() => ({
-  createCategory: vi.fn(),
-  updateCategory: vi.fn(),
-  replace: vi.fn(),
-  refresh: vi.fn(),
-}));
+const { createCategory, updateCategory, replace, refresh, invalidateOptions } = vi.hoisted(
+  () => ({
+    createCategory: vi.fn(),
+    updateCategory: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    invalidateOptions: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/actions/categories", () => ({
   createCategory,
@@ -19,6 +22,12 @@ vi.mock("@/lib/actions/categories", () => ({
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, refresh }),
+}));
+
+// The real hook needs a QueryClient and would refetch; this spec only
+// cares that a successful save asks the cached option lists to drop.
+vi.mock("@/hooks/use-async-options", () => ({
+  useInvalidateAsyncOptions: () => invalidateOptions,
 }));
 
 // The icon picker is exercised in full in icon-picker.spec.tsx. Here it is
@@ -47,6 +56,7 @@ describe("CategoryForm", () => {
     updateCategory.mockReset();
     replace.mockReset();
     refresh.mockReset();
+    invalidateOptions.mockReset();
     createCategory.mockResolvedValue({ success: true });
     updateCategory.mockResolvedValue({ success: true });
   });
@@ -76,6 +86,31 @@ describe("CategoryForm", () => {
       );
     });
     expect(updateCategory).not.toHaveBeenCalled();
+  });
+
+  // A category saved here is expected in the transaction form's category
+  // field on the very next click; without this the field keeps serving its
+  // cached page and the new category is simply missing.
+  it("drops the cached option lists after a successful save", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<CategoryForm mode="create" defaultValues={defaultValues} />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create category/i }));
+
+    await waitFor(() => expect(invalidateOptions).toHaveBeenCalled());
+  });
+
+  it("leaves the cached option lists alone when the save fails", async () => {
+    createCategory.mockResolvedValue({ success: false, error: "Nope." });
+    const user = userEvent.setup();
+    renderWithIntl(<CategoryForm mode="create" defaultValues={defaultValues} />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create category/i }));
+
+    expect(await screen.findByText("Nope.")).toBeInTheDocument();
+    expect(invalidateOptions).not.toHaveBeenCalled();
   });
 
   it("forwards the active locale, not a hardcoded one", async () => {

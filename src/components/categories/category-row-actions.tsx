@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useInvalidateAsyncOptions } from "@/hooks/use-async-options";
 import { Link } from "@/i18n/navigation";
 import { deleteCategory } from "@/lib/actions/categories";
 
@@ -49,6 +50,7 @@ export function CategoryRowActions({ categoryId }: CategoryRowActionsProps) {
   // Passed to the action explicitly: a Server Action cannot resolve the locale
   // itself — see the header comment in `src/lib/actions/categories.ts`.
   const locale = useLocale();
+  const invalidateOptions = useInvalidateAsyncOptions();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -68,6 +70,9 @@ export function CategoryRowActions({ categoryId }: CategoryRowActionsProps) {
         return;
       }
 
+      // A deactivated category must stop appearing in the dropdowns that
+      // list it, not linger until their cached page goes stale.
+      void invalidateOptions();
       setDeleteOpen(false);
     });
   }

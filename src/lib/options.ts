@@ -10,6 +10,16 @@ export const MAX_OPTIONS_QUERY_LENGTH = 100;
 export type ComboboxOption = { id: string; name: string };
 export type OptionsResponse = { items: ComboboxOption[]; hasMore: boolean };
 
+/**
+ * `AsyncCombobox` defaults to a `{ id, text }` item; these endpoints answer
+ * with `{ id, name }`, so every call site spreads this rather than repeating
+ * the same two lambdas ten times over.
+ */
+export const comboboxOptionAccessors = {
+  getItemId: (option: ComboboxOption) => option.id,
+  itemToLabel: (option: ComboboxOption) => option.name,
+} as const;
+
 const querySchema = z.string().trim().max(MAX_OPTIONS_QUERY_LENGTH);
 const pageSchema = z.coerce.number().int().min(1);
 

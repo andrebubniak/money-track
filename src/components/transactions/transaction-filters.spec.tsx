@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { NextIntlClientProvider } from "next-intl";
 
 const push = vi.fn();
 vi.mock("@/i18n/navigation", async () => {
@@ -9,8 +8,7 @@ vi.mock("@/i18n/navigation", async () => {
   return { ...actual, useRouter: () => ({ push, replace: push, refresh: vi.fn() }) };
 });
 
-import enUS from "../../../messages/en-US.json";
-import { renderWithIntl } from "@/test-utils/intl";
+import { renderWithIntl, withProviders } from "@/test-utils/intl";
 import { TransactionFiltersPanel } from "@/components/transactions/transaction-filters";
 import { parseTransactionFilters } from "@/lib/validations/transaction-filters";
 
@@ -33,14 +31,10 @@ const render = (params: Record<string, string> = {}) => renderWithIntl(panel(par
 /**
  * Wraps `panel(params)` the same way `renderWithIntl` does, for use with
  * `rerender` — `rerender` replaces the whole previously-rendered tree, so it
- * needs its own `NextIntlClientProvider`, not just the bare component.
+ * needs the same providers around it, not just the bare component.
  */
 function rerenderPanel(params: Record<string, string> = {}) {
-  return (
-    <NextIntlClientProvider locale="en-US" messages={enUS}>
-      {panel(params)}
-    </NextIntlClientProvider>
-  );
+  return withProviders(panel(params));
 }
 
 beforeEach(() => {

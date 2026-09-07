@@ -2,7 +2,6 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { NextIntlClientProvider } from "next-intl";
 
 vi.mock("@/lib/actions/transactions", () => ({
   updateTransaction: vi.fn(),
@@ -10,9 +9,8 @@ vi.mock("@/lib/actions/transactions", () => ({
 }));
 
 import { deleteTransaction, updateTransaction } from "@/lib/actions/transactions";
-import { renderWithIntl } from "@/test-utils/intl";
+import { renderWithIntl, withProviders } from "@/test-utils/intl";
 import { InstallmentOccurrencesTable } from "@/components/transactions/installment-occurrences-table";
-import enUS from "../../../messages/en-US.json";
 
 const occurrences = [
   { id: "tx-1", index: 1, date: "2026-01-05", amount: "89.00", paymentDate: "2026-01-05" },
@@ -43,16 +41,16 @@ const render = (overrides: Record<string, unknown> = {}) =>
   );
 
 // `renderWithIntl`'s own `rerender` (from `@testing-library/react`) expects
-// the full tree it mounted, provider included, or the update would replace
-// the provider itself rather than diff against the existing one — so
-// rerendering with new props re-wraps the same way `render` above does,
-// instead of passing `InstallmentOccurrencesTable` alone.
+// the full tree it mounted, providers included, or the update would replace
+// them rather than diff against the existing ones — so rerendering with new
+// props re-wraps the same way `render` above does, instead of passing
+// `InstallmentOccurrencesTable` alone.
 const rerenderWithNewProps = (
   rerender: (ui: ReactElement) => void,
   overrides: Record<string, unknown>,
 ) =>
   rerender(
-    <NextIntlClientProvider locale="en-US" messages={enUS}>
+    withProviders(
       <InstallmentOccurrencesTable
         planId="plan-1"
         occurrences={occurrences}
@@ -63,8 +61,8 @@ const rerenderWithNewProps = (
         numberFormat="COMMA_DOT"
         focusOccurrenceId={null}
         {...overrides}
-      />
-    </NextIntlClientProvider>,
+      />,
+    ),
   );
 
 const MONTH_NAMES = [

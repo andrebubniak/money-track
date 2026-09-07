@@ -1,8 +1,9 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { render } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 
 import type { routing } from "@/i18n/routing";
+import { QueryTestProvider } from "@/test-utils/query";
 import deDE from "../../messages/de-DE.json";
 import enUS from "../../messages/en-US.json";
 import ptBR from "../../messages/pt-BR.json";
@@ -25,11 +26,26 @@ const catalogs: Record<Locale, typeof enUS> = {
  * the behavior under test is locale-sensitive — e.g. a hand-built path that
  * must vary with the active locale (see google-button.spec.tsx) — so the
  * assertion can actually fail if that variation breaks.
+ *
+ * A `QueryClientProvider` comes along for the same reason the real app has
+ * one in its root layout: anything reaching for `useQuery` — every
+ * `AsyncCombobox`, and so every transaction form — throws without it.
  */
 export function renderWithIntl(ui: ReactElement, locale: Locale = "en-US") {
-  return render(
+  return render(withProviders(ui, locale));
+}
+
+/**
+ * The same wrapper `renderWithIntl` applies, exposed on its own for
+ * `rerender`: `rerender` replaces the entire previously-rendered tree, so
+ * handing it a bare component swaps the providers out from under it and
+ * remounts everything below — losing exactly the local state those tests are
+ * checking survives.
+ */
+export function withProviders(ui: ReactNode, locale: Locale = "en-US") {
+  return (
     <NextIntlClientProvider locale={locale} messages={catalogs[locale]}>
-      {ui}
-    </NextIntlClientProvider>,
+      <QueryTestProvider>{ui}</QueryTestProvider>
+    </NextIntlClientProvider>
   );
 }

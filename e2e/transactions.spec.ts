@@ -82,42 +82,23 @@ function amountField(page: Page) {
 
 /**
  * Opens an `AsyncCombobox` by its label and clicks the matching `option` out
- * of whatever the *unfiltered* first page already shows — deliberately never
- * types into it. Two independent, confirmed `AsyncCombobox` bugs rule out
- * typing:
+ * of whatever the *unfiltered* first page already shows.
  *
- * 1. Resolving the field's `id` through one accessible-name query up front
- *    and driving the click through that stable id, not a second `getByRole`
- *    call, is load-bearing: Base UI's Combobox
- *    (`node_modules/@base-ui/react/floating-ui-react/utils/markOthers.js`)
- *    marks background content `aria-hidden="true"` for as long as its popup
- *    is open, and "background" includes this field's own
- *    `<Label htmlFor="categoryId">` — the *only* thing giving the input its
- *    accessible name, since neither `AsyncCombobox` nor its callers pass an
- *    `aria-label`. A second `getByRole("combobox", { name: "Category" })`
- *    once the popup is open resolves to nothing and hangs until timeout.
- * 2. Typing is *itself* broken the moment the field already has a value —
- *    confirmed by hand: on the filters panel (whose category/card fields
- *    start on the `allOptionLabel` "All" entry) every keystroke was
- *    overwritten back to "All" within the same render, and retyping over an
- *    already-selected *real* category on an edit form left the field blank
- *    instead. A fresh, never-selected field (every create-form combobox on
- *    first use) is unaffected — only re-typing over an existing selection
- *    reproduces it — but the safest, uniformly-correct move is to never rely
- *    on typing at all. Confirmed safe: clicking a *different* option outright
- *    (no typing) works fine even starting from "All". Filed as a real,
- *    user-facing `AsyncCombobox` bug in the task report rather than silently
- *    worked around here without saying so.
+ * `AsyncCombobox` is a trigger button plus a popup that holds the search
+ * input, so the two bugs that used to rule out typing here — the popup
+ * `aria-hidden`ing the field's own `<Label>`, and each keystroke being
+ * overwritten by the current selection's label — are both gone: Base UI only
+ * marks background content hidden when `modal` is set, and the search box is
+ * no longer the same control as the field.
  *
- * This is why every category/card name this suite creates is chosen to sort
- * within `OPTIONS_PAGE_SIZE` (10, `src/lib/options.ts`) of the 11 seeded
- * presets — the unfiltered first page has to already contain the option.
+ * Clicking rather than typing is kept anyway, because it exercises the plain
+ * case and needs no debounce wait. That is why every category/card name this
+ * suite creates is chosen to sort within `OPTIONS_PAGE_SIZE` (10,
+ * `src/lib/options.ts`) of the 11 seeded presets — the unfiltered first page
+ * has to already contain the option.
  */
 async function selectCombobox(page: Page, label: string, optionText: string): Promise<void> {
-  const trigger = page.getByRole("combobox", { name: label, exact: true });
-  const id = await trigger.getAttribute("id");
-  if (!id) throw new Error(`AsyncCombobox labeled "${label}" has no id`);
-  await page.locator(`#${id}`).click();
+  await page.getByRole("combobox", { name: label, exact: true }).click();
   await page.getByRole("option", { name: optionText, exact: true }).click();
 }
 

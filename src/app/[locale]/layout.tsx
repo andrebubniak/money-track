@@ -5,6 +5,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 import "../globals.css";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +59,9 @@ export default async function LocaleLayout({
       <body className="min-h-full flex flex-col">
         {/* No `messages` prop: in next-intl 4 the provider inherits locale and
             messages from the server request config automatically. */}
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

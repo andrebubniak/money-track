@@ -30,7 +30,7 @@ import { useRouter } from "@/i18n/navigation";
 import { deleteInstallmentPlan, updateInstallmentSeries } from "@/lib/actions/installments";
 import { toUtcMidnight } from "@/lib/dates";
 import { formatDate } from "@/lib/format";
-import type { ComboboxOption } from "@/lib/options";
+import { comboboxOptionAccessors, type ComboboxOption } from "@/lib/options";
 import type { RecurringFrequency } from "@/lib/transactions/occurrences";
 import { createInstallmentSeriesSchema, type InstallmentSeriesValues } from "@/lib/validations/installment";
 import { TRANSACTION_TYPES, type TransactionType } from "@/lib/validations/transaction";
@@ -254,7 +254,8 @@ export function InstallmentSeriesForm({
             documents for `CategoryForm`'s icon field. */}
         <div className="col-span-12 flex flex-col gap-2 lg:col-span-4">
           <Label htmlFor="categoryId">{t("categoryLabel")}</Label>
-          <AsyncCombobox
+          <AsyncCombobox<ComboboxOption>
+            {...comboboxOptionAccessors}
             id="categoryId"
             endpoint="/api/categories/options"
             value={categoryId}
@@ -271,7 +272,8 @@ export function InstallmentSeriesForm({
         {type === "EXPENSE" && (
           <div className="col-span-12 flex flex-col gap-2 lg:col-span-4">
             <Label htmlFor="cardId">{t("cardLabel")}</Label>
-            <AsyncCombobox
+            <AsyncCombobox<ComboboxOption>
+              {...comboboxOptionAccessors}
               id="cardId"
               endpoint="/api/cards/options"
               value={cardId ?? null}

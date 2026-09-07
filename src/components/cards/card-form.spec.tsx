@@ -4,15 +4,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithIntl } from "@/test-utils/intl";
 
-const { createCard, updateCard, replace, refresh } = vi.hoisted(() => ({
+const { createCard, updateCard, replace, refresh, invalidateOptions } = vi.hoisted(() => ({
   createCard: vi.fn(),
   updateCard: vi.fn(),
   replace: vi.fn(),
   refresh: vi.fn(),
+  invalidateOptions: vi.fn(),
 }));
 
 vi.mock("@/lib/actions/cards", () => ({ createCard, updateCard }));
 vi.mock("@/i18n/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
+
+// The real hook needs a QueryClient and would refetch; this spec only
+// cares that a successful save asks the cached option lists to drop.
+vi.mock("@/hooks/use-async-options", () => ({
+  useInvalidateAsyncOptions: () => invalidateOptions,
+}));
 
 import { CardForm } from "@/components/cards/card-form";
 
@@ -29,8 +36,21 @@ describe("CardForm", () => {
     updateCard.mockReset();
     replace.mockReset();
     refresh.mockReset();
+    invalidateOptions.mockReset();
     createCard.mockResolvedValue({ success: true });
     updateCard.mockResolvedValue({ success: true });
+  });
+
+  // A card saved here is expected in the transaction form's card field on
+  // the very next click, not after its cached page goes stale.
+  it("drops the cached option lists after a successful save", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<CardForm mode="create" defaultValues={defaultValues} />);
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /create card/i }));
+
+    await waitFor(() => expect(invalidateOptions).toHaveBeenCalled());
   });
 
   it("blocks submission and never calls the action when the name is too short", async () => {

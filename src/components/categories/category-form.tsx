@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconPicker } from "@/components/categories/icon-picker";
+import { useInvalidateAsyncOptions } from "@/hooks/use-async-options";
 import { useRouter } from "@/i18n/navigation";
 import { createCategory, updateCategory } from "@/lib/actions/categories";
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON, isCategoryIcon } from "@/lib/category-icons";
@@ -31,6 +32,7 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
   // itself — see the header comment in `src/lib/actions/categories.ts`.
   const locale = useLocale();
   const router = useRouter();
+  const invalidateOptions = useInvalidateAsyncOptions();
   const [formError, setFormError] = useState<string | null>(null);
 
   // Rebuilt when the translator changes — which is when the locale changes.
@@ -74,6 +76,11 @@ export function CategoryForm({ mode, categoryId, defaultValues }: CategoryFormPr
       setFormError(result.error);
       return;
     }
+
+    // The category dropdowns cache their pages; without this, a category
+    // saved here is missing from the transaction form's field until the
+    // cached page goes stale.
+    void invalidateOptions();
 
     // `replace`, not `push`: the form must not stay in the history stack, or
     // Back returns the user to a form they have finished with.

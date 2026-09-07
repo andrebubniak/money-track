@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useInvalidateAsyncOptions } from "@/hooks/use-async-options";
 import { Link } from "@/i18n/navigation";
 import { deleteCard } from "@/lib/actions/cards";
 
@@ -43,6 +44,7 @@ export function CardRowActions({ cardId }: CardRowActionsProps) {
   // Passed to the action explicitly: a Server Action cannot resolve the locale
   // itself — see the header comment in `src/lib/actions/cards.ts`.
   const locale = useLocale();
+  const invalidateOptions = useInvalidateAsyncOptions();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -57,6 +59,9 @@ export function CardRowActions({ cardId }: CardRowActionsProps) {
         return;
       }
 
+      // A deactivated card must stop appearing in the dropdowns that list
+      // it, not linger until their cached page goes stale.
+      void invalidateOptions();
       setDeleteOpen(false);
     });
   }

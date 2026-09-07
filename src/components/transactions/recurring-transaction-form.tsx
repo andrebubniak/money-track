@@ -30,7 +30,7 @@ import {
 	createRecurringTransaction,
 	updateRecurringTransaction,
 } from "@/lib/actions/recurring-transactions";
-import type { ComboboxOption } from "@/lib/options";
+import { comboboxOptionAccessors, type ComboboxOption } from "@/lib/options";
 import {
 	RECURRING_FREQUENCIES,
 	type RecurringFrequency,
@@ -264,7 +264,8 @@ export function RecurringTransactionForm({
 				<Label htmlFor="categoryId" required>
 					{t("categoryLabel")}
 				</Label>
-				<AsyncCombobox
+				<AsyncCombobox<ComboboxOption>
+					{...comboboxOptionAccessors}
 					id="categoryId"
 					endpoint="/api/categories/options"
 					value={categoryId}
@@ -287,7 +288,8 @@ export function RecurringTransactionForm({
 			{type === "EXPENSE" && (
 				<div className="col-span-12 flex flex-col gap-2 lg:col-span-6">
 					<Label htmlFor="cardId">{t("cardLabel")}</Label>
-					<AsyncCombobox
+					<AsyncCombobox<ComboboxOption>
+						{...comboboxOptionAccessors}
 						id="cardId"
 						endpoint="/api/cards/options"
 						value={cardId ?? null}

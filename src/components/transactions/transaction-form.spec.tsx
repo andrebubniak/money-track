@@ -162,7 +162,9 @@ describe("TransactionForm", () => {
   it("shows a preselected category without fetching", () => {
     render();
 
-    expect(screen.getByLabelText(/Category/)).toHaveValue("Food");
+    // Text content, not `value`: the field is the combobox's trigger button,
+    // with the search input living inside the popup.
+    expect(screen.getByLabelText(/Category/)).toHaveTextContent("Food");
   });
 
   it("caps the transaction date at today", async () => {

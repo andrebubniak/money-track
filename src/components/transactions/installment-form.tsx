@@ -28,7 +28,7 @@ import {
 import { useRouter } from "@/i18n/navigation";
 import { createInstallmentPlan } from "@/lib/actions/installments";
 import { formatDate } from "@/lib/format";
-import type { ComboboxOption } from "@/lib/options";
+import { comboboxOptionAccessors, type ComboboxOption } from "@/lib/options";
 import {
 	MAX_INSTALLMENT_OCCURRENCES,
 	RECURRING_FREQUENCIES,
@@ -275,7 +275,8 @@ export function InstallmentForm({
 				<Label htmlFor="categoryId" required>
 					{t("categoryLabel")}
 				</Label>
-				<AsyncCombobox
+				<AsyncCombobox<ComboboxOption>
+					{...comboboxOptionAccessors}
 					id="categoryId"
 					endpoint="/api/categories/options"
 					value={categoryId}
@@ -298,7 +299,8 @@ export function InstallmentForm({
 			{type === "EXPENSE" && (
 				<div className="col-span-12 flex flex-col gap-2 lg:col-span-6">
 					<Label htmlFor="cardId">{t("cardLabel")}</Label>
-					<AsyncCombobox
+					<AsyncCombobox<ComboboxOption>
+						{...comboboxOptionAccessors}
 						id="cardId"
 						endpoint="/api/cards/options"
 						value={cardId ?? null}

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useInvalidateAsyncOptions } from "@/hooks/use-async-options";
 import { useRouter } from "@/i18n/navigation";
 import { createCard, updateCard } from "@/lib/actions/cards";
 import { createCardSchema, type CardType, type CardValues } from "@/lib/validations/card";
@@ -30,6 +31,7 @@ export function CardForm({ mode, cardId, defaultValues }: CardFormProps) {
   // itself — see the header comment in `src/lib/actions/cards.ts`.
   const locale = useLocale();
   const router = useRouter();
+  const invalidateOptions = useInvalidateAsyncOptions();
   const [formError, setFormError] = useState<string | null>(null);
 
   // Rebuilt when the translator changes — which is when the locale changes.
@@ -78,6 +80,11 @@ export function CardForm({ mode, cardId, defaultValues }: CardFormProps) {
       setFormError(result.error);
       return;
     }
+
+    // The card dropdowns cache their pages; without this, a card saved here
+    // is missing from the transaction form's field until the cached page
+    // goes stale.
+    void invalidateOptions();
 
     // `replace`, not `push`: the form must not stay in the history stack, or
     // Back returns the user to a form they have finished with.

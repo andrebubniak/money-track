@@ -66,19 +66,24 @@ function ComboboxInput({
         render={<InputGroupInput disabled={disabled} />}
         {...props}
       />
-      <InputGroupAddon align="inline-end">
-        {showTrigger && (
-          <InputGroupButton
-            size="icon-xs"
-            variant="ghost"
-            render={<ComboboxTrigger />}
-            data-slot="input-group-button"
-            className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
-            disabled={disabled}
-          />
-        )}
-        {showClear && <ComboboxClear disabled={disabled} />}
-      </InputGroupAddon>
+      {/* Only when it has something in it: an empty addon still contributes
+          its own `pr-2` and retunes the input's padding through
+          `InputGroup`'s `has-[>[data-align=inline-end]]` rule. */}
+      {(showTrigger || showClear) && (
+        <InputGroupAddon align="inline-end">
+          {showTrigger && (
+            <InputGroupButton
+              size="icon-xs"
+              variant="ghost"
+              render={<ComboboxTrigger />}
+              data-slot="input-group-button"
+              className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
+              disabled={disabled}
+            />
+          )}
+          {showClear && <ComboboxClear disabled={disabled} />}
+        </InputGroupAddon>
+      )}
       {children}
     </InputGroup>
   )
@@ -279,6 +284,7 @@ function useComboboxAnchor() {
 
 export {
   Combobox,
+  ComboboxClear,
   ComboboxInput,
   ComboboxContent,
   ComboboxList,
